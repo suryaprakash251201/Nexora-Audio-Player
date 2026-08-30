@@ -85,6 +85,9 @@ export interface Playlist {
   created_at: string;
   updated_at: string;
   items: PlaylistItem[];
+  owner_username?: string;
+  is_owner?: boolean;
+  can_edit?: boolean;
 }
 
 export interface PlaylistMutationResponse {

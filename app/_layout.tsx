@@ -10,10 +10,12 @@ import { PlaybackProvider } from "@/store/PlaybackContext";
 import { DspProvider } from "@/store/DspContext";
 import { DownloadsProvider } from "@/store/DownloadsContext";
 import { SyncProvider } from "@/store/SyncContext";
+import { View } from "react-native";
 import { colors } from "@/ui/theme";
 import { TrackPlayer } from "@/audio/trackPlayerShim";
 import { PlaybackService } from "@/audio/playbackService";
 import { Platform } from "react-native";
+import MiniPlayerBar from "@/ui/MiniPlayerBar";
 
 if (Platform.OS !== "web") {
   try {
@@ -35,30 +37,34 @@ export default function RootLayout() {
                   <DspProvider>
                     <PlaybackProvider>
                       <StatusBar style="light" />
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: colors.bg },
-                          animation: "fade",
-                        }}
-                      >
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen
-                          name="track/[id]"
-                          options={{
-                            presentation: "transparentModal",
+                      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.bg },
                             animation: "fade",
                           }}
-                        />
-                        <Stack.Screen
-                          name="dsp"
-                          options={{ presentation: "modal" }}
-                        />
-                        <Stack.Screen
-                          name="info/[id]"
-                          options={{ presentation: "modal" }}
-                        />
-                      </Stack>
+                        >
+                          <Stack.Screen name="(tabs)" />
+                          <Stack.Screen name="login" options={{ presentation: "modal", headerShown: false }} />
+                          <Stack.Screen
+                            name="track/[id]"
+                            options={{
+                              presentation: "transparentModal",
+                              animation: "fade",
+                            }}
+                          />
+                          <Stack.Screen
+                            name="dsp"
+                            options={{ presentation: "modal" }}
+                          />
+                          <Stack.Screen
+                            name="info/[id]"
+                            options={{ presentation: "modal" }}
+                          />
+                        </Stack>
+                        <MiniPlayerBar />
+                      </View>
                     </PlaybackProvider>
                   </DspProvider>
                 </DownloadsProvider>

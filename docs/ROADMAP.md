@@ -11,13 +11,15 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - Android debug APK builds (`expo prebuild --platform android && cd android && ./gradlew assembleDebug`)
 - iOS bundle prebuild (`expo prebuild --platform ios`)
 
-## M2 — Unified library model  ⬜
-- `MusicTrack` interface (source, ids, fingerprint, codec info, art, state)
-- `NexoraLibrary` resolver using upstream `/search?kind=audio` + `/recents`
-- `DeviceLibrary` resolver using `expo-media-library`
-- `OfflineLibrary` resolver from SQLite downloads table
-- Fingerprint dedup pass
-- Home screen sections: Albums / Artists / Genres / Recently Added
+## M2 — Unified library model  ✅ (this commit)
+- `MusicTrack` unified model with source discrimination (NEXORA_REMOTE / DEVICE_LOCAL / NEXORA_OFFLINE)
+- `src/library/mapper.ts` (FileItem/SearchResult → MusicTrack, AudioInfo enrichment, device asset mapper)
+- `src/library/nexora.ts` (paginated `/search?kind=audio` fetcher, album/artist/genre groupers)
+- `src/library/device.ts` (expo-media-library resolver, permission-aware, platform-guarded)
+- `src/library/offline.ts` (SQLite stub wired into pipeline for M4)
+- `src/library/dedupe.ts` (priority offline>device>remote, fuzzy textual key, stable display sort)
+- `src/lib/cleanTitle.ts` (track-title normaliser)
+- Real screens: Home (stats, recents, albums, artists), Library (All/Nexora/On Device/Downloads/Favorites/Recent with permission prompt), Search (debounced global), Playlists (read-only mirror), Login modal (server URL + user + TOTP), Settings (server + sign-out)
 
 ## M3 — Playlist sync  ⬜
 - `SyncManager`: queue + push/pull + retry + backoff
