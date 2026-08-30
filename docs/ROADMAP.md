@@ -21,11 +21,12 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - `src/lib/cleanTitle.ts` (track-title normaliser)
 - Real screens: Home (stats, recents, albums, artists), Library (All/Nexora/On Device/Downloads/Favorites/Recent with permission prompt), Search (debounced global), Playlists (read-only mirror), Login modal (server URL + user + TOTP), Settings (server + sign-out)
 
-## M3 — Playlist sync  ⬜
-- `SyncManager`: queue + push/pull + retry + backoff
-- Local SQLite cache of playlists (mirror of server schema + `client_revision`)
-- Conflict detection: compare `updated_at`, prompt user (keep-mine / keep-server / merge) when both sides moved
-- UI states: Synced / Syncing / Offline / Conflict
+## M3 — Playlist sync  ✅ (this commit)
+- `src/sync/types.ts` + `queue.ts` (durable `sync_ops` queue with exponential backoff, survives restart)
+- `src/sync/playlistStore.ts` (SQLite mirror: `playlists` + `playlist_items`, `server_updated_at` vs `client_revision`)
+- `src/sync/manager.ts` (SyncManager: pull→merge, push in order, `updated_at`-based conflict detection, three resolution strategies: keep_mine/keep_server/merge)
+- `src/store/PlaylistContext.tsx` (optimistic local apply + enqueue + fire-and-forget sync, live `playlists` from SQLite, `syncStatus` + `pendingOps` + conflicts)
+- Playlists screens rewritten: create modal, rename/delete overflow, `SyncPill` (Synced/Syncing/Offline/Conflict), conflict banner with three buttons, add-tracks picker, remove/move-to-top, pull-to-sync, offline-queue banner
 
 ## M4 — Offline downloads  ⬜
 - `DownloadManager`: state machine {REMOTE, DOWNLOADING, AVAILABLE_OFFLINE, FAILED}

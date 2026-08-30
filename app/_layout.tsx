@@ -7,6 +7,7 @@ import { SessionProvider } from "@/store/SessionContext";
 import { ThemeProvider } from "@/store/ThemeContext";
 import { LibraryProvider } from "@/store/LibraryContext";
 import { PlaybackProvider } from "@/store/PlaybackContext";
+import { PlaylistProvider } from "@/store/PlaylistContext";
 import { DspProvider } from "@/store/DspContext";
 import { DownloadsProvider } from "@/store/DownloadsContext";
 import { SyncProvider } from "@/store/SyncContext";
@@ -33,9 +34,10 @@ export default function RootLayout() {
           <SessionProvider>
             <SyncProvider>
               <LibraryProvider>
-                <DownloadsProvider>
-                  <DspProvider>
-                    <PlaybackProvider>
+                <PlaylistProvider>
+                  <DownloadsProvider>
+                    <DspProvider>
+                      <PlaybackProvider>
                       <StatusBar style="light" />
                       <View style={{ flex: 1, backgroundColor: colors.bg }}>
                         <Stack
@@ -66,8 +68,9 @@ export default function RootLayout() {
                         <MiniPlayerBar />
                       </View>
                     </PlaybackProvider>
-                  </DspProvider>
-                </DownloadsProvider>
+                    </DspProvider>
+                  </DownloadsProvider>
+                </PlaylistProvider>
               </LibraryProvider>
             </SyncProvider>
           </SessionProvider>
