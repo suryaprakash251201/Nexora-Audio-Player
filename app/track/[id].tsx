@@ -11,6 +11,7 @@ import { usePlayback } from "@/store/PlaybackContext";
 import NowPlayingArtwork from "@/ui/NowPlayingArtwork";
 import { WaveformSeekBar } from "@/ui/Waveform";
 import { TechnicalBadge } from "@/ui/QualityBadge";
+import { SpectrumBars } from "@/ui/Spectrum";
 
 function fmtTime(sec: number): string {
   if (!sec || !isFinite(sec)) return "0:00";
@@ -58,6 +59,7 @@ export default function NowPlayingScreen() {
 
   const isShuffle = playback.shuffle;
   const repeat = playback.repeat;
+  const [showSpectrum, setShowSpectrum] = React.useState(false);
 
   return (
     <View style={styles.root}>
@@ -111,17 +113,27 @@ export default function NowPlayingScreen() {
 
           {/* Waveform / seek */}
           <View style={{ gap: 6 }}>
-            <WaveformSeekBar
-              progress={progress}
-              duration={playback.duration || track.metadata.durationSec || 0}
-              seed={track.id}
-              onSeek={onSeekRatio}
-            />
+            <Pressable onPress={() => setShowSpectrum((v) => !v)}>
+              <WaveformSeekBar
+                progress={progress}
+                duration={playback.duration || track.metadata.durationSec || 0}
+                seed={track.id}
+                onSeek={onSeekRatio}
+              />
+              <Text style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, textAlign: "center", marginTop: 2 }}>
+                Tap waveform to {showSpectrum ? "hide" : "show"} spectrum · tap bar to seek
+              </Text>
+            </Pressable>
             <View style={styles.timeRow}>
               <Text style={styles.time}>{fmtTime(playback.currentTime)}</Text>
               <TechnicalBadge track={track} />
               <Text style={styles.time}>{fmtTime(playback.duration || track.metadata.durationSec || 0)}</Text>
             </View>
+            {showSpectrum ? (
+              <View style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" }}>
+                <SpectrumBars seed={track.id} estimated barCount={32} />
+              </View>
+            ) : null}
           </View>
 
           {/* Main controls */}

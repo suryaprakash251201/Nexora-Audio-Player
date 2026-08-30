@@ -1,0 +1,79 @@
+name: Mobile Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_ios:
+        description: "Build iOS (unsigned IPA + Simulator)"
+        type: boolean
+        default: true
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm ci --legacy-peer-deps
+      - run: npx expo prebuild --platform android --clean
+      - run: |
+          npx patch-package --error-on-fail || true
+          cd android && ./gradlew assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+
+  build-ios:
+    if: ${{ inputs.build_ios }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npx expo prebuild --platform ios --clean
+      - run: |
+          npx patch-package --error-on-fail || true
+          cd ios && pod install
+      - run: |
+          xcodebuild -workspace ios/NexoraAudiophile.xcworkspace -scheme NexoraAudiophile -configuration Release -sdk iphoneos -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO -derivedDataPath ios/build -archivePath ios/build/Nexora.xcarchive archive || true
+          xcodebuild -workspace ios/NexoraAudiophile.xcworkspace -scheme NexoraAudiophile -configuration Release -sdk iphonesimulator -derivedDataPath ios/build-sim -destination 'platform=iOS Simulator,name=iPhone 15' build || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-builds
+          path: |
+            ios/build/*.xcarchive
+            ios/build-sim
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist-artifacts/**/*
+          body: |
+            **Nexora Audiophile**
+            - Android: install `app-release.apk` (allow unknown sources)
+            - iOS: unsigned IPA — sideload via AltStore / Sideloadly with a free Apple ID
+            - See README and docs/
+

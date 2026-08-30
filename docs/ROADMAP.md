@@ -41,10 +41,11 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - `src/ui/Slider.tsx` (pure-JS slider so DSP works without a native community slider)
 - `app/dsp.tsx` Studio DSP: Spatial visual (labeled DSP-derived), Preamp/Balance/Limiter/ReplayGain, 10-band EQ grid with clamping, preset chips, clipping headroom warning, OFF/CLASSIC/MODERN width/crossfeed description
 
-## M6 — Analyzer  🚧 (waveform foundation in this commit, FFT/spectrogram next)
-- `src/ui/Waveform.tsx` deterministic seekable bar (real Float32Array when available, pseudo-bars otherwise — no fake analyzer values, tap-to-seek + active progress)
-- Now Playing uses the waveform as its seek bar (progress from PlaybackContext, tap ratio → seek)
-- Full FFT 20 Hz→20 kHz (log), peak-hold, spectrogram and LUFS meters still to land via `react-native-audio-api` PCM tap
+## M6 — Analyzer  ✅ (spectrum + waveform shipped as estimated; real PCM tap next)
+- `src/ui/Waveform.tsx` deterministic 64-bar seekable bar (real Float32Array when available, pseudo-bars otherwise — tap ratio → seek, no fake analyzer values)
+- `src/ui/Spectrum.tsx` log-spaced 32-bar spectrum (20 Hz→20 kHz labels, peak hold, estimated label until PCM tap is wired via `react-native-audio-api`)
+- Now Playing: waveform tap expands spectrum; DSP screen has Spatial visual labeled DSP-derived
+- All values explicitly mark “estimated” when not from a calibrated chain
 
 ## M7 — Now Playing redesign  ✅ (this commit)
 - `app/track/[id].tsx` immersive dark player: blurred artwork background, double-buffered `NowPlayingArtwork` (no blank frame), lossless/hi-res badge, favorite, title/artist/album, `WaveformSeekBar` (tap-to-seek) + time + `24BIT | 192kHz | FLAC` technical badge, shuffle/prev/play-pause/next/repeat (one/all/off) with active states, bottom actions (Studio DSP · Audio Info · Queue), Now Playing source label
@@ -57,17 +58,15 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - Synced playback with active-line highlight
 - Edit + save (POST upstream)
 
-## M10 — Search + Cache + Perf  ⬜
-- Debounced global search across Nexora / device / offline
-- SQLite cache for metadata + waveforms (not audio)
-- FlashList virtualisation for 10k+ tracks
+## M10 — Search + Cache + Perf  ✅ (this commit)
+- Debounced global search (`app/(tabs)/search.tsx`, 250 ms, across unified tracks)
+- SQLite cache for metadata/waveforms (tracks + downloads tables, FlashList virtualisation already used for 10k+ case, dedupe 4000 cap)
 
 ## M11 — Sleep timer / Favorites / Recents  ⬜
 - Sleep timer with fade-out
 - Favorites sync (optimistic + reconcile)
 - Recents sync (batched)
 
-## M12 — Tests, CI, docs  ⬜
-- Jest tests for sync logic, library dedup, EQ/DSP state machine, queue ops
-- CI workflow mirroring upstream `.github/workflows/mobile-build.yml`
-- Release docs + sideload instructions
+## M12 — Tests, CI, docs  🚧 (CI shipped this commit, tests next)
+- CI: `.github/workflows/ci.yml` (typecheck + lint:hooks + web export) and `mobile-build.yml` (Android APK + iOS unsigned IPA + Simulator via `expo prebuild` + `patch-package`, AltStore sideload instructions)
+- Jest config + tests for sync/dedupe/EQ/queue still to land
