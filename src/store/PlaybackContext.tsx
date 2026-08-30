@@ -112,9 +112,12 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const setRepeat = useCallback((v: RepeatMode) => setRepeatState(v), []);
 
   const resolveUrl = useCallback(async (t: MusicTrack, sessionId: string): Promise<string | null> => {
-    // Downloaded/for-offline tracks use their local URI directly.
+    // Prefer any available download (even for REMOTE tracks that have been cached)
+    const offlineUri = (t.download?.localUri || t.localUri) ?? null;
+    if (offlineUri) return offlineUri;
+    // For cached NEXORA_OFFLINE tracks the above already returns.
     if (t.localUri && t.source !== "NEXORA_REMOTE") return t.localUri;
-    if (!api || !t.serverId) return null;
+    if (!api || !t.serverId) return t.localUri ?? null;
     try {
       return await resolveStreamUrl(api, t.serverId.rootId, t.serverId.path, {
         extension: t.serverId.path.split(".").pop(),

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/ui/theme";
 import { useLibrary } from "@/store/LibraryContext";
 import { usePlayback } from "@/store/PlaybackContext";
+import { useDownloads } from "@/store/DownloadsContext";
 import { requestDevicePermission } from "@/library/device";
 import { SegmentedControl } from "@/ui/SegmentedControl";
 import { TrackRow } from "@/ui/TrackRow";
@@ -29,6 +30,7 @@ function filterForTab(tracks: MusicTrack[], tab: Tab): MusicTrack[] {
 export default function LibraryScreen() {
   const lib = useLibrary();
   const playback = usePlayback();
+  const downloads = useDownloads();
   const [tab, setTab] = useState<Tab>("all");
 
   const list = useMemo(() => {
@@ -102,11 +104,12 @@ export default function LibraryScreen() {
         <ConnectBanner compact />
       ) : null}
 
-      {tab === "offline" ? (
-        <View style={{ padding: 16 }}>
+      {tab === "offline" && !lib.bySource.offline.length ? (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Offline playback</Text>
-            <Text style={styles.cardBody}>Download Nexora tracks for airplane mode. Available in M4 — downloads are queued and `NEXORA_OFFLINE` tracks appear here.</Text>
+            <Text style={styles.cardBody}>Download Nexora tracks for airplane mode. Tap Download on any Nexora track, or use “Download playlist” in a playlist.</Text>
+            <Text style={styles.hint}>Downloads are stored in app storage and play without network — streaming uses HTTP range, downloaded files play from disk.</Text>
           </View>
         </View>
       ) : null}
@@ -117,14 +120,32 @@ export default function LibraryScreen() {
           keyExtractor={(item) => item.id}
           
           refreshControl={<RefreshControl refreshing={lib.loading} onRefresh={() => void lib.refresh()} tintColor={colors.text} />}
-          renderItem={({ item }) => (
-            <TrackRow
-              track={item}
-              active={playback.current?.id === item.id}
-              onPress={() => onPlay(item)}
-              onMore={() => router.push({ pathname: "/info/[id]", params: { id: encodeURIComponent(item.id) } })}
-            />
-          )}
+          renderItem={({ item }) => {
+            const dlState = downloads.stateByTrackId[item.id] ?? (item.source === "NEXORA_OFFLINE" ? "AVAILABLE_OFFLINE" : undefined);
+            const dlProg = downloads.progressByTrackId[item.id] ?? (dlState === "DOWNLOADING" ? 0.5 : undefined);
+            return (
+              <TrackRow
+                track={item}
+                active={playback.current?.id === item.id}
+                downloadState={dlState as any}
+                downloadProgress={dlProg}
+                onPress={() => onPlay(item)}
+                onMore={() => {
+                  const isRemote = item.source === "NEXORA_REMOTE" && !!item.serverId;
+                  const isOffline = dlState === "AVAILABLE_OFFLINE" || item.source === "NEXORA_OFFLINE";
+                  const isDownloading = dlState === "DOWNLOADING";
+                  Alert.alert(item.title, isDownloading ? `Downloading… ${Math.round((dlProg ?? 0) * 100)}%` : isOffline ? "Available offline" : "Options", [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Play", onPress: () => onPlay(item) },
+                    ...(isRemote && !isOffline && !isDownloading ? [{ text: "Download", onPress: () => void downloads.download(item).catch((e) => Alert.alert("Download failed", String(e?.message || e))) } as const] : []),
+                    ...(isOffline ? [{ text: "Remove download", style: "destructive" as const, onPress: () => void downloads.remove(item.id) } as const] : []),
+                    ...(isDownloading ? [{ text: "Cancel download", style: "destructive" as const, onPress: () => void downloads.remove(item.id) } as const] : []),
+                    { text: "Details", onPress: () => router.push({ pathname: "/info/[id]", params: { id: encodeURIComponent(item.id) } }) },
+                  ]);
+                }}
+              />
+            );
+          }}
           ListEmptyComponent={
             lib.loading ? (
               <View style={styles.loading}>
@@ -163,6 +184,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.bgRaised, borderWidth: 1, borderColor: colors.hairline, borderRadius: 14, padding: 16, gap: 8 },
   cardTitle: { color: colors.text, fontWeight: "800", fontSize: 14 },
   cardBody: { color: colors.textMuted, fontSize: 12, lineHeight: 16 },
+  hint: { color: colors.textMuted, fontSize: 11, lineHeight: 14 },
   loading: { padding: 24, alignItems: "center" },
   loadingText: { color: colors.textMuted, fontSize: 13 },
 });

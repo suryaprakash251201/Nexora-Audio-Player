@@ -26,11 +26,15 @@ function TrackRowInner({
   onPress,
   onMore,
   active,
+  downloadState,
+  downloadProgress,
 }: {
   track: MusicTrack;
   onPress?: () => void;
   onMore?: () => void;
   active?: boolean;
+  downloadState?: "REMOTE" | "DOWNLOADING" | "AVAILABLE_OFFLINE" | "FAILED";
+  downloadProgress?: number;
 }) {
   const art = track.artwork.url;
   return (
@@ -58,6 +62,12 @@ function TrackRowInner({
           <Text style={styles.meta}>{formatDuration(track.metadata.durationSec)} · {(track.metadata.codec as string) || "AUDIO"}</Text>
           <View style={{ width: 6 }} />
           <QualityBadge track={track} compact />
+          {downloadState === "AVAILABLE_OFFLINE" ? <Ionicons name="download" size={12} color="#22C55E" /> : null}
+          {downloadState === "DOWNLOADING" ? <Ionicons name="sync" size={12} color="#F5C451" /> : null}
+          {downloadState === "FAILED" ? <Ionicons name="alert-circle" size={12} color="#F87171" /> : null}
+          {downloadState === "DOWNLOADING" && typeof downloadProgress === "number" ? (
+            <Text style={[styles.meta, { color: "#F5C451" }]}>{Math.round(downloadProgress * 100)}%</Text>
+          ) : null}
         </View>
       </View>
 

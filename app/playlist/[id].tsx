@@ -7,6 +7,7 @@ import { colors } from "@/ui/theme";
 import { usePlaylists } from "@/store/PlaylistContext";
 import { useLibrary } from "@/store/LibraryContext";
 import { usePlayback } from "@/store/PlaybackContext";
+import { useDownloads } from "@/store/DownloadsContext";
 import { TrackRow } from "@/ui/TrackRow";
 import { EmptyState } from "@/ui/EmptyState";
 import { SearchBar } from "@/ui/SearchBar";
@@ -18,6 +19,7 @@ export default function PlaylistDetailScreen() {
   const pl = usePlaylists();
   const lib = useLibrary();
   const playback = usePlayback();
+  const downloads = useDownloads();
   const [q, setQ] = useState("");
   const [pickMode, setPickMode] = useState(false);
 
@@ -62,6 +64,13 @@ export default function PlaylistDetailScreen() {
         <Pressable onPress={() => setPickMode((v) => !v)} style={[s.smallBtn, pickMode && { backgroundColor: colors.accent }]}>
           <Ionicons name="add" size={14} color={pickMode ? "#fff" : colors.text} />
           <Text style={[s.smallBtnLabel, pickMode && { color: "#fff" }]}>{pickMode ? "Done" : "Add tracks"}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => void downloads.downloadMany(playlistTracks).catch((e) => Alert.alert("Download failed", String(e?.message || e)))}
+          style={[s.smallBtn, { backgroundColor: "rgba(34,197,94,0.12)", borderColor: "rgba(34,197,94,0.22)" }]}
+        >
+          <Ionicons name="download-outline" size={14} color="#22C55E" />
+          <Text style={[s.smallBtnLabel, { color: "#22C55E" }]}>Download</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -117,29 +126,39 @@ export default function PlaylistDetailScreen() {
         <FlashList
           data={playlistTracks}
           keyExtractor={(t) => t.id}
-          renderItem={({ item, index }) => (
-            <TrackRow
-              track={item}
-              active={playback.current?.id === item.id}
-              onPress={() => onPlay(item)}
-              onMore={() => {
-                Alert.alert(item.title, undefined, [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Play next", onPress: () => { const mt = lib.tracks.find((x) => x.id === item.id) ?? item; void playback.playNext(mt as any); } },
-                  { text: "Remove from playlist", style: "destructive", onPress: () => {
-                    const pidItem = playlist.items[index];
-                    if (pidItem) void pl.removeItem(playlist.id, pidItem.id);
-                  }},
-                  // M3 reorder is exposed as move-to-top / move-to-bottom for simplicity
-                  { text: "Move to top", onPress: () => {
-                    const ids = playlist.items.map((it) => it.id);
-                    const cur = ids[index];
-                    if (cur != null) { ids.splice(index, 1); ids.unshift(cur); void pl.reorder(playlist.id, ids); }
-                  }},
-                ]);
-              }}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const dlState = downloads.stateByTrackId[item.id] as any;
+            const dlProg = downloads.progressByTrackId[item.id];
+            return (
+              <TrackRow
+                track={item}
+                active={playback.current?.id === item.id}
+                downloadState={dlState}
+                downloadProgress={dlProg}
+                onPress={() => onPlay(item)}
+                onMore={() => {
+                  const isDL = dlState === "AVAILABLE_OFFLINE";
+                  const isDownloading = dlState === "DOWNLOADING";
+                  Alert.alert(item.title, isDownloading ? `Downloading ${Math.round((dlProg ?? 0)*100)}%` : isDL ? "Available offline" : undefined, [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Play", onPress: () => onPlay(item) },
+                    { text: "Play next", onPress: () => { const mt = lib.tracks.find((x) => x.id === item.id) ?? item; void playback.playNext(mt as any); } },
+                    ...(!isDL && !isDownloading && item.serverId ? [{ text: "Download", onPress: () => void downloads.download(item).catch((e)=>Alert.alert("Download failed", String(e?.message||e))) } as const] : []),
+                    ...(isDL ? [{ text: "Remove download", style: "destructive" as const, onPress: () => void downloads.remove(item.id) } as const] : []),
+                    { text: "Remove from playlist", style: "destructive", onPress: () => {
+                      const pidItem = playlist.items[index];
+                      if (pidItem) void pl.removeItem(playlist.id, pidItem.id);
+                    }},
+                    { text: "Move to top", onPress: () => {
+                      const ids = playlist.items.map((it) => it.id);
+                      const cur = ids[index];
+                      if (cur != null) { ids.splice(index, 1); ids.unshift(cur); void pl.reorder(playlist.id, ids); }
+                    }},
+                  ]);
+                }}
+              />
+            );
+          }}
           ListEmptyComponent={<EmptyState title="Empty playlist" subtitle="Add tracks with “Add tracks” above. Changes are queued and sync when online." />}
         />
       )}
