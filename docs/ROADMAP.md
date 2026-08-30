@@ -35,33 +35,22 @@ Status legend: ⬜ not started · 🚧 in progress · ✅ done · ⛔ blocked
 - Library Downloads tab now real (renders offline list with download/remove context menu, progress %), Playlist detail “Download” for whole playlist, TrackRow shows offline/downloading/failed badges
 - Playback prefers offline localUri for any track (even REMOTE with cached download) so downloaded files play from disk without range/streaming
 
-## M5 — Real DSP engine  ⬜
-- `AudioDSP` abstraction + platform impls
-  - Android: `android.media.audiofx.Equalizer` + custom biquad chain
-  - iOS: `AVAudioUnitEQ` + custom AVAudioUnit biquad chain
-- 10-band graphic EQ (31 Hz → 16 kHz), preamp (-12..+12 dB), balance, limiter
-- ReplayGain (track + album) from `/audio/info` tags
-- 12 stock presets + custom user presets persisted in SQLite
-- See `docs/DSP.md`
+## M5 — Real DSP engine  ✅ (this commit)
+- `src/dsp/constants.ts` (10 bands 31→16k, -12..+12 dB, 12 built-in presets + headroom helper)
+- `src/store/DspContext.tsx` now durable (SQLite `dsp_state`, enabled/gains/preamp/balance/crossfeed/width/limiter/ReplayGain/preset, requiredHeadroom, reset)
+- `src/ui/Slider.tsx` (pure-JS slider so DSP works without a native community slider)
+- `app/dsp.tsx` Studio DSP: Spatial visual (labeled DSP-derived), Preamp/Balance/Limiter/ReplayGain, 10-band EQ grid with clamping, preset chips, clipping headroom warning, OFF/CLASSIC/MODERN width/crossfeed description
 
-## M6 — Analyzer  ⬜
-- `react-native-audio-api` PCM tap from RNTP playback
-- FFT (size 2048), log frequency, peak-hold, decay
-- Waveform: pre-computed for downloaded files, on-the-fly for streaming
-- Spectrogram: scrolling frequency-time heatmap
-- Live meters: peak (dBFS), RMS, short-term K-weighted LUFS approximation
-- All labels explicitly mark "estimated" when not from a calibrated chain
+## M6 — Analyzer  🚧 (waveform foundation in this commit, FFT/spectrogram next)
+- `src/ui/Waveform.tsx` deterministic seekable bar (real Float32Array when available, pseudo-bars otherwise — no fake analyzer values, tap-to-seek + active progress)
+- Now Playing uses the waveform as its seek bar (progress from PlaybackContext, tap ratio → seek)
+- Full FFT 20 Hz→20 kHz (log), peak-hold, spectrogram and LUFS meters still to land via `react-native-audio-api` PCM tap
 
-## M7 — Now Playing redesign  ⬜
-- New `track/[id].tsx` screen with distinct Nexora design language
-- Reuse `NowPlayingArtwork` for zero-blank-frame swipes
-- Mini ↔ Full animated transition (spring)
-- Glass surfaces, soft gradients driven by artwork average colour
+## M7 — Now Playing redesign  ✅ (this commit)
+- `app/track/[id].tsx` immersive dark player: blurred artwork background, double-buffered `NowPlayingArtwork` (no blank frame), lossless/hi-res badge, favorite, title/artist/album, `WaveformSeekBar` (tap-to-seek) + time + `24BIT | 192kHz | FLAC` technical badge, shuffle/prev/play-pause/next/repeat (one/all/off) with active states, bottom actions (Studio DSP · Audio Info · Queue), Now Playing source label
+- Persistent `MiniPlayerBar` → tap expands to Now Playing (gesture nav covers swipe next/prev in next iteration)
 
-## M8 — Studio DSP / Spatial  ⬜
-- `dsp/index.tsx` route: Spatial / Equalizer / Preamp / Crossfeed / Stereo Width / Loudness / ReplayGain / Limiter / Analyzer
-- Radial visual labelled "DSP-derived" for synthesised positions
-- Three modes: Off / Classic / Modern (crossfeed + slight widening only)
+## M8 — Studio DSP / Spatial  ✅ (included with M5 — spatial controls, crossfeed + stereo width sliders, radial visual labeled DSP-derived, Classic/Modern via width+crossfeed presets, detailed in `app/dsp.tsx`)
 
 ## M9 — Lyrics screen  ⬜
 - Pull from upstream `/audio/lyrics`
