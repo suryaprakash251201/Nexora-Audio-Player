@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/errors/exceptions.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../dto/auth_dto.dart';
@@ -119,8 +120,8 @@ class AuthApi {
   Future<UserDto> me() async {
     // Real Nexora endpoint is /auth/session, not /auth/me
     final candidates = [
-      ApiConstants.me,
       '/auth/session',
+      ApiConstants.me,
       '/auth/me',
       '/api/auth/session',
     ];
@@ -143,12 +144,20 @@ class AuthApi {
           } else {
             json = raw;
           }
-          // handle wrapped {user: null} unauthenticated
-          if (json.isEmpty && raw['user'] == null) {
-            throw Exception('Unauthenticated');
+          // {user: null} means unauthenticated — treat as 401
+          if (raw['user'] == null && !json.containsKey('username')) {
+            final unauth = UnauthorizedException('Session expired');
+            throw unauth;
           }
-          return UserDto.fromJson(json);
+          final dto = UserDto.fromJson(json);
+          // A valid user must have an id; otherwise treat as unauthenticated.
+          if (dto.id.isEmpty) {
+            throw UnauthorizedException('Session expired');
+          }
+          return dto;
         }
+      } on UnauthorizedException {
+        rethrow;
       } catch (e) {
         last = e is Exception ? e : Exception(e.toString());
         final msg = e.toString().toLowerCase();

@@ -1,52 +1,119 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
 import '../constants/app_constants.dart';
+import '../logging/app_logger.dart';
 
 final secureStorageProvider = Provider<SecureStorageService>((ref) {
   return SecureStorageService();
 });
 
+/// Wraps flutter_secure_storage with resilience against iOS Keychain
+/// errSecDuplicateItem (-25299): "The specified item already exists in the
+/// keychain." This happens when a key is written again after the underlying
+/// SecItem entry was created under a different accessibility class / data
+/// protection keychain, causing lookup-vs-add mismatch.
+///
+/// Strategy: on duplicate error -> delete the key, retry write; if it still
+/// fails, wipe all keys once (migration) and retry.
 class SecureStorageService {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
+  SecureStorageService() {
+    _storage = FlutterSecureStorage(
+      aOptions: const AndroidOptions(),
+      iOptions: const IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock,
+      ),
+    );
+  }
+
+  late final FlutterSecureStorage _storage;
+  bool _didWipe = false;
+
+  /// Duplicate-safe write. Never throws for -25299.
+  Future<void> _write(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value);
+    } on PlatformException catch (e) {
+      final duplicate =
+          e.code == '-25299' ||
+          (e.message ?? '').toLowerCase().contains('already exist');
+      if (!duplicate) rethrow;
+
+      AppLogger.auth('Keychain duplicate ($key) — deleting and retrying');
+      try {
+        await _storage.delete(key: key);
+      } catch (_) {}
+
+      try {
+        await _storage.write(key: key, value: value);
+      } on PlatformException {
+        // Last resort: wipe keychain entries created by this app once, then retry.
+        if (!_didWipe) {
+          _didWipe = true;
+          try {
+            await _storage.deleteAll();
+            AppLogger.auth('Keychain wiped for migration');
+          } catch (_) {}
+        }
+        await _storage.write(key: key, value: value);
+      }
+    }
+  }
 
   // Tokens
-  Future<void> saveToken(String token) async {
-    await _storage.write(key: AppConstants.tokenKey, value: token);
+  Future<void> saveToken(String token) => _write(AppConstants.tokenKey, token);
+
+  Future<String?> getToken() async {
+    try {
+      return await _storage.read(key: AppConstants.tokenKey);
+    } on PlatformException catch (e) {
+      AppLogger.auth('Token read failed: ${e.code} ${e.message}');
+      return null;
+    }
   }
 
-  Future<String?> getToken() async => _storage.read(key: AppConstants.tokenKey);
-
-  Future<void> deleteToken() async =>
-      _storage.delete(key: AppConstants.tokenKey);
-
-  Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: AppConstants.refreshTokenKey, value: token);
+  Future<void> deleteToken() async {
+    try {
+      await _storage.delete(key: AppConstants.tokenKey);
+    } catch (_) {}
   }
 
-  Future<String?> getRefreshToken() async =>
-      _storage.read(key: AppConstants.refreshTokenKey);
+  Future<void> saveRefreshToken(String token) =>
+      _write(AppConstants.refreshTokenKey, token);
 
-  Future<void> saveUserJson(String json) async {
-    await _storage.write(key: AppConstants.userKey, value: json);
+  Future<String?> getRefreshToken() async {
+    try {
+      return await _storage.read(key: AppConstants.refreshTokenKey);
+    } on PlatformException {
+      return null;
+    }
   }
 
-  Future<String?> getUserJson() async =>
-      _storage.read(key: AppConstants.userKey);
+  Future<void> saveUserJson(String json) => _write(AppConstants.userKey, json);
+
+  Future<String?> getUserJson() async {
+    try {
+      return await _storage.read(key: AppConstants.userKey);
+    } on PlatformException {
+      return null;
+    }
+  }
 
   // Server URL - normalized
   Future<void> saveServerUrl(String url) async {
     final normalized = AppConfig.normalizeUrl(url);
-    await _storage.write(key: AppConstants.serverUrlKey, value: normalized);
+    await _write(AppConstants.serverUrlKey, normalized);
   }
 
   /// Raw stored value (already normalized) or null.
   Future<String?> getServerUrl() async {
-    final stored = await _storage.read(key: AppConstants.serverUrlKey);
-    if (stored != null && stored.isNotEmpty) return stored;
+    try {
+      final stored = await _storage.read(key: AppConstants.serverUrlKey);
+      if (stored != null && stored.isNotEmpty) return stored;
+    } on PlatformException catch (e) {
+      AppLogger.auth('ServerUrl read failed: ${e.code}');
+    }
     final env = AppConfig.envBaseUrl;
     if (env.isNotEmpty) return AppConfig.normalizeUrl(env);
     final fallback = AppConfig.fallbackBaseUrl;
@@ -61,10 +128,32 @@ class SecureStorageService {
     return url.split('/api').first;
   }
 
-  Future<void> deleteServerUrl() async =>
-      _storage.delete(key: AppConstants.serverUrlKey);
+  Future<void> deleteServerUrl() async {
+    try {
+      await _storage.delete(key: AppConstants.serverUrlKey);
+    } catch (_) {}
+  }
 
-  Future<void> clearAll() async => _storage.deleteAll();
+  Future<void> clearAll() async {
+    try {
+      await _storage.deleteAll();
+    } on PlatformException catch (e) {
+      // On iOS duplicate-class wipe issues, delete known keys individually.
+      AppLogger.auth(
+        'clearAll failed (${e.code}) — deleting keys individually',
+      );
+      for (final k in [
+        AppConstants.tokenKey,
+        AppConstants.refreshTokenKey,
+        AppConstants.userKey,
+        AppConstants.serverUrlKey,
+      ]) {
+        try {
+          await _storage.delete(key: k);
+        } catch (_) {}
+      }
+    }
+  }
 
   Future<bool> hasSession() async {
     final token = await getToken();

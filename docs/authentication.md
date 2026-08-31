@@ -20,9 +20,15 @@ Login screen → user enters server URL + username/password
 ```
 
 ## Token Storage
-- `AndroidOptions(encryptedSharedPreferences: true)`
-- `IOSOptions(accessibility: first_unlock)`
+- `AndroidOptions()` (v11 defaults) and `IOSOptions(accessibility: first_unlock)`
 - Never in SharedPreferences or logs.
+- **iOS Keychain errSecDuplicateItem (-25299) hardening:** all writes go through a
+  duplicate-safe wrapper — on `-25299` the key is deleted and rewritten; if that
+  still fails the app wipes its own keychain entries once (migration) and retries.
+  Read failures are caught and return null so the app never crashes on launch.
+- Login flow clears the stale token before saving a new one; user JSON is saved
+  before tokens so a failed token write can't produce a half-session.
+- Login screen includes a "Clear stored session" action for recovery.
 
 ## Interceptor
 `ApiClient` attaches `Authorization: Bearer …` per request. On 401:

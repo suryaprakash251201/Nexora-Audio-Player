@@ -10,15 +10,24 @@ class Failure {
   const Failure(this.message, {this.code, this.statusCode});
 
   factory Failure.fromException(Object e) {
+    final raw = e.toString();
+    // iOS Keychain errSecDuplicateItem (-25299) or other secure-storage issues
+    if (raw.contains('-25299') ||
+        raw.toLowerCase().contains('keychain') ||
+        raw.toLowerCase().contains('security result')) {
+      return const Failure(
+        'Could not save credentials on this device (keychain error). Tap "Clear stored session" below and try again.',
+        code: 'KEYCHAIN_ERROR',
+      );
+    }
     if (e is ApiException) {
       return Failure(_userMessage(e), code: e.code, statusCode: e.statusCode);
     }
     // Unwrap stringified exceptions like "Exception: message"
-    final s = e.toString();
-    if (s.startsWith('Exception: ')) {
-      return Failure(s.substring(11));
+    if (raw.startsWith('Exception: ')) {
+      return Failure(raw.substring(11));
     }
-    return Failure(s);
+    return Failure(raw);
   }
 
   static String _userMessage(ApiException e) {

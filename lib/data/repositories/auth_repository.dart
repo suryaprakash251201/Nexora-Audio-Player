@@ -18,9 +18,8 @@ class AuthRepository {
 
   Future<User> login(String username, String password) async {
     final res = await _api.login(username: username, password: password);
-    await _storage.saveToken(res.accessToken);
-    if (res.refreshToken != null)
-      await _storage.saveRefreshToken(res.refreshToken!);
+    // Save in order: user json first (harmless), then tokens last so a
+    // keychain failure during token write doesn't leave a half-session.
     final user = res.user.toEntity();
     await _storage.saveUserJson(
       jsonEncode(
@@ -33,6 +32,10 @@ class AuthRepository {
         ).toJson(),
       ),
     );
+    await _storage.saveToken(res.accessToken);
+    if (res.refreshToken != null) {
+      await _storage.saveRefreshToken(res.refreshToken!);
+    }
     return user;
   }
 
@@ -40,7 +43,6 @@ class AuthRepository {
     try {
       await _api.logout();
     } finally {
-      await _storage.deleteToken();
       await _storage.clearAll();
     }
   }
@@ -50,16 +52,23 @@ class AuthRepository {
     if (token == null || token.isEmpty) return null;
     try {
       final dto = await _api.me();
+      // Require a real user — {user: null} means session expired.
+      if (dto.id.isEmpty) {
+        await _storage.deleteToken();
+        return null;
+      }
       final user = dto.toEntity();
       await _storage.saveUserJson(jsonEncode(dto.toJson()));
       return user;
     } catch (_) {
-      // Fallback to cached user if server unavailable
+      // Unauthenticated (401): token invalid — clear it so the user sees Login.
+      // Only fall back to cached user for network-type failures.
       final cached = await _storage.getUserJson();
       if (cached != null) {
         try {
           final j = jsonDecode(cached) as Map<String, dynamic>;
-          return UserDto.fromJson(j).toEntity();
+          final user = UserDto.fromJson(j).toEntity();
+          if (user.id.isNotEmpty) return user;
         } catch (_) {}
       }
       return null;

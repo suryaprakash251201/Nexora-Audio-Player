@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -31,6 +32,9 @@ class AuthNotifier extends AsyncNotifier<User?> {
       if (serverUrl.trim().isNotEmpty) {
         await _storage.saveServerUrl(serverUrl.trim());
       }
+      // Clear any stale token first — avoids iOS keychain duplicate-class
+      // collisions and ensures a clean session for the new login.
+      await _storage.deleteToken();
       final user = await _repo.login(username.trim(), password);
       state = AsyncData(user);
     } catch (e, st) {
@@ -49,8 +53,13 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   Future<void> restore() async {
     state = const AsyncLoading();
-    final user = await _repo.restoreSession();
-    state = AsyncData(user);
+    try {
+      final user = await _repo.restoreSession();
+      state = AsyncData(user);
+    } catch (e) {
+      if (kDebugMode) debugPrint('restore failed: $e');
+      state = const AsyncData(null);
+    }
   }
 
   bool get isAuthenticated => state.value != null;

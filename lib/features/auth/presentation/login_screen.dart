@@ -327,7 +327,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                auth.error.toString(),
+                                Failure.fromException(auth.error!).message,
                                 style: const TextStyle(
                                   color: AppColors.error,
                                   fontSize: 11,
@@ -342,6 +342,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       'Self-hosted • LAN supported • Offline ready\nIf login fails, check server is http://192.168.1.5 and both devices on same Wi-Fi.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textDim, fontSize: 11),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      key: const Key('clear-stored-session'),
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              try {
+                                final storage = ref.read(secureStorageProvider);
+                                await storage.deleteToken();
+                                await storage.deleteServerUrl();
+                                if (mounted) {
+                                  setState(() {
+                                    _savedServerUrl = null;
+                                    _serverController.clear();
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Stored session & server cleared. Re-enter server URL and log in.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Clear failed: $e')),
+                                  );
+                                }
+                              }
+                            },
+                      icon: const Icon(Icons.cleaning_services, size: 14),
+                      label: const Text(
+                        'Clear stored session',
+                        style: TextStyle(fontSize: 11),
+                      ),
                     ),
                   ],
                 ),
