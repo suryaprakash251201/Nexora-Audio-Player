@@ -1,0 +1,67 @@
+name: Build Android & iOS (Unsigned)
+
+on:
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  push:
+    tags:
+      - 'v*' # Trigger on version tags (e.g., v1.0.0)
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build APK
+      run: flutter build apk --release
+      
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nexora-android-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS IPA (Unsigned)
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build iOS (No Codesign)
+      run: flutter build ios --release --no-codesign
+      
+    - name: Package Unsigned IPA
+      run: |
+        mkdir -p build/ios/iphoneos/Payload
+        mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+        cd build/ios/iphoneos
+        zip -qq -r NexoraAudio.ipa Payload
+        
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nexora-ios-unsigned-ipa
+        path: build/ios/iphoneos/NexoraAudio.ipa
