@@ -23,7 +23,6 @@ dependencies:
   audio_service: ^0.18.19
   audio_session: ^0.2.4
   google_fonts: ^8.2.1
-  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
