@@ -21,7 +21,10 @@ class ServerFeatures {
     return ServerFeatures(
       supportsLyrics: json['supportsLyrics'] as bool? ?? false,
       supportsPlaylists: json['supportsPlaylists'] as bool? ?? true,
-      supportsFavorites: json['supportsFavorites'] as bool? ?? json['supportsLikes'] as bool? ?? true,
+      supportsFavorites:
+          json['supportsFavorites'] as bool? ??
+          json['supportsLikes'] as bool? ??
+          true,
       supportsHistory: json['supportsHistory'] as bool? ?? true,
       supportsDownloads: json['supportsDownloads'] as bool? ?? true,
       supportsRealtimeSync: json['supportsRealtimeSync'] as bool? ?? false,
@@ -46,7 +49,8 @@ class ServerInfo {
   factory ServerInfo.fromJson(Map<String, dynamic> json) {
     final featuresJson = json['features'] as Map<String, dynamic>? ?? {};
     return ServerInfo(
-      serverVersion: (json['serverVersion'] ?? json['version'] ?? 'unknown').toString(),
+      serverVersion: (json['serverVersion'] ?? json['version'] ?? 'unknown')
+          .toString(),
       apiVersion: (json['apiVersion'] ?? 'v1').toString(),
       name: (json['name'] ?? 'Nexora').toString(),
       features: ServerFeatures.fromJson(featuresJson),
@@ -54,9 +58,9 @@ class ServerInfo {
   }
 
   factory ServerInfo.fallback() => const ServerInfo(
-        serverVersion: 'unknown',
-        apiVersion: 'v1',
-        name: 'Nexora',
-        features: ServerFeatures(),
-      );
+    serverVersion: 'unknown',
+    apiVersion: 'v1',
+    name: 'Nexora',
+    features: ServerFeatures(),
+  );
 }

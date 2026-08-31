@@ -20,19 +20,22 @@ class SecureStorageService {
 
   Future<String?> getToken() async => _storage.read(key: AppConstants.tokenKey);
 
-  Future<void> deleteToken() async => _storage.delete(key: AppConstants.tokenKey);
+  Future<void> deleteToken() async =>
+      _storage.delete(key: AppConstants.tokenKey);
 
   Future<void> saveRefreshToken(String token) async {
     await _storage.write(key: AppConstants.refreshTokenKey, value: token);
   }
 
-  Future<String?> getRefreshToken() async => _storage.read(key: AppConstants.refreshTokenKey);
+  Future<String?> getRefreshToken() async =>
+      _storage.read(key: AppConstants.refreshTokenKey);
 
   Future<void> saveUserJson(String json) async {
     await _storage.write(key: AppConstants.userKey, value: json);
   }
 
-  Future<String?> getUserJson() async => _storage.read(key: AppConstants.userKey);
+  Future<String?> getUserJson() async =>
+      _storage.read(key: AppConstants.userKey);
 
   // Server URL - normalized
   Future<void> saveServerUrl(String url) async {
@@ -58,7 +61,8 @@ class SecureStorageService {
     return url.split('/api').first;
   }
 
-  Future<void> deleteServerUrl() async => _storage.delete(key: AppConstants.serverUrlKey);
+  Future<void> deleteServerUrl() async =>
+      _storage.delete(key: AppConstants.serverUrlKey);
 
   Future<void> clearAll() async => _storage.deleteAll();
 

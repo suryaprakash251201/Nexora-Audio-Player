@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum ConnectivityStatus { online, offline, unknown }
 
-final connectivityProvider = StateProvider<ConnectivityStatus>((ref) => ConnectivityStatus.unknown);
+final connectivityProvider = StateProvider<ConnectivityStatus>(
+  (ref) => ConnectivityStatus.unknown,
+);
 
 /// Simple connectivity abstraction.
 /// Without adding new native deps, we probe via lightweight HEAD request
@@ -20,4 +22,6 @@ class ConnectivityService {
   bool get isOnline => _last == ConnectivityStatus.online;
 }
 
-final connectivityServiceProvider = Provider<ConnectivityService>((ref) => ConnectivityService());
+final connectivityServiceProvider = Provider<ConnectivityService>(
+  (ref) => ConnectivityService(),
+);

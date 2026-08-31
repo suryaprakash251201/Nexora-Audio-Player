@@ -33,7 +33,8 @@ class ArtworkImage extends StatelessWidget {
                   if (progress == null) return child;
                   return _fallback(isLoading: true);
                 },
-                headers: const {}, // Dio auth not needed for cached_network_image? Stream with token if needed externally
+                headers:
+                    const {}, // Dio auth not needed for cached_network_image? Stream with token if needed externally
               )
             : _fallback(),
       ),
@@ -45,8 +46,19 @@ class ArtworkImage extends StatelessWidget {
       color: AppColors.surfaceRaised,
       child: Center(
         child: isLoading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted))
-            : const Icon(Icons.music_note, color: AppColors.textMuted, size: 32),
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.textMuted,
+                ),
+              )
+            : const Icon(
+                Icons.music_note,
+                color: AppColors.textMuted,
+                size: 32,
+              ),
       ),
     );
   }

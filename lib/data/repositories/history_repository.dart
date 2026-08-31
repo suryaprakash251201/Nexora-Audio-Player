@@ -22,14 +22,23 @@ class HistoryRepository {
 
   HistoryRepository(this._api, this._db, this._sync);
 
-  Future<List<PlaybackHistoryItem>> getHistory({int page = 1, int limit = 20}) async {
+  Future<List<PlaybackHistoryItem>> getHistory({
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
       final remote = await _api.getHistory(page: page, limit: limit);
       try {
         final db = await _db.database;
         final batch = db.batch();
         for (final h in remote) {
-          batch.insert('history', {'id': '${h.songId}_${h.playedAt.millisecondsSinceEpoch}', 'songId': h.songId, 'playedAt': h.playedAt.millisecondsSinceEpoch, 'duration': h.playDuration, 'completion': h.completion}, conflictAlgorithm: ConflictAlgorithm.replace);
+          batch.insert('history', {
+            'id': '${h.songId}_${h.playedAt.millisecondsSinceEpoch}',
+            'songId': h.songId,
+            'playedAt': h.playedAt.millisecondsSinceEpoch,
+            'duration': h.playDuration,
+            'completion': h.completion,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
         await batch.commit(noResult: true);
       } catch (_) {}
@@ -37,14 +46,34 @@ class HistoryRepository {
     } catch (e) {
       if (e is NoInternetException) {
         final db = await _db.database;
-        final rows = await db.query('history', orderBy: 'playedAt DESC', limit: limit, offset: (page - 1) * limit);
-        return rows.map((r) => PlaybackHistoryItem(songId: r['songId'] as String, playedAt: DateTime.fromMillisecondsSinceEpoch(r['playedAt'] as int), playDuration: r['duration'] as int?, completion: (r['completion'] as num?)?.toDouble())).toList();
+        final rows = await db.query(
+          'history',
+          orderBy: 'playedAt DESC',
+          limit: limit,
+          offset: (page - 1) * limit,
+        );
+        return rows
+            .map(
+              (r) => PlaybackHistoryItem(
+                songId: r['songId'] as String,
+                playedAt: DateTime.fromMillisecondsSinceEpoch(
+                  r['playedAt'] as int,
+                ),
+                playDuration: r['duration'] as int?,
+                completion: (r['completion'] as num?)?.toDouble(),
+              ),
+            )
+            .toList();
       }
       rethrow;
     }
   }
 
-  Future<void> recordPlay(String songId, {int? duration, bool completed = false}) async {
+  Future<void> recordPlay(
+    String songId, {
+    int? duration,
+    bool completed = false,
+  }) async {
     final now = DateTime.now();
     final last = _lastRecord[songId];
     if (last != null && now.difference(last).inSeconds < 10 && !completed) {
@@ -53,14 +82,36 @@ class HistoryRepository {
     }
     _lastRecord[songId] = now;
     try {
-      await _api.recordPlay(songId: songId, playedAt: now, duration: duration, completed: completed);
+      await _api.recordPlay(
+        songId: songId,
+        playedAt: now,
+        duration: duration,
+        completed: completed,
+      );
       final db = await _db.database;
-      await db.insert('history', {'id': '${songId}_${now.millisecondsSinceEpoch}', 'songId': songId, 'playedAt': now.millisecondsSinceEpoch, 'duration': duration, 'completion': completed ? 1.0 : 0.5}, conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert('history', {
+        'id': '${songId}_${now.millisecondsSinceEpoch}',
+        'songId': songId,
+        'playedAt': now.millisecondsSinceEpoch,
+        'duration': duration,
+        'completion': completed ? 1.0 : 0.5,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     } catch (e) {
       if (e is NoInternetException) {
-        await _sync.enqueueOperation('RECORD_HISTORY', {'songId': songId, 'playedAt': now.toIso8601String(), 'duration': duration, 'completed': completed});
+        await _sync.enqueueOperation('RECORD_HISTORY', {
+          'songId': songId,
+          'playedAt': now.toIso8601String(),
+          'duration': duration,
+          'completed': completed,
+        });
         final db = await _db.database;
-        await db.insert('history', {'id': '${songId}_${now.millisecondsSinceEpoch}', 'songId': songId, 'playedAt': now.millisecondsSinceEpoch, 'duration': duration, 'completion': completed ? 1.0 : 0.5}, conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert('history', {
+          'id': '${songId}_${now.millisecondsSinceEpoch}',
+          'songId': songId,
+          'playedAt': now.millisecondsSinceEpoch,
+          'duration': duration,
+          'completion': completed ? 1.0 : 0.5,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
         return;
       }
       rethrow;

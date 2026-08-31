@@ -33,8 +33,10 @@ class Failure {
       case 'VALIDATION_ERROR':
         return e.message;
       default:
-        if (e.statusCode == 429) return 'Too many requests. Please wait a moment.';
-        if (e.statusCode != null && e.statusCode! >= 500) return 'Server unavailable. Try again later.';
+        if (e.statusCode == 429)
+          return 'Too many requests. Please wait a moment.';
+        if (e.statusCode != null && e.statusCode! >= 500)
+          return 'Server unavailable. Try again later.';
         return e.message.isEmpty ? 'Something went wrong.' : e.message;
     }
   }

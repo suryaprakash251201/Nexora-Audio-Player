@@ -18,9 +18,19 @@ class SongsRepository {
   final SongsLocalDataSource _local;
   SongsRepository(this._api, this._local);
 
-  Future<Paginated<Song>> getSongs({int page = 1, int limit = 20, String? query, CancelToken? cancelToken}) async {
+  Future<Paginated<Song>> getSongs({
+    int page = 1,
+    int limit = 20,
+    String? query,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final remote = await _api.getSongs(page: page, limit: limit, query: query, cancelToken: cancelToken);
+      final remote = await _api.getSongs(
+        page: page,
+        limit: limit,
+        query: query,
+        cancelToken: cancelToken,
+      );
       // Cache first page
       if (remote.data.isNotEmpty) {
         try {
@@ -32,9 +42,20 @@ class SongsRepository {
       return remote;
     } on NoInternetException {
       // Offline fallback
-      final cached = await _local.getCachedSongs(limit: limit, offset: (page - 1) * limit);
+      final cached = await _local.getCachedSongs(
+        limit: limit,
+        offset: (page - 1) * limit,
+      );
       if (cached.isNotEmpty) {
-        return Paginated(data: cached, page: page, limit: limit, total: cached.length, totalPages: 1, hasNext: false, hasPrev: page > 1);
+        return Paginated(
+          data: cached,
+          page: page,
+          limit: limit,
+          total: cached.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: page > 1,
+        );
       }
       rethrow;
     } on ApiException {
@@ -42,8 +63,20 @@ class SongsRepository {
     } catch (e) {
       // Fallback to cache for any network error
       try {
-        final cached = await _local.getCachedSongs(limit: limit, offset: (page - 1) * limit);
-        if (cached.isNotEmpty) return Paginated(data: cached, page: page, limit: limit, total: cached.length, totalPages: 1, hasNext: false, hasPrev: page > 1);
+        final cached = await _local.getCachedSongs(
+          limit: limit,
+          offset: (page - 1) * limit,
+        );
+        if (cached.isNotEmpty)
+          return Paginated(
+            data: cached,
+            page: page,
+            limit: limit,
+            total: cached.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: page > 1,
+          );
       } catch (_) {}
       rethrow;
     }

@@ -4,7 +4,9 @@ import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../domain/entities/user.dart';
 
-final authStateProvider = AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);
+final authStateProvider = AsyncNotifierProvider<AuthNotifier, User?>(
+  AuthNotifier.new,
+);
 
 class AuthNotifier extends AsyncNotifier<User?> {
   late AuthRepository _repo;

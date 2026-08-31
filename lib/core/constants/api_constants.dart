@@ -33,7 +33,8 @@ class ApiConstants {
   static const playlists = '/playlists';
   static String playlistById(String id) => '/playlists/$id';
   static String playlistTracks(String id) => '/playlists/$id/tracks';
-  static String playlistTrackById(String playlistId, String songId) => '/playlists/$playlistId/tracks/$songId';
+  static String playlistTrackById(String playlistId, String songId) =>
+      '/playlists/$playlistId/tracks/$songId';
   static String playlistReorder(String id) => '/playlists/$id/reorder';
 
   // Favorites

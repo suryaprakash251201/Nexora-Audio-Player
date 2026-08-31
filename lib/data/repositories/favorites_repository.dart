@@ -28,8 +28,19 @@ class FavoritesRepository {
         await db.delete('favorites');
         final batch = db.batch();
         for (final s in remote) {
-          batch.insert('favorites', {'songId': s.id, 'addedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
-          batch.insert('tracks', {'id': s.id, 'title': s.title, 'artist': s.artist, 'album': s.album, 'duration': s.duration, 'coverUrl': s.coverUrl, 'updatedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
+          batch.insert('favorites', {
+            'songId': s.id,
+            'addedAt': DateTime.now().millisecondsSinceEpoch,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+          batch.insert('tracks', {
+            'id': s.id,
+            'title': s.title,
+            'artist': s.artist,
+            'album': s.album,
+            'duration': s.duration,
+            'coverUrl': s.coverUrl,
+            'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
         await batch.commit(noResult: true);
       } catch (_) {}
@@ -41,10 +52,25 @@ class FavoritesRepository {
         final songs = <Song>[];
         for (final r in rows) {
           final tid = r['songId'] as String;
-          final tr = await db.query('tracks', where: 'id = ?', whereArgs: [tid], limit: 1);
+          final tr = await db.query(
+            'tracks',
+            where: 'id = ?',
+            whereArgs: [tid],
+            limit: 1,
+          );
           if (tr.isNotEmpty) {
             final t = tr.first;
-            songs.add(Song(id: t['id'] as String, title: t['title'] as String, artist: t['artist'] as String?, album: t['album'] as String?, duration: t['duration'] as int?, coverUrl: t['coverUrl'] as String?, isFavorite: true));
+            songs.add(
+              Song(
+                id: t['id'] as String,
+                title: t['title'] as String,
+                artist: t['artist'] as String?,
+                album: t['album'] as String?,
+                duration: t['duration'] as int?,
+                coverUrl: t['coverUrl'] as String?,
+                isFavorite: true,
+              ),
+            );
           }
         }
         return songs;
@@ -59,7 +85,10 @@ class FavoritesRepository {
     if (isFavorite) {
       await db.delete('favorites', where: 'songId = ?', whereArgs: [songId]);
     } else {
-      await db.insert('favorites', {'songId': songId, 'addedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert('favorites', {
+        'songId': songId,
+        'addedAt': DateTime.now().millisecondsSinceEpoch,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     try {
@@ -70,12 +99,18 @@ class FavoritesRepository {
       }
     } catch (e) {
       if (e is NoInternetException) {
-        await _sync.enqueueOperation(isFavorite ? 'REMOVE_FAVORITE' : 'ADD_FAVORITE', {'songId': songId});
+        await _sync.enqueueOperation(
+          isFavorite ? 'REMOVE_FAVORITE' : 'ADD_FAVORITE',
+          {'songId': songId},
+        );
         return;
       }
       // Rollback
       if (isFavorite) {
-        await db.insert('favorites', {'songId': songId, 'addedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert('favorites', {
+          'songId': songId,
+          'addedAt': DateTime.now().millisecondsSinceEpoch,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       } else {
         await db.delete('favorites', where: 'songId = ?', whereArgs: [songId]);
       }
@@ -85,7 +120,12 @@ class FavoritesRepository {
 
   Future<bool> isFavorite(String songId) async {
     final db = await _db.database;
-    final rows = await db.query('favorites', where: 'songId = ?', whereArgs: [songId], limit: 1);
+    final rows = await db.query(
+      'favorites',
+      where: 'songId = ?',
+      whereArgs: [songId],
+      limit: 1,
+    );
     if (rows.isNotEmpty) return true;
     try {
       final remote = await getFavorites();

@@ -16,13 +16,22 @@ class ErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: onRetry,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: const Text(
+                  'Retry',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ],
@@ -36,7 +45,12 @@ class EmptyView extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
-  const EmptyView({super.key, required this.title, this.subtitle, this.icon = Icons.inbox_outlined});
+  const EmptyView({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.icon = Icons.inbox_outlined,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +62,21 @@ class EmptyView extends StatelessWidget {
           children: [
             Icon(icon, size: 56, color: AppColors.textDim),
             const SizedBox(height: 16),
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
-              Text(subtitle!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+              Text(
+                subtitle!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textMuted),
+              ),
             ],
           ],
         ),
@@ -64,7 +89,9 @@ class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    return const Center(
+      child: CircularProgressIndicator(color: AppColors.primary),
+    );
   }
 }
 
@@ -80,7 +107,10 @@ class OfflineBanner extends StatelessWidget {
         children: [
           Icon(Icons.wifi_off, size: 16, color: AppColors.warning),
           SizedBox(width: 8),
-          Text('Offline — showing cached content', style: TextStyle(color: AppColors.warning, fontSize: 12)),
+          Text(
+            'Offline — showing cached content',
+            style: TextStyle(color: AppColors.warning, fontSize: 12),
+          ),
         ],
       ),
     );

@@ -18,6 +18,7 @@ class SearchResult {
     this.playlists = const [],
   });
 
-  bool get isEmpty => songs.isEmpty && albums.isEmpty && artists.isEmpty && playlists.isEmpty;
+  bool get isEmpty =>
+      songs.isEmpty && albums.isEmpty && artists.isEmpty && playlists.isEmpty;
   bool get isNotEmpty => !isEmpty;
 }

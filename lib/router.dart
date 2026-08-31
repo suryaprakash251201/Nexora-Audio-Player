@@ -36,33 +36,75 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/login',
-        pageBuilder: (c, s) => CustomTransitionPage(child: const LoginScreen(), transitionsBuilder: (ctx, a, sa, child) => FadeTransition(opacity: a, child: child)),
+        pageBuilder: (c, s) => CustomTransitionPage(
+          child: const LoginScreen(),
+          transitionsBuilder: (ctx, a, sa, child) =>
+              FadeTransition(opacity: a, child: child),
+        ),
       ),
       GoRoute(
         path: '/server-setup',
-        pageBuilder: (c, s) => CustomTransitionPage(child: const ServerConfigScreen(), transitionsBuilder: (ctx, a, sa, child) => FadeTransition(opacity: a, child: child)),
+        pageBuilder: (c, s) => CustomTransitionPage(
+          child: const ServerConfigScreen(),
+          transitionsBuilder: (ctx, a, sa, child) =>
+              FadeTransition(opacity: a, child: child),
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/', pageBuilder: (c, s) => const NoTransitionPage(child: HomeScreen())),
-          GoRoute(path: '/search', pageBuilder: (c, s) => const NoTransitionPage(child: SearchScreen())),
-          GoRoute(path: '/library', pageBuilder: (c, s) => const NoTransitionPage(child: LibraryScreen())),
-          GoRoute(path: '/playlists', pageBuilder: (c, s) => const NoTransitionPage(child: PlaylistsScreen())),
-          GoRoute(path: '/settings', pageBuilder: (c, s) => const NoTransitionPage(child: SettingsScreen())),
+          GoRoute(
+            path: '/',
+            pageBuilder: (c, s) => const NoTransitionPage(child: HomeScreen()),
+          ),
+          GoRoute(
+            path: '/search',
+            pageBuilder: (c, s) =>
+                const NoTransitionPage(child: SearchScreen()),
+          ),
+          GoRoute(
+            path: '/library',
+            pageBuilder: (c, s) =>
+                const NoTransitionPage(child: LibraryScreen()),
+          ),
+          GoRoute(
+            path: '/playlists',
+            pageBuilder: (c, s) =>
+                const NoTransitionPage(child: PlaylistsScreen()),
+          ),
+          GoRoute(
+            path: '/settings',
+            pageBuilder: (c, s) =>
+                const NoTransitionPage(child: SettingsScreen()),
+          ),
         ],
       ),
-      GoRoute(path: '/playlists/:id', builder: (c, s) {
-        final id = s.pathParameters['id']!;
-        final extra = s.extra as Playlist?;
-        return PlaylistDetailScreen(playlistId: id, initial: extra);
-      }),
+      GoRoute(
+        path: '/playlists/:id',
+        builder: (c, s) {
+          final id = s.pathParameters['id']!;
+          final extra = s.extra as Playlist?;
+          return PlaylistDetailScreen(playlistId: id, initial: extra);
+        },
+      ),
       GoRoute(path: '/favorites', builder: (c, s) => const FavoritesScreen()),
       GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
       GoRoute(path: '/equalizer', builder: (c, s) => const EqualizerScreen()),
-      GoRoute(path: '/player', pageBuilder: (c, s) => CustomTransitionPage(child: const FullPlayerScreen(), transitionsBuilder: (ctx, a, sa, child) {
-        return SlideTransition(position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)), child: child);
-      })),
+      GoRoute(
+        path: '/player',
+        pageBuilder: (c, s) => CustomTransitionPage(
+          child: const FullPlayerScreen(),
+          transitionsBuilder: (ctx, a, sa, child) {
+            return SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+              child: child,
+            );
+          },
+        ),
+      ),
     ],
   );
 });
@@ -93,28 +135,70 @@ class AppShell extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final idx = _indexForLocation(location);
     return Scaffold(
-      body: Stack(children: [child, Positioned(left: 0, right: 0, bottom: 0, child: Consumer(builder: (c, r, _) {
-        return MiniPlayer(onTap: () => context.push('/player'));
-      }))]),
+      body: Stack(
+        children: [
+          child,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Consumer(
+              builder: (c, r, _) {
+                return MiniPlayer(onTap: () => context.push('/player'));
+              },
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         backgroundColor: AppColors.surface,
         indicatorColor: AppColors.primary.withOpacity(0.2),
         selectedIndex: idx,
         onDestinationSelected: (i) {
           switch (i) {
-            case 0: context.go('/'); break;
-            case 1: context.go('/search'); break;
-            case 2: context.go('/library'); break;
-            case 3: context.go('/playlists'); break;
-            case 4: context.go('/settings'); break;
+            case 0:
+              context.go('/');
+              break;
+            case 1:
+              context.go('/search');
+              break;
+            case 2:
+              context.go('/library');
+              break;
+            case 3:
+              context.go('/playlists');
+              break;
+            case 4:
+              context.go('/settings');
+              break;
           }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.library_music_outlined), selectedIcon: Icon(Icons.library_music), label: 'Library'),
-          NavigationDestination(icon: Icon(Icons.queue_music_outlined), selectedIcon: Icon(Icons.queue_music), label: 'Playlists'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.library_music_outlined),
+            selectedIcon: Icon(Icons.library_music),
+            label: 'Library',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.queue_music_outlined),
+            selectedIcon: Icon(Icons.queue_music),
+            label: 'Playlists',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );

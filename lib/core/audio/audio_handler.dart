@@ -18,7 +18,8 @@ Future<NexoraAudioHandler> initAudioService() async {
   );
 }
 
-class NexoraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+class NexoraAudioHandler extends BaseAudioHandler
+    with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
 
   NexoraAudioHandler() {
@@ -96,7 +97,11 @@ class NexoraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     });
   }
 
-  Future<void> loadMedia(List<MediaItem> items, {int initialIndex = 0, bool playOnLoad = true}) async {
+  Future<void> loadMedia(
+    List<MediaItem> items, {
+    int initialIndex = 0,
+    bool playOnLoad = true,
+  }) async {
     if (items.isEmpty) return;
     final audioSources = items.map((item) {
       final localPath = item.extras?['localPath'] as String?;
@@ -243,7 +248,9 @@ class NexoraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
-    await _player.setShuffleModeEnabled(shuffleMode == AudioServiceShuffleMode.all);
+    await _player.setShuffleModeEnabled(
+      shuffleMode == AudioServiceShuffleMode.all,
+    );
   }
 
   @override

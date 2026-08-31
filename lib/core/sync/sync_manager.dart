@@ -18,7 +18,10 @@ class SyncManager {
 
   SyncManager(this._dio, this._dbService);
 
-  Future<void> enqueueOperation(String type, Map<String, dynamic> payload) async {
+  Future<void> enqueueOperation(
+    String type,
+    Map<String, dynamic> payload,
+  ) async {
     final db = await _dbService.database;
     await db.insert('sync_ops', {
       'id': '${DateTime.now().millisecondsSinceEpoch}_${type}',
@@ -47,7 +50,8 @@ class SyncManager {
       for (final op in ops) {
         final id = op['id'] as String;
         final type = op['operationType'] as String;
-        final payload = jsonDecode(op['payload'] as String) as Map<String, dynamic>;
+        final payload =
+            jsonDecode(op['payload'] as String) as Map<String, dynamic>;
         final retries = (op['retryCount'] as int?) ?? 0;
 
         try {
@@ -56,11 +60,25 @@ class SyncManager {
           AppLogger.sync('✓ $type synced');
         } on DioException catch (e) {
           final code = e.response?.statusCode;
-          if (code != null && code >= 400 && code < 500 && code != 401 && code != 429) {
-            await db.update('sync_ops', {'status': 'FAILED'}, where: 'id = ?', whereArgs: [id]);
+          if (code != null &&
+              code >= 400 &&
+              code < 500 &&
+              code != 401 &&
+              code != 429) {
+            await db.update(
+              'sync_ops',
+              {'status': 'FAILED'},
+              where: 'id = ?',
+              whereArgs: [id],
+            );
             AppLogger.sync('✗ $type failed permanent $code');
           } else {
-            await db.update('sync_ops', {'retryCount': retries + 1}, where: 'id = ?', whereArgs: [id]);
+            await db.update(
+              'sync_ops',
+              {'retryCount': retries + 1},
+              where: 'id = ?',
+              whereArgs: [id],
+            );
             AppLogger.sync('↻ $type retry $retries');
             if (code == null || code >= 500) {
               // Stop on network/server error to avoid hammering
@@ -68,7 +86,12 @@ class SyncManager {
             }
           }
         } catch (e) {
-          await db.update('sync_ops', {'retryCount': retries + 1}, where: 'id = ?', whereArgs: [id]);
+          await db.update(
+            'sync_ops',
+            {'retryCount': retries + 1},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
           AppLogger.sync('↻ $type error $e');
         }
       }
@@ -80,22 +103,36 @@ class SyncManager {
   Future<void> _execute(String type, Map<String, dynamic> p) async {
     switch (type) {
       case 'CREATE_PLAYLIST':
-        await _dio.post('/playlists', data: {'name': p['name'], 'description': p['description']});
+        await _dio.post(
+          '/playlists',
+          data: {'name': p['name'], 'description': p['description']},
+        );
         break;
       case 'DELETE_PLAYLIST':
         await _dio.delete('/playlists/${p['playlistId']}');
         break;
       case 'ADD_TO_PLAYLIST':
-        await _dio.post('/playlists/${p['playlistId']}/tracks', data: {'songId': p['songId']});
+        await _dio.post(
+          '/playlists/${p['playlistId']}/tracks',
+          data: {'songId': p['songId']},
+        );
         break;
       case 'ADD_TRACKS_TO_PLAYLIST':
-        await _dio.post('/playlists/${p['playlistId']}/tracks', data: {'songIds': p['songIds']});
+        await _dio.post(
+          '/playlists/${p['playlistId']}/tracks',
+          data: {'songIds': p['songIds']},
+        );
         break;
       case 'REMOVE_FROM_PLAYLIST':
-        await _dio.delete('/playlists/${p['playlistId']}/tracks/${p['songId']}');
+        await _dio.delete(
+          '/playlists/${p['playlistId']}/tracks/${p['songId']}',
+        );
         break;
       case 'REORDER_PLAYLIST':
-        await _dio.put('/playlists/${p['playlistId']}/reorder', data: {'orderedIds': p['orderedIds']});
+        await _dio.put(
+          '/playlists/${p['playlistId']}/reorder',
+          data: {'orderedIds': p['orderedIds']},
+        );
         break;
       case 'ADD_FAVORITE':
         await _dio.post('/favorites/${p['songId']}');
@@ -104,12 +141,15 @@ class SyncManager {
         await _dio.delete('/favorites/${p['songId']}');
         break;
       case 'RECORD_HISTORY':
-        await _dio.post('/history', data: {
-          'songId': p['songId'],
-          'playedAt': p['playedAt'],
-          'duration': p['duration'],
-          'completed': p['completed'],
-        });
+        await _dio.post(
+          '/history',
+          data: {
+            'songId': p['songId'],
+            'playedAt': p['playedAt'],
+            'duration': p['duration'],
+            'completed': p['completed'],
+          },
+        );
         break;
       default:
         AppLogger.sync('Unknown op $type');
@@ -119,7 +159,10 @@ class SyncManager {
 
   Future<int> pendingCount() async {
     final db = await _dbService.database;
-    final r = await db.rawQuery('SELECT COUNT(*) as c FROM sync_ops WHERE status = ?', ['PENDING']);
+    final r = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM sync_ops WHERE status = ?',
+      ['PENDING'],
+    );
     return (r.first['c'] as int?) ?? 0;
   }
 

@@ -1,6 +1,16 @@
 import 'package:flutter/foundation.dart';
 
-enum LogCategory { auth, api, player, queue, sync, cache, download, lifecycle, network }
+enum LogCategory {
+  auth,
+  api,
+  player,
+  queue,
+  sync,
+  cache,
+  download,
+  lifecycle,
+  network,
+}
 
 class AppLogger {
   const AppLogger._();

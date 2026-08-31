@@ -22,7 +22,11 @@ class DownloadManager {
 
   double? progressOf(String trackId) => _progress[trackId];
 
-  Future<String?> downloadTrack(String trackId, String streamUrl, {void Function(double)? onProgress}) async {
+  Future<String?> downloadTrack(
+    String trackId,
+    String streamUrl, {
+    void Function(double)? onProgress,
+  }) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final saveDir = Directory('${dir.path}/tracks');
@@ -63,20 +67,38 @@ class DownloadManager {
 
   Future<void> removeTrackDownload(String trackId) async {
     final db = await _dbService.database;
-    final result = await db.query('tracks', columns: ['localPath'], where: 'id = ?', whereArgs: [trackId]);
+    final result = await db.query(
+      'tracks',
+      columns: ['localPath'],
+      where: 'id = ?',
+      whereArgs: [trackId],
+    );
     if (result.isNotEmpty && result.first['localPath'] != null) {
       final file = File(result.first['localPath'] as String);
       if (await file.exists()) {
-        try { await file.delete(); } catch (_) {}
+        try {
+          await file.delete();
+        } catch (_) {}
       }
-      await db.update('tracks', {'isDownloaded': 0, 'localPath': null}, where: 'id = ?', whereArgs: [trackId]);
+      await db.update(
+        'tracks',
+        {'isDownloaded': 0, 'localPath': null},
+        where: 'id = ?',
+        whereArgs: [trackId],
+      );
       AppLogger.download('Removed download $trackId');
     }
   }
 
   Future<bool> isDownloaded(String trackId) async {
     final db = await _dbService.database;
-    final r = await db.query('tracks', columns: ['isDownloaded', 'localPath'], where: 'id = ?', whereArgs: [trackId], limit: 1);
+    final r = await db.query(
+      'tracks',
+      columns: ['isDownloaded', 'localPath'],
+      where: 'id = ?',
+      whereArgs: [trackId],
+      limit: 1,
+    );
     if (r.isEmpty) return false;
     if ((r.first['isDownloaded'] as int? ?? 0) == 0) return false;
     final path = r.first['localPath'] as String?;
@@ -86,7 +108,12 @@ class DownloadManager {
 
   Future<List<String>> downloadedIds() async {
     final db = await _dbService.database;
-    final rows = await db.query('tracks', columns: ['id'], where: 'isDownloaded = ?', whereArgs: [1]);
+    final rows = await db.query(
+      'tracks',
+      columns: ['id'],
+      where: 'isDownloaded = ?',
+      whereArgs: [1],
+    );
     return rows.map((r) => r['id'] as String).toList();
   }
 }

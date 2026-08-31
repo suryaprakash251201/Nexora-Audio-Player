@@ -18,9 +18,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        audioHandlerProvider.overrideWithValue(handler),
-      ],
+      overrides: [audioHandlerProvider.overrideWithValue(handler)],
       child: const NexoraApp(),
     ),
   );

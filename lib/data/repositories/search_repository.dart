@@ -18,7 +18,9 @@ class SearchRepository {
   Future<SearchResult> search(String query, {CancelToken? cancelToken}) async {
     final res = await _api.search(query, cancelToken: cancelToken);
     if (query.trim().isNotEmpty) {
-      try { await _prefs.addRecentSearch(query.trim()); } catch (_) {}
+      try {
+        await _prefs.addRecentSearch(query.trim());
+      } catch (_) {}
     }
     return res;
   }

@@ -31,9 +31,15 @@ class AlbumDto {
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
       if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-      try { return DateTime.parse(v.toString()); } catch (_) { return null; }
+      try {
+        return DateTime.parse(v.toString());
+      } catch (_) {
+        return null;
+      }
     }
-    int? pi(dynamic v) => v == null ? null : (v is int ? v : int.tryParse(v.toString()));
+
+    int? pi(dynamic v) =>
+        v == null ? null : (v is int ? v : int.tryParse(v.toString()));
     return AlbumDto(
       id: (j['id'] ?? j['_id'] ?? '').toString(),
       title: (j['title'] ?? j['name'] ?? 'Unknown Album').toString(),
@@ -41,7 +47,8 @@ class AlbumDto {
       artistId: (j['artistId'] ?? j['artist_id'])?.toString(),
       year: pi(j['year']),
       genre: j['genre']?.toString(),
-      coverUrl: (j['coverUrl'] ?? j['artwork'] ?? j['image'] ?? j['cover_url'])?.toString(),
+      coverUrl: (j['coverUrl'] ?? j['artwork'] ?? j['image'] ?? j['cover_url'])
+          ?.toString(),
       trackCount: pi(j['trackCount'] ?? j['songCount'] ?? j['count']),
       duration: pi(j['duration']),
       createdAt: parseDate(j['createdAt'] ?? j['created_at']),
@@ -50,16 +57,16 @@ class AlbumDto {
   }
 
   Album toEntity() => Album(
-        id: id,
-        title: title,
-        artist: artist,
-        artistId: artistId,
-        year: year,
-        genre: genre,
-        coverUrl: coverUrl,
-        trackCount: trackCount,
-        duration: duration,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    title: title,
+    artist: artist,
+    artistId: artistId,
+    year: year,
+    genre: genre,
+    coverUrl: coverUrl,
+    trackCount: trackCount,
+    duration: duration,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }

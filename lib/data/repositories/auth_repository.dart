@@ -19,9 +19,20 @@ class AuthRepository {
   Future<User> login(String username, String password) async {
     final res = await _api.login(username: username, password: password);
     await _storage.saveToken(res.accessToken);
-    if (res.refreshToken != null) await _storage.saveRefreshToken(res.refreshToken!);
+    if (res.refreshToken != null)
+      await _storage.saveRefreshToken(res.refreshToken!);
     final user = res.user.toEntity();
-    await _storage.saveUserJson(jsonEncode(UserDto(id: user.id, username: user.username, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl).toJson()));
+    await _storage.saveUserJson(
+      jsonEncode(
+        UserDto(
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        ).toJson(),
+      ),
+    );
     return user;
   }
 

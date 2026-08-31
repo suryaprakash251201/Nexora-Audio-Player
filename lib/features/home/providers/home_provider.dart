@@ -14,7 +14,9 @@ final recentSongsProvider = FutureProvider<List<Song>>((ref) async {
   return pag.data;
 });
 
-final recentlyPlayedProvider = FutureProvider<List<PlaybackHistoryItem>>((ref) async {
+final recentlyPlayedProvider = FutureProvider<List<PlaybackHistoryItem>>((
+  ref,
+) async {
   final repo = ref.watch(historyRepositoryProvider);
   return repo.getHistory(page: 1, limit: 10);
 });

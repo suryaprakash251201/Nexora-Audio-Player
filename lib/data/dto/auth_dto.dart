@@ -24,11 +24,20 @@ class AuthResponseDto {
       payload = {...payload, ...(payload['tokens'] as Map<String, dynamic>)};
     }
 
-    String token = (payload['accessToken'] ?? payload['token'] ?? payload['access_token'] ?? payload['jwt'] ?? '').toString();
-    String? refresh = (payload['refreshToken'] ?? payload['refresh_token'])?.toString();
+    String token =
+        (payload['accessToken'] ??
+                payload['token'] ??
+                payload['access_token'] ??
+                payload['jwt'] ??
+                '')
+            .toString();
+    String? refresh = (payload['refreshToken'] ?? payload['refresh_token'])
+        ?.toString();
     int? expires;
     if (payload['expiresIn'] != null) {
-      expires = payload['expiresIn'] is int ? payload['expiresIn'] as int : int.tryParse(payload['expiresIn'].toString());
+      expires = payload['expiresIn'] is int
+          ? payload['expiresIn'] as int
+          : int.tryParse(payload['expiresIn'].toString());
     }
 
     Map<String, dynamic> userJson = {};

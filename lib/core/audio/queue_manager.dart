@@ -24,19 +24,27 @@ class QueueManager {
     try {
       final db = await _db.database;
       final data = jsonEncode({
-        'queue': queue.map((e) => {
-              'id': e.id,
-              'title': e.title,
-              'artist': e.artist,
-              'album': e.album,
-              'duration': e.duration?.inMilliseconds,
-              'artUri': e.artUri?.toString(),
-              'extras': e.extras,
-            }).toList(),
+        'queue': queue
+            .map(
+              (e) => {
+                'id': e.id,
+                'title': e.title,
+                'artist': e.artist,
+                'album': e.album,
+                'duration': e.duration?.inMilliseconds,
+                'artUri': e.artUri?.toString(),
+                'extras': e.extras,
+              },
+            )
+            .toList(),
         'index': currentIndex,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-      await db.insert('queue_state', {'id': _queueKey, 'data': data, 'updatedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert('queue_state', {
+        'id': _queueKey,
+        'data': data,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
       AppLogger.queue('Persisted ${queue.length} items @ $currentIndex');
     } catch (e) {
       AppLogger.queue('persistQueue failed: $e');
@@ -46,20 +54,35 @@ class QueueManager {
   Future<(List<MediaItem>, int)> restoreQueue() async {
     try {
       final db = await _db.database;
-      final rows = await db.query('queue_state', where: 'id = ?', whereArgs: [_queueKey], limit: 1);
+      final rows = await db.query(
+        'queue_state',
+        where: 'id = ?',
+        whereArgs: [_queueKey],
+        limit: 1,
+      );
       if (rows.isEmpty) return (<MediaItem>[], 0);
-      final data = jsonDecode(rows.first['data'] as String) as Map<String, dynamic>;
-      final list = (data['queue'] as List).whereType<Map<String, dynamic>>().map((j) {
-        return MediaItem(
-          id: j['id'] as String,
-          title: j['title'] as String? ?? 'Unknown',
-          artist: j['artist'] as String?,
-          album: j['album'] as String?,
-          duration: j['duration'] is int ? Duration(milliseconds: j['duration'] as int) : null,
-          artUri: j['artUri'] != null ? Uri.tryParse(j['artUri'] as String) : null,
-          extras: (j['extras'] as Map?)?.map((k, v) => MapEntry(k.toString(), v)),
-        );
-      }).toList();
+      final data =
+          jsonDecode(rows.first['data'] as String) as Map<String, dynamic>;
+      final list = (data['queue'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((j) {
+            return MediaItem(
+              id: j['id'] as String,
+              title: j['title'] as String? ?? 'Unknown',
+              artist: j['artist'] as String?,
+              album: j['album'] as String?,
+              duration: j['duration'] is int
+                  ? Duration(milliseconds: j['duration'] as int)
+                  : null,
+              artUri: j['artUri'] != null
+                  ? Uri.tryParse(j['artUri'] as String)
+                  : null,
+              extras: (j['extras'] as Map?)?.map(
+                (k, v) => MapEntry(k.toString(), v),
+              ),
+            );
+          })
+          .toList();
       final idx = (data['index'] as int?) ?? 0;
       AppLogger.queue('Restored ${list.length} items @ $idx');
       return (list, idx);
@@ -74,7 +97,9 @@ class QueueManager {
     // Build full URL if relative
     String fullStream = stream;
     if (!stream.startsWith('http') && baseUrl != null) {
-      final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+      final base = baseUrl.endsWith('/')
+          ? baseUrl.substring(0, baseUrl.length - 1)
+          : baseUrl;
       fullStream = stream.startsWith('/') ? '$base$stream' : '$base/$stream';
     }
     final artwork = song.coverUrl ?? song.artworkUrl;
@@ -84,14 +109,18 @@ class QueueManager {
       fullArt = artwork.startsWith('/') ? '$base$artwork' : '$base/$artwork';
     }
 
-    final headers = token != null && token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null;
+    final headers = token != null && token.isNotEmpty
+        ? {'Authorization': 'Bearer $token'}
+        : null;
 
     return MediaItem(
       id: fullStream,
       title: song.title,
       artist: song.artist,
       album: song.album,
-      duration: song.duration != null ? Duration(seconds: song.duration!) : null,
+      duration: song.duration != null
+          ? Duration(seconds: song.duration!)
+          : null,
       artUri: fullArt != null ? Uri.tryParse(fullArt) : null,
       extras: {
         'songId': song.id,

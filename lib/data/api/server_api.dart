@@ -17,7 +17,9 @@ class ServerApi {
       final res = await _client.get(ApiConstants.serverInfo);
       final data = res.data;
       if (data is Map<String, dynamic>) {
-        final payload = data['data'] is Map ? data['data'] as Map<String, dynamic> : data;
+        final payload = data['data'] is Map
+            ? data['data'] as Map<String, dynamic>
+            : data;
         return ServerInfo.fromJson(payload);
       }
       return ServerInfo.fallback();

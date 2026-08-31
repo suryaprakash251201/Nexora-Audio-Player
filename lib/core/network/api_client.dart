@@ -29,7 +29,8 @@ class ApiClient {
         sendTimeout: const Duration(seconds: 15),
         contentType: 'application/json',
         responseType: ResponseType.json,
-        validateStatus: (s) => s != null && s < 500, // let 4xx be handled manually
+        validateStatus: (s) =>
+            s != null && s < 500, // let 4xx be handled manually
       ),
     );
 
@@ -37,7 +38,8 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           // Ensure baseUrl is set per-request (user may change server)
-          if (options.baseUrl.isEmpty || options.baseUrl == 'http://localhost:3000/api/v1') {
+          if (options.baseUrl.isEmpty ||
+              options.baseUrl == 'http://localhost:3000/api/v1') {
             final serverUrl = await _secureStorage.getServerUrl();
             if (serverUrl != null && serverUrl.isNotEmpty) {
               options.baseUrl = serverUrl;
@@ -52,16 +54,24 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
           options.headers['Accept'] = 'application/json';
-          options.headers['X-Platform'] = Platform.isAndroid ? 'android' : Platform.isIOS ? 'ios' : 'other';
+          options.headers['X-Platform'] = Platform.isAndroid
+              ? 'android'
+              : Platform.isIOS
+              ? 'ios'
+              : 'other';
 
           if (kDebugMode) {
-            AppLogger.api('${options.method} ${options.baseUrl}${options.path} ${options.queryParameters.isEmpty ? '' : options.queryParameters}');
+            AppLogger.api(
+              '${options.method} ${options.baseUrl}${options.path} ${options.queryParameters.isEmpty ? '' : options.queryParameters}',
+            );
           }
           return handler.next(options);
         },
         onResponse: (response, handler) {
           if (kDebugMode) {
-            AppLogger.api('← ${response.statusCode} ${response.requestOptions.path}');
+            AppLogger.api(
+              '← ${response.statusCode} ${response.requestOptions.path}',
+            );
           }
           // Map 401..499 to exception handling in call-site, but we still intercept 401 for auto-logout/refresh
           return handler.next(response);
@@ -71,32 +81,39 @@ class ApiClient {
           final req = error.requestOptions;
 
           if (kDebugMode) {
-            AppLogger.api('✗ ${error.type} ${status ?? ''} ${req.path} ${AppLogger.redact(error.message ?? '')}');
+            AppLogger.api(
+              '✗ ${error.type} ${status ?? ''} ${req.path} ${AppLogger.redact(error.message ?? '')}',
+            );
           }
 
           // No internet / timeout
           if (error.type == DioExceptionType.connectionTimeout ||
               error.type == DioExceptionType.receiveTimeout ||
               error.type == DioExceptionType.sendTimeout) {
-            return handler.reject(DioException(
-              requestOptions: req,
-              error: const TimeoutException(),
-              type: DioExceptionType.connectionTimeout,
-            ));
+            return handler.reject(
+              DioException(
+                requestOptions: req,
+                error: const TimeoutException(),
+                type: DioExceptionType.connectionTimeout,
+              ),
+            );
           }
           if (error.type == DioExceptionType.connectionError ||
               (error.error is SocketException)) {
-            return handler.reject(DioException(
-              requestOptions: req,
-              error: const NoInternetException(),
-              type: DioExceptionType.connectionError,
-            ));
+            return handler.reject(
+              DioException(
+                requestOptions: req,
+                error: const NoInternetException(),
+                type: DioExceptionType.connectionError,
+              ),
+            );
           }
 
           if (status == 401) {
             // Avoid infinite loop for auth endpoints
             final path = req.path;
-            if (path.contains('/auth/login') || path.contains('/auth/refresh')) {
+            if (path.contains('/auth/login') ||
+                path.contains('/auth/refresh')) {
               await _secureStorage.deleteToken();
               return handler.next(error);
             }
@@ -125,13 +142,15 @@ class ApiClient {
     );
 
     if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(
-        requestBody: false,
-        responseBody: false,
-        requestHeader: false,
-        responseHeader: false,
-        logPrint: (o) => AppLogger.api(o.toString()),
-      ));
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: false,
+          responseBody: false,
+          requestHeader: false,
+          responseHeader: false,
+          logPrint: (o) => AppLogger.api(o.toString()),
+        ),
+      );
     }
   }
 
@@ -159,12 +178,20 @@ class ApiClient {
       }
       // Direct Dio without interceptor loop
       final refreshDio = Dio(BaseOptions(baseUrl: serverUrl));
-      final res = await refreshDio.post('/auth/refresh', data: {'refreshToken': refreshToken});
-      if (res.statusCode != null && res.statusCode! >= 200 && res.statusCode! < 300) {
+      final res = await refreshDio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      if (res.statusCode != null &&
+          res.statusCode! >= 200 &&
+          res.statusCode! < 300) {
         final data = res.data is Map ? res.data as Map : {};
         // Support both {accessToken} and {data: {accessToken}}
         final payload = data['data'] is Map ? data['data'] as Map : data;
-        final newToken = payload['accessToken'] ?? payload['token'] ?? payload['access_token'];
+        final newToken =
+            payload['accessToken'] ??
+            payload['token'] ??
+            payload['access_token'];
         final newRefresh = payload['refreshToken'] ?? payload['refresh_token'];
         if (newToken is String && newToken.isNotEmpty) {
           await _secureStorage.saveToken(newToken);
@@ -179,7 +206,8 @@ class ApiClient {
       _refreshCompleter?.complete();
       return false;
     } catch (e) {
-      if (!(_refreshCompleter?.isCompleted ?? true)) _refreshCompleter?.complete();
+      if (!(_refreshCompleter?.isCompleted ?? true))
+        _refreshCompleter?.complete();
       AppLogger.auth('Refresh failed: $e');
       return false;
     } finally {
@@ -210,9 +238,15 @@ class ApiClient {
     if (status == 401) throw UnauthorizedException(message);
     if (status == 404) throw NotFoundException(message);
     if (status == 422) throw ValidationException(message, details: details);
-    if (status == 429) throw ApiException(message, statusCode: 429, code: 'RATE_LIMITED');
+    if (status == 429)
+      throw ApiException(message, statusCode: 429, code: 'RATE_LIMITED');
     if (status >= 500) throw ServerException(message, statusCode: status);
-    throw ApiException(message, statusCode: status, code: code, details: details);
+    throw ApiException(
+      message,
+      statusCode: status,
+      code: code,
+      details: details,
+    );
   }
 
   Map<String, dynamic> _unwrap(Map<String, dynamic> json) {
@@ -225,9 +259,19 @@ class ApiClient {
     return json;
   }
 
-  Future<Response> get(String path, {Map<String, dynamic>? query, Options? options, CancelToken? cancelToken}) async {
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? query,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get(path, queryParameters: query, options: options, cancelToken: cancelToken);
+      final res = await _dio.get(
+        path,
+        queryParameters: query,
+        options: options,
+        cancelToken: cancelToken,
+      );
       _throwIfError(res);
       return res;
     } on DioException catch (e) {
@@ -235,9 +279,21 @@ class ApiClient {
     }
   }
 
-  Future<Response> post(String path, {dynamic data, Map<String, dynamic>? query, Options? options, CancelToken? cancelToken}) async {
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? query,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.post(path, data: data, queryParameters: query, options: options, cancelToken: cancelToken);
+      final res = await _dio.post(
+        path,
+        data: data,
+        queryParameters: query,
+        options: options,
+        cancelToken: cancelToken,
+      );
       _throwIfError(res);
       return res;
     } on DioException catch (e) {
@@ -245,9 +301,19 @@ class ApiClient {
     }
   }
 
-  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? query, Options? options}) async {
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? query,
+    Options? options,
+  }) async {
     try {
-      final res = await _dio.put(path, data: data, queryParameters: query, options: options);
+      final res = await _dio.put(
+        path,
+        data: data,
+        queryParameters: query,
+        options: options,
+      );
       _throwIfError(res);
       return res;
     } on DioException catch (e) {
@@ -255,7 +321,11 @@ class ApiClient {
     }
   }
 
-  Future<Response> delete(String path, {dynamic data, Map<String, dynamic>? query}) async {
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? query,
+  }) async {
     try {
       final res = await _dio.delete(path, data: data, queryParameters: query);
       _throwIfError(res);
@@ -278,16 +348,19 @@ class ApiClient {
     } else if (data is Map && data['message'] is String) {
       msg = data['message'] as String;
     }
-    if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
       return const TimeoutException();
     }
-    if (e.type == DioExceptionType.connectionError || e.error is SocketException) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.error is SocketException) {
       return const NoInternetException();
     }
     if (status == 401) return UnauthorizedException(msg);
     if (status == 404) return NotFoundException(msg);
     if (status == 422) return ValidationException(msg);
-    if (status != null && status >= 500) return ServerException(msg, statusCode: status);
+    if (status != null && status >= 500)
+      return ServerException(msg, statusCode: status);
     return ApiException(msg, statusCode: status, code: code);
   }
 
@@ -295,14 +368,21 @@ class ApiClient {
   Future<bool> testConnection(String rawUrl) async {
     final normalized = AppConfig.normalizeUrl(rawUrl);
     final origin = normalized.split('/api').first;
-    final probe = Dio(BaseOptions(
-      baseUrl: origin,
-      connectTimeout: const Duration(seconds: 8),
-      receiveTimeout: const Duration(seconds: 8),
-    ));
+    final probe = Dio(
+      BaseOptions(
+        baseUrl: origin,
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+      ),
+    );
     try {
       // Try /health then /api/v1/server/info then /
-      for (final p in ['/health', '/api/v1/server/info', '/api/v1/health', '/']) {
+      for (final p in [
+        '/health',
+        '/api/v1/server/info',
+        '/api/v1/health',
+        '/',
+      ]) {
         try {
           final r = await probe.get(p);
           if (r.statusCode != null && r.statusCode! < 500) return true;

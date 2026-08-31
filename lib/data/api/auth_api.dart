@@ -13,20 +13,33 @@ class AuthApi {
   final ApiClient _client;
   AuthApi(this._client);
 
-  Future<AuthResponseDto> login({required String username, required String password}) async {
-    final res = await _client.post(ApiConstants.login, data: {
-      'username': username,
-      'password': password,
-      // Some backends expect email field; send both
-      'email': username.contains('@') ? username : null,
-    }..removeWhere((k, v) => v == null));
-    final data = res.data is Map<String, dynamic> ? res.data as Map<String, dynamic> : <String, dynamic>{'data': res.data};
+  Future<AuthResponseDto> login({
+    required String username,
+    required String password,
+  }) async {
+    final res = await _client.post(
+      ApiConstants.login,
+      data: {
+        'username': username,
+        'password': password,
+        // Some backends expect email field; send both
+        'email': username.contains('@') ? username : null,
+      }..removeWhere((k, v) => v == null),
+    );
+    final data = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : <String, dynamic>{'data': res.data};
     return AuthResponseDto.fromJson(data);
   }
 
   Future<AuthResponseDto> refresh(String refreshToken) async {
-    final res = await _client.post(ApiConstants.refresh, data: {'refreshToken': refreshToken});
-    final data = res.data is Map<String, dynamic> ? res.data as Map<String, dynamic> : <String, dynamic>{'data': res.data};
+    final res = await _client.post(
+      ApiConstants.refresh,
+      data: {'refreshToken': refreshToken},
+    );
+    final data = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : <String, dynamic>{'data': res.data};
     return AuthResponseDto.fromJson(data);
   }
 
@@ -43,7 +56,9 @@ class AuthApi {
     final raw = res.data;
     Map<String, dynamic> json;
     if (raw is Map<String, dynamic>) {
-      json = raw['data'] is Map<String, dynamic> ? raw['data'] as Map<String, dynamic> : raw;
+      json = raw['data'] is Map<String, dynamic>
+          ? raw['data'] as Map<String, dynamic>
+          : raw;
       if (json['user'] is Map) json = json['user'] as Map<String, dynamic>;
     } else {
       json = {};

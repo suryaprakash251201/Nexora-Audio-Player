@@ -18,16 +18,23 @@ class FavoritesApi {
     final data = res.data;
     List<dynamic> list;
     if (data is Map<String, dynamic>) {
-      if (data['data'] is List) list = data['data'] as List;
-      else if (data['songs'] is List) list = data['songs'] as List;
-      else if (data['favorites'] is List) list = data['favorites'] as List;
-      else list = [];
+      if (data['data'] is List)
+        list = data['data'] as List;
+      else if (data['songs'] is List)
+        list = data['songs'] as List;
+      else if (data['favorites'] is List)
+        list = data['favorites'] as List;
+      else
+        list = [];
     } else if (data is List) {
       list = data;
     } else {
       list = [];
     }
-    return list.whereType<Map<String, dynamic>>().map((e) => SongDto.fromJson(e).toEntity()).toList();
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => SongDto.fromJson(e).toEntity())
+        .toList();
   }
 
   Future<void> addFavorite(String songId) async {

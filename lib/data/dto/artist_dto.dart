@@ -18,11 +18,14 @@ class ArtistDto {
   });
 
   factory ArtistDto.fromJson(Map<String, dynamic> j) {
-    int? pi(dynamic v) => v == null ? null : (v is int ? v : int.tryParse(v.toString()));
+    int? pi(dynamic v) =>
+        v == null ? null : (v is int ? v : int.tryParse(v.toString()));
     return ArtistDto(
       id: (j['id'] ?? j['_id'] ?? '').toString(),
       name: (j['name'] ?? j['title'] ?? 'Unknown Artist').toString(),
-      artworkUrl: (j['artworkUrl'] ?? j['artwork'] ?? j['image'] ?? j['coverUrl'])?.toString(),
+      artworkUrl:
+          (j['artworkUrl'] ?? j['artwork'] ?? j['image'] ?? j['coverUrl'])
+              ?.toString(),
       albumCount: pi(j['albumCount'] ?? j['albums']),
       trackCount: pi(j['trackCount'] ?? j['songs'] ?? j['count']),
       bio: j['bio']?.toString(),
@@ -30,11 +33,11 @@ class ArtistDto {
   }
 
   Artist toEntity() => Artist(
-        id: id,
-        name: name,
-        artworkUrl: artworkUrl,
-        albumCount: albumCount,
-        trackCount: trackCount,
-        bio: bio,
-      );
+    id: id,
+    name: name,
+    artworkUrl: artworkUrl,
+    albumCount: albumCount,
+    trackCount: trackCount,
+    bio: bio,
+  );
 }

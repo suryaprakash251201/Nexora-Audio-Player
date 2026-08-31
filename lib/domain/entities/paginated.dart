@@ -17,15 +17,23 @@ class Paginated<T> {
     required this.hasPrev,
   });
 
-  factory Paginated.empty() => const Paginated(data: [], page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false);
+  factory Paginated.empty() => const Paginated(
+    data: [],
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  );
 
   factory Paginated.singlePage(List<T> items) => Paginated(
-        data: items,
-        page: 1,
-        limit: items.length,
-        total: items.length,
-        totalPages: 1,
-        hasNext: false,
-        hasPrev: false,
-      );
+    data: items,
+    page: 1,
+    limit: items.length,
+    total: items.length,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+  );
 }

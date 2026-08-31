@@ -31,18 +31,27 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
   }
 
   Future<void> _test() async {
-    setState(() { _testing = true; _status = null; });
+    setState(() {
+      _testing = true;
+      _status = null;
+    });
     final api = ref.read(apiClientProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      setState(() { _testing = false; _status = 'error'; _msg = 'Enter server URL'; });
+      setState(() {
+        _testing = false;
+        _status = 'error';
+        _msg = 'Enter server URL';
+      });
       return;
     }
     final ok = await api.testConnection(url);
     setState(() {
       _testing = false;
       _status = ok ? 'success' : 'error';
-      _msg = ok ? '✓ Server reachable & API compatible' : '✗ Could not reach server. Check URL and network.';
+      _msg = ok
+          ? '✓ Server reachable & API compatible'
+          : '✗ Could not reach server. Check URL and network.';
     });
   }
 
@@ -50,12 +59,16 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter server URL')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter server URL')));
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Server saved: $url')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Server saved: $url')));
     context.pop();
   }
 
@@ -65,7 +78,15 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
       appBar: AppBar(title: const Text('Server Configuration')),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.background, AppColors.surfaceRaised, AppColors.background]),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.background,
+              AppColors.surfaceRaised,
+              AppColors.background,
+            ],
+          ),
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -79,22 +100,48 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.dns_rounded, size: 48, color: AppColors.primary),
+                    const Icon(
+                      Icons.dns_rounded,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(height: 12),
-                    const Text('Nexora Server', textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const Text(
+                      'Nexora Server',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Self-hosted or LAN server', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted)),
+                    const Text(
+                      'Self-hosted or LAN server',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _controller,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'https://music.example.com  or  192.168.1.100:3000',
-                        hintStyle: const TextStyle(color: AppColors.textDim, fontSize: 14),
-                        prefixIcon: const Icon(Icons.link, color: AppColors.textMuted),
+                        hintText:
+                            'https://music.example.com  or  192.168.1.100:3000',
+                        hintStyle: const TextStyle(
+                          color: AppColors.textDim,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.link,
+                          color: AppColors.textMuted,
+                        ),
                         filled: true,
                         fillColor: AppColors.surface,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -102,16 +149,38 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: (_status == 'success' ? AppColors.success : AppColors.error).withOpacity(0.15),
+                          color:
+                              (_status == 'success'
+                                      ? AppColors.success
+                                      : AppColors.error)
+                                  .withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _status == 'success' ? AppColors.success : AppColors.error),
+                          border: Border.all(
+                            color: _status == 'success'
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
                         ),
-                        child: Text(_msg ?? '', style: TextStyle(color: _status == 'success' ? AppColors.success : AppColors.error, fontSize: 13)),
+                        child: Text(
+                          _msg ?? '',
+                          style: TextStyle(
+                            color: _status == 'success'
+                                ? AppColors.success
+                                : AppColors.error,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: _testing ? null : _test,
-                      icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.wifi_tethering),
+                      icon: _testing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.wifi_tethering),
                       label: const Text('Test Connection'),
                     ),
                     const SizedBox(height: 12),

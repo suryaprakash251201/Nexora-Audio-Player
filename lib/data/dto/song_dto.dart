@@ -78,12 +78,21 @@ class SongDto {
       album: (j['album'] ?? j['albumName'])?.toString(),
       albumId: (j['albumId'] ?? j['album_id'])?.toString(),
       duration: parseInt(j['duration'] ?? j['length'] ?? j['durationSeconds']),
-      trackNumber: parseInt(j['trackNumber'] ?? j['track'] ?? j['track_number']),
+      trackNumber: parseInt(
+        j['trackNumber'] ?? j['track'] ?? j['track_number'],
+      ),
       discNumber: parseInt(j['discNumber'] ?? j['disc']),
       year: parseInt(j['year']),
       genre: j['genre']?.toString(),
-      coverUrl: (j['coverUrl'] ?? j['cover_url'] ?? j['artwork'] ?? j['image'] ?? j['artworkUrl'])?.toString(),
-      streamUrl: (j['streamUrl'] ?? j['stream_url'] ?? j['url'] ?? j['src'])?.toString(),
+      coverUrl:
+          (j['coverUrl'] ??
+                  j['cover_url'] ??
+                  j['artwork'] ??
+                  j['image'] ??
+                  j['artworkUrl'])
+              ?.toString(),
+      streamUrl: (j['streamUrl'] ?? j['stream_url'] ?? j['url'] ?? j['src'])
+          ?.toString(),
       artworkUrl: (j['artworkUrl'] ?? j['artwork_url'])?.toString(),
       bitrate: parseInt(j['bitrate'] ?? j['bitRate']),
       sampleRate: parseInt(j['sampleRate'] ?? j['sample_rate']),
@@ -92,7 +101,10 @@ class SongDto {
       fileSize: parseInt(j['fileSize'] ?? j['size'] ?? j['file_size']),
       createdAt: parseDate(j['createdAt'] ?? j['created_at']),
       updatedAt: parseDate(j['updatedAt'] ?? j['updated_at']),
-      isFavorite: j['isFavorite'] as bool? ?? j['favorite'] as bool? ?? j['liked'] as bool?,
+      isFavorite:
+          j['isFavorite'] as bool? ??
+          j['favorite'] as bool? ??
+          j['liked'] as bool?,
     );
   }
 
@@ -126,22 +138,22 @@ class SongDto {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        if (artist != null) 'artist': artist,
-        if (artistId != null) 'artistId': artistId,
-        if (album != null) 'album': album,
-        if (albumId != null) 'albumId': albumId,
-        if (duration != null) 'duration': duration,
-        if (trackNumber != null) 'trackNumber': trackNumber,
-        if (discNumber != null) 'discNumber': discNumber,
-        if (year != null) 'year': year,
-        if (genre != null) 'genre': genre,
-        if (coverUrl != null) 'coverUrl': coverUrl,
-        if (streamUrl != null) 'streamUrl': streamUrl,
-        if (bitrate != null) 'bitrate': bitrate,
-        if (sampleRate != null) 'sampleRate': sampleRate,
-        if (codec != null) 'codec': codec,
-        if (lossless != null) 'lossless': lossless,
-      };
+    'id': id,
+    'title': title,
+    if (artist != null) 'artist': artist,
+    if (artistId != null) 'artistId': artistId,
+    if (album != null) 'album': album,
+    if (albumId != null) 'albumId': albumId,
+    if (duration != null) 'duration': duration,
+    if (trackNumber != null) 'trackNumber': trackNumber,
+    if (discNumber != null) 'discNumber': discNumber,
+    if (year != null) 'year': year,
+    if (genre != null) 'genre': genre,
+    if (coverUrl != null) 'coverUrl': coverUrl,
+    if (streamUrl != null) 'streamUrl': streamUrl,
+    if (bitrate != null) 'bitrate': bitrate,
+    if (sampleRate != null) 'sampleRate': sampleRate,
+    if (codec != null) 'codec': codec,
+    if (lossless != null) 'lossless': lossless,
+  };
 }

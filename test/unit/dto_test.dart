@@ -40,7 +40,11 @@ void main() {
 
   group('UserDto', () {
     test('parses', () {
-      final dto = UserDto.fromJson({'id': 'u1', 'username': 'alex', 'email': 'a@b.com'});
+      final dto = UserDto.fromJson({
+        'id': 'u1',
+        'username': 'alex',
+        'email': 'a@b.com',
+      });
       expect(dto.username, 'alex');
       expect(dto.toEntity().name, 'alex');
     });
@@ -48,21 +52,27 @@ void main() {
 
   group('PaginatedResponseDto', () {
     test('parses list', () {
-      final dto = PaginatedResponseDto.fromJson<Song>(
-        [{ 'id': '1', 'title': 'A' }, { 'id': '2', 'title': 'B' }],
-        (m) => SongDto.fromJson(m).toEntity(),
-      );
+      final dto = PaginatedResponseDto.fromJson<Song>([
+        {'id': '1', 'title': 'A'},
+        {'id': '2', 'title': 'B'},
+      ], (m) => SongDto.fromJson(m).toEntity());
       expect(dto.data.length, 2);
     });
 
     test('parses envelope', () {
-      final dto = PaginatedResponseDto.fromJson<Song>(
-        {
-          'data': [{ 'id': '1', 'title': 'A' }],
-          'pagination': {'page': 1, 'limit': 20, 'total': 1, 'totalPages': 1, 'hasNext': false, 'hasPrev': false}
+      final dto = PaginatedResponseDto.fromJson<Song>({
+        'data': [
+          {'id': '1', 'title': 'A'},
+        ],
+        'pagination': {
+          'page': 1,
+          'limit': 20,
+          'total': 1,
+          'totalPages': 1,
+          'hasNext': false,
+          'hasPrev': false,
         },
-        (m) => SongDto.fromJson(m).toEntity(),
-      );
+      }, (m) => SongDto.fromJson(m).toEntity());
       expect(dto.data.length, 1);
       expect(dto.total, 1);
     });

@@ -50,7 +50,10 @@ class SongsApi {
   }
 
   Future<Song> getSong(String id, {CancelToken? cancelToken}) async {
-    final res = await _client.get(ApiConstants.songById(id), cancelToken: cancelToken);
+    final res = await _client.get(
+      ApiConstants.songById(id),
+      cancelToken: cancelToken,
+    );
     final data = res.data;
     Map<String, dynamic> j;
     if (data is Map<String, dynamic>) {

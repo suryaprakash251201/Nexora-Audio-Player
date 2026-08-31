@@ -16,23 +16,27 @@ class NetworkException extends ApiException {
 
 class UnauthorizedException extends ApiException {
   const UnauthorizedException([String msg = 'Unauthorized'])
-      : super(msg, statusCode: 401, code: 'UNAUTHORIZED');
+    : super(msg, statusCode: 401, code: 'UNAUTHORIZED');
 }
 
 class NotFoundException extends ApiException {
-  const NotFoundException([String msg = 'Not found']) : super(msg, statusCode: 404, code: 'NOT_FOUND');
+  const NotFoundException([String msg = 'Not found'])
+    : super(msg, statusCode: 404, code: 'NOT_FOUND');
 }
 
 class ValidationException extends ApiException {
-  const ValidationException(super.message, {super.details}) : super(statusCode: 422, code: 'VALIDATION_ERROR');
+  const ValidationException(super.message, {super.details})
+    : super(statusCode: 422, code: 'VALIDATION_ERROR');
 }
 
 class ServerException extends ApiException {
-  const ServerException(super.message, {super.statusCode}) : super(code: 'SERVER_ERROR');
+  const ServerException(super.message, {super.statusCode})
+    : super(code: 'SERVER_ERROR');
 }
 
 class NoInternetException extends ApiException {
-  const NoInternetException() : super('No internet connection', code: 'NO_INTERNET');
+  const NoInternetException()
+    : super('No internet connection', code: 'NO_INTERNET');
 }
 
 class TimeoutException extends ApiException {
@@ -40,5 +44,6 @@ class TimeoutException extends ApiException {
 }
 
 class BadServerUrlException extends ApiException {
-  const BadServerUrlException([String msg = 'Invalid server URL']) : super(msg, code: 'BAD_SERVER_URL');
+  const BadServerUrlException([String msg = 'Invalid server URL'])
+    : super(msg, code: 'BAD_SERVER_URL');
 }

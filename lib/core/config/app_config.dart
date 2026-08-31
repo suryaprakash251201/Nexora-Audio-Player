@@ -77,8 +77,12 @@ class AppConfig {
   static String resolveArtworkUrl(String? maybeRelative, String baseUrl) {
     if (maybeRelative == null || maybeRelative.isEmpty) return '';
     if (maybeRelative.startsWith('http')) return maybeRelative;
-    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    final path = maybeRelative.startsWith('/') ? maybeRelative : '/$maybeRelative';
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    final path = maybeRelative.startsWith('/')
+        ? maybeRelative
+        : '/$maybeRelative';
     // If base already has /api/v1, artwork may be /api/v1/... so just join root
     // For simplicity, if path starts with /api, replace base's /api/v1 prefix with origin.
     if (path.startsWith('/api')) {

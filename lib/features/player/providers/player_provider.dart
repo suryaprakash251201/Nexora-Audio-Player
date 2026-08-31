@@ -46,26 +46,28 @@ class PlaybackStateData {
     LoopMode? repeatMode,
     double? volume,
   }) => PlaybackStateData(
-        currentTrack: currentTrack ?? this.currentTrack,
-        queue: queue ?? this.queue,
-        isPlaying: isPlaying ?? this.isPlaying,
-        position: position ?? this.position,
-        duration: duration ?? this.duration,
-        bufferedPosition: bufferedPosition ?? this.bufferedPosition,
-        processingState: processingState ?? this.processingState,
-        shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
-        repeatMode: repeatMode ?? this.repeatMode,
-        volume: volume ?? this.volume,
-      );
+    currentTrack: currentTrack ?? this.currentTrack,
+    queue: queue ?? this.queue,
+    isPlaying: isPlaying ?? this.isPlaying,
+    position: position ?? this.position,
+    duration: duration ?? this.duration,
+    bufferedPosition: bufferedPosition ?? this.bufferedPosition,
+    processingState: processingState ?? this.processingState,
+    shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
+    repeatMode: repeatMode ?? this.repeatMode,
+    volume: volume ?? this.volume,
+  );
 }
 
-final playerProvider = StateNotifierProvider<PlayerNotifier, PlaybackStateData>((ref) {
-  final handler = ref.watch(audioHandlerProvider);
-  final queueManager = ref.watch(queueManagerProvider);
-  final storage = ref.watch(secureStorageProvider);
-  final history = ref.watch(historyRepositoryProvider);
-  return PlayerNotifier(handler, queueManager, storage, history);
-});
+final playerProvider = StateNotifierProvider<PlayerNotifier, PlaybackStateData>(
+  (ref) {
+    final handler = ref.watch(audioHandlerProvider);
+    final queueManager = ref.watch(queueManagerProvider);
+    final storage = ref.watch(secureStorageProvider);
+    final history = ref.watch(historyRepositoryProvider);
+    return PlayerNotifier(handler, queueManager, storage, history);
+  },
+);
 
 class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   final NexoraAudioHandler _handler;
@@ -78,7 +80,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   StreamSubscription? _mediaItemSub;
   Timer? _historyTimer;
 
-  PlayerNotifier(this._handler, this._queueManager, this._storage, this._history) : super(const PlaybackStateData()) {
+  PlayerNotifier(
+    this._handler,
+    this._queueManager,
+    this._storage,
+    this._history,
+  ) : super(const PlaybackStateData()) {
     _init();
   }
 
@@ -94,14 +101,20 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       state = state.copyWith(bufferedPosition: b);
     });
     _handler.player.playerStateStream.listen((ps) {
-      state = state.copyWith(isPlaying: ps.playing, processingState: ps.processingState);
+      state = state.copyWith(
+        isPlaying: ps.playing,
+        processingState: ps.processingState,
+      );
       if (ps.processingState == ProcessingState.completed) {
         // Auto record completion
         _recordHistory(completed: true);
       }
       if (ps.playing) {
         _historyTimer?.cancel();
-        _historyTimer = Timer.periodic(const Duration(seconds: 10), (_) => _recordHistory());
+        _historyTimer = Timer.periodic(
+          const Duration(seconds: 10),
+          (_) => _recordHistory(),
+        );
       } else {
         _historyTimer?.cancel();
       }
@@ -114,7 +127,10 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
     });
 
     _mediaItemSub = _handler.mediaItem.listen((item) {
-      state = state.copyWith(currentTrack: item, duration: item?.duration ?? state.duration);
+      state = state.copyWith(
+        currentTrack: item,
+        duration: item?.duration ?? state.duration,
+      );
       if (item != null) {
         AppLogger.player('Now playing: ${item.title}');
         _recordHistory();
@@ -137,7 +153,10 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       final (items, idx) = await _queueManager.restoreQueue();
       if (items.isNotEmpty) {
         await _handler.loadMedia(items, initialIndex: idx, playOnLoad: false);
-        state = state.copyWith(queue: items, currentTrack: items[idx.clamp(0, items.length - 1)]);
+        state = state.copyWith(
+          queue: items,
+          currentTrack: items[idx.clamp(0, items.length - 1)],
+        );
       }
     } catch (_) {}
   }
@@ -147,7 +166,11 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
     if (item == null) return;
     final songId = (item.extras?['songId'] as String?) ?? item.id;
     if (songId.isEmpty) return;
-    _history.recordPlay(songId, duration: state.duration.inSeconds, completed: completed);
+    _history.recordPlay(
+      songId,
+      duration: state.duration.inSeconds,
+      completed: completed,
+    );
   }
 
   // Public actions
@@ -155,26 +178,40 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
     if (songs.isEmpty) return;
     final baseUrl = await _storage.getServerUrl();
     final token = await _storage.getToken();
-    final items = songs.map((s) => _queueManager.songToMediaItem(s, baseUrl: baseUrl, token: token)).toList();
+    final items = songs
+        .map(
+          (s) =>
+              _queueManager.songToMediaItem(s, baseUrl: baseUrl, token: token),
+        )
+        .toList();
     await _handler.loadMedia(items, initialIndex: initialIndex);
   }
 
   Future<void> playNext(Song song) async {
     final baseUrl = await _storage.getServerUrl();
     final token = await _storage.getToken();
-    final item = _queueManager.songToMediaItem(song, baseUrl: baseUrl, token: token);
+    final item = _queueManager.songToMediaItem(
+      song,
+      baseUrl: baseUrl,
+      token: token,
+    );
     await _handler.insertNext(item);
   }
 
   Future<void> addToQueue(Song song) async {
     final baseUrl = await _storage.getServerUrl();
     final token = await _storage.getToken();
-    final item = _queueManager.songToMediaItem(song, baseUrl: baseUrl, token: token);
+    final item = _queueManager.songToMediaItem(
+      song,
+      baseUrl: baseUrl,
+      token: token,
+    );
     await _handler.addQueueItems([item]);
   }
 
   Future<void> removeAt(int index) => _handler.removeQueueItemAt(index);
-  Future<void> move(int oldIndex, int newIndex) => _handler.moveQueueItem(oldIndex, newIndex);
+  Future<void> move(int oldIndex, int newIndex) =>
+      _handler.moveQueueItem(oldIndex, newIndex);
   Future<void> clearQueue() async {
     await _handler.clearQueue();
     await _queueManager.clearPersistedQueue();
@@ -190,11 +227,13 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   Future<void> seekToIndex(int index) => _handler.skipToQueueItem(index);
   Future<void> toggleShuffle() => _handler.setShuffle(!state.shuffleEnabled);
   Future<void> cycleRepeat() async {
-    final nextMode = {
-      LoopMode.off: LoopMode.all,
-      LoopMode.all: LoopMode.one,
-      LoopMode.one: LoopMode.off,
-    }[state.repeatMode] ?? LoopMode.off;
+    final nextMode =
+        {
+          LoopMode.off: LoopMode.all,
+          LoopMode.all: LoopMode.one,
+          LoopMode.one: LoopMode.off,
+        }[state.repeatMode] ??
+        LoopMode.off;
     await _handler.player.setLoopMode(nextMode);
   }
 
@@ -215,6 +254,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
 }
 
 // Convenience providers
-final currentTrackProvider = Provider<MediaItem?>((ref) => ref.watch(playerProvider).currentTrack);
-final isPlayingProvider = Provider<bool>((ref) => ref.watch(playerProvider).isPlaying);
-final queueProvider = Provider<List<MediaItem>>((ref) => ref.watch(playerProvider).queue);
+final currentTrackProvider = Provider<MediaItem?>(
+  (ref) => ref.watch(playerProvider).currentTrack,
+);
+final isPlayingProvider = Provider<bool>(
+  (ref) => ref.watch(playerProvider).isPlaying,
+);
+final queueProvider = Provider<List<MediaItem>>(
+  (ref) => ref.watch(playerProvider).queue,
+);

@@ -32,21 +32,32 @@ class PlaylistDto {
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
       if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-      try { return DateTime.parse(v.toString()); } catch (_) { return null; }
+      try {
+        return DateTime.parse(v.toString());
+      } catch (_) {
+        return null;
+      }
     }
-    int? pi(dynamic v) => v == null ? null : (v is int ? v : int.tryParse(v.toString()));
+
+    int? pi(dynamic v) =>
+        v == null ? null : (v is int ? v : int.tryParse(v.toString()));
     List<SongDto>? parseTracks(dynamic v) {
       if (v == null) return null;
       if (v is List) {
-        return v.whereType<Map<String, dynamic>>().map((e) => SongDto.fromJson(e)).toList();
+        return v
+            .whereType<Map<String, dynamic>>()
+            .map((e) => SongDto.fromJson(e))
+            .toList();
       }
       return null;
     }
+
     return PlaylistDto(
       id: (j['id'] ?? j['_id'] ?? '').toString(),
       name: (j['name'] ?? j['title'] ?? 'Untitled').toString(),
       description: (j['description'] ?? j['desc'])?.toString(),
-      coverUrl: (j['coverUrl'] ?? j['cover_url'] ?? j['image'] ?? j['artwork'])?.toString(),
+      coverUrl: (j['coverUrl'] ?? j['cover_url'] ?? j['image'] ?? j['artwork'])
+          ?.toString(),
       ownerId: (j['ownerId'] ?? j['userId'])?.toString(),
       trackCount: pi(j['trackCount'] ?? j['count'] ?? j['songCount']),
       duration: pi(j['duration']),
@@ -58,16 +69,16 @@ class PlaylistDto {
   }
 
   Playlist toEntity() => Playlist(
-        id: id,
-        name: name,
-        description: description,
-        coverUrl: coverUrl,
-        ownerId: ownerId,
-        trackCount: trackCount ?? tracks?.length,
-        duration: duration,
-        isPublic: isPublic,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        tracks: tracks?.map((e) => e.toEntity()).toList(),
-      );
+    id: id,
+    name: name,
+    description: description,
+    coverUrl: coverUrl,
+    ownerId: ownerId,
+    trackCount: trackCount ?? tracks?.length,
+    duration: duration,
+    isPublic: isPublic,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    tracks: tracks?.map((e) => e.toEntity()).toList(),
+  );
 }
