@@ -15,7 +15,7 @@ final searchResultsProvider = FutureProvider<SearchResult?>((ref) async {
   ref.onDispose(() => cancelToken.cancel());
   // Small delay to debounce rapid provider changes
   await Future.delayed(const Duration(milliseconds: 300));
-  if (cancelToken.isCancelled) throw CancelToken().cancel();
+  if (cancelToken.isCancelled) return null;
   return repo.search(query, cancelToken: cancelToken);
 });
 
