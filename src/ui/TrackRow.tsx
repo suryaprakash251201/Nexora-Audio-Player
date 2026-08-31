@@ -21,6 +21,17 @@ function formatDuration(sec: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function folderFromPath(path?: string | null): string | null {
+  if (!path) return null;
+  const idx = path.lastIndexOf("/");
+  if (idx <= 0) return "/";
+  const folder = path.slice(0, idx);
+  // show only last 2 segments for brevity: e.g. "FLAC / Artist"
+  const segs = folder.split("/").filter(Boolean);
+  if (segs.length <= 2) return folder;
+  return segs.slice(-2).join(" / ");
+}
+
 function TrackRowInner({
   track,
   onPress,
@@ -37,6 +48,11 @@ function TrackRowInner({
   downloadProgress?: number;
 }) {
   const art = track.artwork.url;
+  const folder = folderFromPath(track.serverId?.path);
+  // Prefer artist+album, else folder path, else raw path
+  const subtitlePrimary = [track.artist, track.album].filter(Boolean).join(" · ");
+  const subtitle = subtitlePrimary || folder || track.serverId?.path || "Unknown";
+  const showFolderHint = !subtitlePrimary && !!folder && folder !== "/";
   return (
     <Pressable
       onPress={onPress}
@@ -55,11 +71,24 @@ function TrackRowInner({
 
       <View style={styles.texts}>
         <Text numberOfLines={1} style={[styles.title, active && { color: colors.accent }]}>{track.title}</Text>
-        <Text numberOfLines={1} style={styles.subtitle}>
-          {[track.artist, track.album].filter(Boolean).join(" · ") || track.serverId?.path || "Unknown"}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text numberOfLines={1} style={[styles.subtitle, { flexShrink: 1 }]}>
+            {subtitle}
+          </Text>
+          {showFolderHint ? (
+            <View style={styles.folderChip}>
+              <Ionicons name="folder-outline" size={10} color={colors.textMuted} />
+              <Text numberOfLines={1} style={styles.folderChipText}>{track.serverId?.path.split("/").pop()}</Text>
+            </View>
+          ) : null}
+        </View>
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{formatDuration(track.metadata.durationSec)} · {(track.metadata.codec as string) || "AUDIO"}</Text>
+          {track.serverId?.rootId ? (
+            <View style={styles.rootChip}>
+              <Text style={styles.rootChipText}>{track.serverId.rootId.slice(0, 6)}</Text>
+            </View>
+          ) : null}
           <View style={{ width: 6 }} />
           <QualityBadge track={track} compact />
           {downloadState === "AVAILABLE_OFFLINE" ? <Ionicons name="download" size={12} color="#22C55E" /> : null}
@@ -120,4 +149,28 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   meta: { color: colors.textMuted, fontSize: 10, letterSpacing: 0.4, textTransform: "uppercase" },
   moreBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  folderChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    maxWidth: 110,
+  },
+  folderChipText: { color: colors.textMuted, fontSize: 10, fontWeight: "600" },
+  rootChip: {
+    paddingHorizontal: 5,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: "rgba(56,189,248,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(56,189,248,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rootChipText: { color: "#38BDF8", fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
 });

@@ -18,6 +18,35 @@ import type { SearchResult } from "@/api/types";
 import { mapServerItemToTrack } from "./mapper";
 import type { MusicTrack } from "./types";
 
+/**
+ * Returns true if the path/name lives inside a trash / hidden system folder.
+ * Covers: `.trash`, `.Trash`, `.Trash-1000`, `__trash`, `$RECYCLE.BIN`, hidden dot-files.
+ * Used to hide files that Nexora's search index may still return.
+ */
+export function isTrashOrHiddenPath(path: string, name?: string): boolean {
+  const lower = path.toLowerCase();
+  const segs = lower.split("/").filter(Boolean);
+  // any segment is trash / recycle
+  if (
+    segs.some(
+      (s) =>
+        s === ".trash" ||
+        s.startsWith(".trash-") ||
+        s.startsWith(".trash_") ||
+        s === "__trash" ||
+        s === ".recycle" ||
+        s === "$recycle.bin" ||
+        s === "recycler",
+    )
+  )
+    return true;
+  if (lower.includes("/.trash/") || lower.startsWith(".trash/") || lower === ".trash" || lower.startsWith(".trash-")) return true;
+  // hidden dot-file or dot-folder anywhere in the path
+  if (segs.some((s) => s.startsWith("."))) return true;
+  if (name && name.startsWith(".")) return true;
+  return false;
+}
+
 export interface FetchNexoraOptions {
   /** Max items to fetch. Default 2000 (safe for 10k collections; we paginate 200 at a time). */
   limit?: number;
@@ -53,6 +82,10 @@ export async function fetchNexoraTracks(
     const items: SearchResult[] = (res as any)?.items ?? [];
     for (const it of items) {
       if ((it as any).is_dir) continue;
+      const p = (it as any).path as string | undefined;
+      const n = (it as any).name as string | undefined;
+      if (p && isTrashOrHiddenPath(p, n)) continue;
+      if (!p && n && isTrashOrHiddenPath(n, n)) continue;
       tracks.push(mapServerItemToTrack(it as any));
     }
     hasMore = !!(res as any)?.has_more && items.length === pageLimit;
@@ -103,6 +136,32 @@ export function groupByGenre(tracks: MusicTrack[]): Map<string, MusicTrack[]> {
   const m = new Map<string, MusicTrack[]>();
   for (const t of tracks) {
     const key = (t.genre || "Unknown").trim() || "Unknown";
+    const a = m.get(key);
+    if (a) a.push(t);
+    else m.set(key, [t]);
+  }
+  return m;
+}
+
+/** Folder helpers for home & library folder view. */
+export function getFolderPath(path: string): string {
+  const idx = path.lastIndexOf("/");
+  if (idx <= 0) return "/";
+  return path.slice(0, idx);
+}
+export function getFolderName(path: string): string {
+  const folder = getFolderPath(path);
+  if (folder === "/") return "Root";
+  const segs = folder.split("/").filter(Boolean);
+  return segs[segs.length - 1] || folder;
+}
+export function groupByFolder(tracks: MusicTrack[]): Map<string, MusicTrack[]> {
+  const m = new Map<string, MusicTrack[]>();
+  for (const t of tracks) {
+    if (!t.serverId) continue;
+    if (isTrashOrHiddenPath(t.serverId.path, t.title)) continue;
+    const folder = getFolderPath(t.serverId.path);
+    const key = `${t.serverId.rootId}:${folder}`;
     const a = m.get(key);
     if (a) a.push(t);
     else m.set(key, [t]);

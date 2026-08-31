@@ -7,12 +7,12 @@ import { useLayout } from "@/ui/layout";
 import { useLibrary } from "@/store/LibraryContext";
 import { useSession } from "@/store/SessionContext";
 import { usePlayback } from "@/store/PlaybackContext";
-import { groupByAlbum, groupByArtist } from "@/library/nexora";
+import { groupByAlbum, groupByArtist, groupByFolder, getFolderName, getFolderPath } from "@/library/nexora";
 import { Section } from "@/ui/Section";
 import { EmptyState } from "@/ui/EmptyState";
 import { ConnectBanner } from "@/ui/ConnectBanner";
 import { TrackRow } from "@/ui/TrackRow";
-import { AlbumCard, ArtistCard } from "@/ui/AlbumCard";
+import { AlbumCard, ArtistCard, FolderCard } from "@/ui/AlbumCard";
 import { StatsRow } from "@/ui/StatsRow";
 import { PageHeader } from "@/ui/PageHeader";
 import { Container } from "@/ui/Container";
@@ -37,6 +37,11 @@ export default function HomeScreen() {
 
   const artists = useMemo(() => {
     const m = groupByArtist(tracks);
+    return [...m.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, isTablet ? 8 : 6);
+  }, [tracks, isTablet]);
+
+  const folders = useMemo(() => {
+    const m = groupByFolder(tracks);
     return [...m.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, isTablet ? 8 : 6);
   }, [tracks, isTablet]);
 
@@ -147,6 +152,35 @@ export default function HomeScreen() {
                   size={i === 0 ? 168 : 132}
                 />
               ))}
+            </ScrollView>
+          </Section>
+        ) : null}
+
+        {folders.length ? (
+          <Section title="Folders" count={folders.length} subtitle="Browse by directory · cover from first track">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
+            >
+              {folders.map(([key, list]) => {
+                const w = albumColumns === 2 ? 200 : albumColumns >= 4 ? 168 : 180;
+                const sep = key.indexOf(":");
+                const rawPath = sep >= 0 ? key.slice(sep + 1) : key;
+                const name = getFolderName(rawPath);
+                const fullFolder = rawPath;
+                return (
+                  <FolderCard
+                    key={key}
+                    name={name}
+                    path={fullFolder}
+                    count={list.length}
+                    cover={list[0]?.artwork.url ?? null}
+                    width={w}
+                    onPress={() => onPlay(list[0], list)}
+                  />
+                );
+              })}
             </ScrollView>
           </Section>
         ) : null}

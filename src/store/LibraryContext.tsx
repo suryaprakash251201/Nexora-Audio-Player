@@ -15,7 +15,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { MusicTrack } from "@/library/types";
 import { dedupeTracks } from "@/library/dedupe";
-import { fetchNexoraTracks } from "@/library/nexora";
+import { fetchNexoraTracks, isTrashOrHiddenPath } from "@/library/nexora";
 import { fetchDeviceTracks, getDevicePermission } from "@/library/device";
 import { fetchOfflineTracks } from "@/library/offline";
 import { useSession } from "./SessionContext";
@@ -119,7 +119,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, [api, refresh]);
 
   const filtered = useMemo(() => {
-    let base = unified;
+    let base = unified.filter((t) => !t.serverId || !isTrashOrHiddenPath(t.serverId.path, t.title));
     if (filter.source !== "all") base = base.filter((t) => t.source === filter.source);
     const q = filter.query.trim().toLowerCase();
     if (!q) return base;

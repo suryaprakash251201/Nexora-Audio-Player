@@ -179,14 +179,48 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const next = useCallback(async () => {
     const t = stepRef.current(1);
     if (!t) return;
+    const q = stateRef.current.queue;
+    const idx = q.findIndex((x) => x.id === t.id);
     setCurrent(t);
+    if (idx >= 0) {
+      try {
+        await player.skipToIndex(idx);
+        await player.play();
+      } catch {}
+    }
   }, []);
 
   const prev = useCallback(async () => {
     const t = stepRef.current(-1);
     if (!t) return;
+    const q = stateRef.current.queue;
+    const idx = q.findIndex((x) => x.id === t.id);
     setCurrent(t);
+    if (idx >= 0) {
+      try {
+        await player.skipToIndex(idx);
+        await player.play();
+      } catch {}
+    }
   }, []);
+
+  // Wire OS media controls (lock screen / BT) to our next/prev that honour shuffle
+  useEffect(() => {
+    player.remoteHandlers.next = () => { void next(); };
+    player.remoteHandlers.previous = () => { void prev(); };
+  }, [next, prev]);
+
+  // Auto-advance when the native queue ends (respect repeat)
+  useEffect(() => {
+    const off = player.on("ended", () => {
+      if (repeat === "one") {
+        void player.seekTo(0).then(() => void player.play());
+        return;
+      }
+      void next();
+    });
+    return off;
+  }, [next, repeat]);
 
   const addToQueue = useCallback(async (track: MusicTrack) => {
     setQueue((prev) => [...prev, track]);
@@ -226,7 +260,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         setShowPlayer(false);
         return;
       }
-      setCurrent(nextQueue[Math.min(idx, nextQueue.length - 1)]);
+      const nextTrack = nextQueue[Math.min(idx, nextQueue.length - 1)];
+      setCurrent(nextTrack);
+      try { await player.removeTrack(idx); } catch {}
+      const nextIdx = nextQueue.findIndex((x) => x.id === nextTrack.id);
+      if (nextIdx >= 0) {
+        try { await player.skipToIndex(nextIdx); await player.play(); } catch {}
+      }
+      return;
     }
     try { await player.removeTrack(idx); } catch {}
   }, [queue, current]);

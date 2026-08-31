@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Haptics } from "@/lib/haptics";
 import type { MusicTrack } from "@/library/types";
 import { mapServerItemToTrack } from "@/library/mapper";
+import { isTrashOrHiddenPath } from "@/library/nexora";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,9 +37,20 @@ export default function PlaylistDetailScreen() {
     );
   }
 
-  const playlistTracks: MusicTrack[] = playlist.items.map((it) =>
-    mapServerItemToTrack({ name: it.name, path: it.path, root_id: it.root_id, extension: it.extension, mime: it.mime, size: it.size, modified: it.modified, is_dir: false } as any),
-  );
+  const playlistTracks: MusicTrack[] = useMemo(() => {
+    const out: MusicTrack[] = [];
+    const seen = new Set<string>();
+    for (const it of playlist.items) {
+      if (isTrashOrHiddenPath(it.path, it.name)) continue;
+      const id = `srv:${it.root_id}:${it.path}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(
+        mapServerItemToTrack({ name: it.name, path: it.path, root_id: it.root_id, extension: it.extension, mime: it.mime, size: it.size, modified: it.modified, is_dir: false } as any),
+      );
+    }
+    return out;
+  }, [playlist.items]);
 
   const onPlay = (t: MusicTrack) => void playback.play(t, playlistTracks);
 

@@ -80,6 +80,47 @@ export const ArtistCard = memo(function ArtistCard({
   );
 });
 
+/** Folder card — shows folder cover + file count. */
+export const FolderCard = memo(function FolderCard({
+  name,
+  path,
+  count,
+  cover,
+  onPress,
+  width = 168,
+}: {
+  name: string;
+  path: string;
+  count: number;
+  cover: string | null;
+  onPress: () => void;
+  width?: number;
+}) {
+  return (
+    <Pressable onPress={() => { Haptics.tapLight(); onPress(); }} style={[styles.root, { width }]}>
+      <View style={[styles.art, { width, height: width }]}>
+        {cover ? (
+          <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+        ) : (
+          <LinearGradient colors={["#1E293B", "#334155", "#475569"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        )}
+        <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]} style={StyleSheet.absoluteFill} />
+        <View style={styles.folderIconBadge}>
+          <Ionicons name="folder" size={14} color="#fff" />
+        </View>
+        <View style={[styles.qualityStripe, { backgroundColor: "rgba(59,130,246,0.85)" }]}>
+          <Text style={styles.qualityStripeText}>FOLDER</Text>
+        </View>
+      </View>
+      <View style={styles.texts}>
+        <Text numberOfLines={1} style={styles.title}>{name}</Text>
+        <Text numberOfLines={1} style={styles.subtitle}>{path}</Text>
+        <Text style={styles.count}>{count} tracks</Text>
+      </View>
+    </Pressable>
+  );
+});
+
 const styles = StyleSheet.create({
   root: { gap: 8 },
   art: {
@@ -92,6 +133,7 @@ const styles = StyleSheet.create({
   },
   qualityStripe: { position: "absolute", top: 8, left: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: "rgba(0,0,0,0.45)", borderRadius: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   qualityStripeText: { color: "#fff", fontSize: 9, fontWeight: "800", letterSpacing: 0.6, fontFamily: font.sansBold },
+  folderIconBadge: { position: "absolute", bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(59,130,246,0.9)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
   texts: { gap: 1, paddingHorizontal: 2 },
   title: { color: colors.text, fontSize: 13, fontWeight: "700", fontFamily: font.sansBold },
   subtitle: { color: colors.textMuted, fontSize: 11, fontFamily: font.sansRegular },
