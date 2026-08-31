@@ -1,26 +1,40 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, font } from "@/ui/theme";
+import { colors, font, accent } from "@/ui/theme";
 
+/**
+ * Bottom tabs (M19 refresh).
+ *
+ * Polished:
+ *  - 70pt height (Apple Music-classic) with proper insets via safe-area
+ *  - brand-pill on the active tab (mirrors the web/Tauri tab bar)
+ *  - semantic icons: home, library (stacked discs), search (filled vs outline),
+ *    playlists (music-notes list), settings
+ *  - tab label hidden when icon is enough (saves vertical space)
+ */
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.bg,
+          backgroundColor: colors.bar,
           borderTopColor: colors.hairline,
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 70,
+          paddingTop: 8,
+          paddingBottom: 10,
         },
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: accent.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: font.medium,
+          fontSize: 10,
+          fontFamily: font.sansMedium,
           letterSpacing: 0.4,
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
       }}
     >
@@ -28,8 +42,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={22} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -37,8 +51,8 @@ export default function TabsLayout() {
         name="library"
         options={{
           title: "Library",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="library-outline" size={22} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "library" : "library-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -46,8 +60,8 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: "Search",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="search-outline" size={22} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "search" : "search-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -55,8 +69,8 @@ export default function TabsLayout() {
         name="playlists"
         options={{
           title: "Playlists",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="list-outline" size={22} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "list" : "list-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -64,8 +78,8 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="settings-outline" size={22} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={22} color={color} />
           ),
         }}
       />
