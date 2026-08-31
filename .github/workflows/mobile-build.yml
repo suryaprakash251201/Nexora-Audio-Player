@@ -117,17 +117,23 @@ jobs:
       - name: build unsigned device app
         run: |
           set -x
-          # `expo prebuild` generates a `.xcodeproj`; when CocoaPods runs it also
-          # creates a matching `.xcworkspace`. Prefer the workspace when present,
-          # otherwise fall back to the xcodeproj so we never pass an empty target.
-          if ls *.xcworkspace >/dev/null 2>&1; then
-            XCODE_TARGET="$(ls *.xcworkspace | head -n1)"
+          # CocoaPods creates a top-level `<App>.xcworkspace`; expo prebuild
+          # creates `<App>.xcodeproj`. Prefer the workspace (integrates Pods),
+          # otherwise fall back to the xcodeproj. Use `find -maxdepth 1 -type d`
+          # so we match the *top-level* directories only — never the nested
+          # `project.xcworkspace/contents.xcworkspacedata` that a plain glob
+          # (`ls *.xcworkspace`) can wrongly pick up.
+          WORKSPACE="$(find . -maxdepth 1 -type d -name '*.xcworkspace' | head -n1)"
+          if [ -n "$WORKSPACE" ]; then
+            XCODE_TARGET="$WORKSPACE"
             XCODE_FLAG="-workspace"
+            SCHEME="$(basename "$WORKSPACE" .xcworkspace)"
           else
-            XCODE_TARGET="$(ls *.xcodeproj | head -n1)"
+            XCODEPROJ="$(find . -maxdepth 1 -type d -name '*.xcodeproj' | head -n1)"
+            XCODE_TARGET="$XCODEPROJ"
             XCODE_FLAG="-project"
+            SCHEME="$(basename "$XCODEPROJ" .xcodeproj)"
           fi
-          SCHEME="$(basename "$XCODE_TARGET" | sed -E 's/\.(xcworkspace|xcodeproj)$//')"
           echo "Xcode target: $XCODE_TARGET"
           echo "Scheme: $SCHEME"
           xcodebuild "$XCODE_FLAG" "$XCODE_TARGET" -scheme "$SCHEME" \
@@ -137,6 +143,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee ios-build.log
           exit ${PIPESTATUS[0]}
+        working-directory: ./ios
 
       - name: upload device build log on failure
         if: failure()
@@ -169,14 +176,19 @@ jobs:
       - name: build simulator app
         run: |
           set -x
-          if ls *.xcworkspace >/dev/null 2>&1; then
-            XCODE_TARGET="$(ls *.xcworkspace | head -n1)"
+          WORKSPACE="$(find . -maxdepth 1 -type d -name '*.xcworkspace' | head -n1)"
+          if [ -n "$WORKSPACE" ]; then
+            XCODE_TARGET="$WORKSPACE"
             XCODE_FLAG="-workspace"
+            SCHEME="$(basename "$WORKSPACE" .xcworkspace)"
           else
-            XCODE_TARGET="$(ls *.xcodeproj | head -n1)"
+            XCODEPROJ="$(find . -maxdepth 1 -type d -name '*.xcodeproj' | head -n1)"
+            XCODE_TARGET="$XCODEPROJ"
             XCODE_FLAG="-project"
+            SCHEME="$(basename "$XCODEPROJ" .xcodeproj)"
           fi
-          SCHEME="$(basename "$XCODE_TARGET" | sed -E 's/\.(xcworkspace|xcodeproj)$//')"
+          echo "Xcode target: $XCODE_TARGET"
+          echo "Scheme: $SCHEME"
           xcodebuild "$XCODE_FLAG" "$XCODE_TARGET" -scheme "$SCHEME" \
             -configuration Debug -sdk iphonesimulator \
             -derivedDataPath build-sim \
