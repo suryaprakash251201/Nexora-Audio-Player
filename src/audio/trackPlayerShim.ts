@@ -1,59 +1,60 @@
 /**
- * Web-safe shim for react-native-track-player.
+ * Native shim for react-native-track-player.
  *
- * On web, TrackPlayer doesn't exist (no native queue). We expose a no-op
- * stub with the same surface so the web bundle can compile and the Playback
- * context degrades gracefully (queue state still works, but actual playback
- * on web falls back to HTML5 — wired in M7).
- *
- * On native, re-export the real module.
+ * Web uses `trackPlayerShim.web.ts` (Metro `.web` extension) so the native
+ * module + `shaka-player` peer are never bundled for web. This file is only
+ * evaluated on iOS/Android. It tries to require the native module and falls
+ * back to a no-op stub if the package is missing (e.g. in Jest).
  */
-import { Platform } from "react-native";
-
 let mod: any = null;
-let isWeb = Platform.OS === "web";
+let loadFailed = false;
 
-if (!isWeb) {
-  try {
-    mod = require("react-native-track-player");
-  } catch {
-    mod = null;
-    isWeb = true;
-  }
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  mod = require("react-native-track-player");
+} catch {
+  mod = null;
+  loadFailed = true;
 }
 
-export const TrackPlayer: any = isWeb
-  ? {
-      setupPlayer: async () => {},
-      updateOptions: async () => {},
-      addEventListener: () => ({ remove: () => {} }),
-      getProgress: async () => ({ position: 0, duration: 0, buffered: 0 }),
-      play: async () => {},
-      pause: async () => {},
-      seekBy: async () => {},
-      seekTo: async () => {},
-      reset: async () => {},
-      setRepeatMode: async () => {},
-      setVolume: async () => {},
-      add: async () => {},
-      skip: async () => {},
-      remove: async () => {},
-      registerPlaybackService: () => {},
-    }
-  : mod.default ?? mod;
+const stub = {
+  setupPlayer: async () => {},
+  updateOptions: async () => {},
+  addEventListener: () => ({ remove: () => {} }),
+  getProgress: async () => ({ position: 0, duration: 0, buffered: 0 }),
+  play: async () => {},
+  pause: async () => {},
+  seekBy: async () => {},
+  seekTo: async () => {},
+  reset: async () => {},
+  setRepeatMode: async () => {},
+  setVolume: async () => {},
+  add: async () => {},
+  skip: async () => {},
+  remove: async () => {},
+  registerPlaybackService: () => {},
+};
 
-export const AppKilledPlaybackBehavior: any = isWeb
+export const TrackPlayer: any = loadFailed ? stub : mod.default ?? mod;
+
+export const AppKilledPlaybackBehavior: any = loadFailed
   ? { ContinuePlayback: 0, StopPlaybackAndRemoveNotification: 1, PausePlayback: 2 }
   : mod.AppKilledPlaybackBehavior;
 
-export const Capability: any = isWeb
+export const Capability: any = loadFailed
   ? {
-      Play: "play", Pause: "pause", SkipToNext: "next", SkipToPrevious: "previous",
-      SeekTo: "seek", Stop: "stop", JumpForward: "jumpForward", JumpBackward: "jumpBackward",
+      Play: "play",
+      Pause: "pause",
+      SkipToNext: "next",
+      SkipToPrevious: "previous",
+      SeekTo: "seek",
+      Stop: "stop",
+      JumpForward: "jumpForward",
+      JumpBackward: "jumpBackward",
     }
   : mod.Capability;
 
-export const Event: any = isWeb
+export const Event: any = loadFailed
   ? {
       PlaybackState: "playback-state",
       PlaybackActiveTrackChanged: "playback-active-track-changed",
@@ -61,10 +62,17 @@ export const Event: any = isWeb
       PlaybackError: "playback-error",
       RemoteNext: "remote-next",
       RemotePrevious: "remote-previous",
+      RemotePlay: "remote-play",
+      RemotePause: "remote-pause",
+      RemoteStop: "remote-stop",
+      RemoteSeek: "remote-seek",
+      RemoteJumpForward: "remote-jump-forward",
+      RemoteJumpBackward: "remote-jump-backward",
+      RemoteDuck: "remote-duck",
     }
   : mod.Event;
 
-export const RepeatMode: any = isWeb ? { Off: 0, Track: 1, Queue: 2 } : mod.RepeatMode;
-export const State: any = isWeb
+export const RepeatMode: any = loadFailed ? { Off: 0, Track: 1, Queue: 2 } : mod.RepeatMode;
+export const State: any = loadFailed
   ? { None: 0, Ready: 1, Playing: 2, Paused: 3, Stopped: 4, Buffering: 5, Connecting: 6, Error: 7 }
   : mod.State;
