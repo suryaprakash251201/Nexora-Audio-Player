@@ -177,4 +177,69 @@ export const gradients = {
   danger: [accent.danger, "#B91C1C"] as const,
 };
 
+/* ------------------------------------------------------------------ */
+/* Glass (M25) — frosted surface system                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A real glass surface is three layers stacked:
+ *   1. blur          (expo-blur BlurView, or CSS backdrop-filter on web)
+ *   2. tint          (translucent colour laid over the blur)
+ *   3. edge + sheen  (1px lit stroke + a specular top highlight)
+ *
+ * The tint is not decoration — it is what keeps text legible. Blur alone
+ * lets busy artwork bleed through and destroys contrast, so every glass
+ * surface carries enough tint to hold text contrast.
+ */
+export const glass = {
+  /**
+   * Blur radius per role. Deliberately modest: high values read as fog and
+   * cost real GPU time, especially on Android.
+   */
+  blur: {
+    subtle: 18,
+    card: 30,
+    bar: 55,
+    sheet: 68,
+    modal: 80,
+  },
+
+  /** Translucent colour laid over the blur. */
+  tint: {
+    /** Bottom tab bar — content scrolls visibly behind it. */
+    bar: "rgba(14,14,24,0.58)",
+    /** Cards / list surfaces. */
+    card: "rgba(255,255,255,0.05)",
+    /** Bottom sheets (queue, pickers). */
+    sheet: "rgba(18,18,28,0.70)",
+    /** Small controls: pills, chips, search field, segmented track. */
+    pill: "rgba(255,255,255,0.07)",
+    /** Dialogs that must fully own the screen behind them. */
+    strong: "rgba(20,20,32,0.80)",
+    /** Heavier scrim for any glass sitting directly over album artwork. */
+    scrim: "rgba(10,10,18,0.55)",
+  },
+
+  /**
+   * The glass edge. A surface reads as *glass* because light catches its top
+   * rim and falls off toward the bottom — a flat translucent panel has no rim.
+   */
+  edge: {
+    top: "rgba(255,255,255,0.14)",
+    bottom: "rgba(255,255,255,0.04)",
+    hairline: "rgba(255,255,255,0.10)",
+    strong: "rgba(255,255,255,0.18)",
+  },
+
+  /** Specular highlight: bright at the top-left, gone by ~40% down. */
+  sheen: ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.03)", "rgba(255,255,255,0)"] as const,
+
+  /**
+   * Which roles may use a real BlurView. Anything rendered inside a recycled
+   * list (FlashList rows, grid cards) must use faux glass instead — a
+   * BlurView per row destroys scroll performance.
+   */
+  allowRealBlur: true,
+};
+
 export type ThemeColors = typeof colors;

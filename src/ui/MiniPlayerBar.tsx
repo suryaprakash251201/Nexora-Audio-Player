@@ -4,8 +4,8 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors, font, tierColor } from "@/ui/theme";
+import { colors, font, glass, tierColor } from "@/ui/theme";
+import { GlassSurface } from "@/ui/Glass";
 import { usePlayback } from "@/store/PlaybackContext";
 import { useDownloads } from "@/store/DownloadsContext";
 import { Haptics } from "@/lib/haptics";
@@ -16,7 +16,8 @@ import QueueOverlay from "@/ui/QueueOverlay";
  *
  * Modern floating design (rounded 20, glassy gradient, shadow, accent edge)
  * - insets-aware bottom offset (70pt tab + safe area)
- * - LinearGradient backdrop for floating glass feel (no BlurView perf cost per-row)
+ * - frosted BlurView backdrop (single floating bar, so real blur is cheap here;
+ *   recycled list rows use GlassPanel's faux glass instead)
  * - accent left edge + rounded progress at bottom
  * - haptics, tier chip, download pill, long-press → QueueOverlay
  */
@@ -56,9 +57,9 @@ export default function MiniPlayerBar() {
     <>
       <View pointerEvents="box-none" style={[s.wrap, { bottom: bottomOffset }]}>
         <Pressable onPress={onExpand} onLongPress={() => setQueueOpen(true)} style={s.root}>
-          <View style={StyleSheet.absoluteFill}>
-            <LinearGradient colors={["rgba(30,30,45,0.96)", "rgba(18,18,28,0.98)"]} style={StyleSheet.absoluteFill} />
-          </View>
+          {/* Real frosted glass. The mini player is a single floating bar,
+              so real blur is cheap here; rows use faux glass instead. */}
+          <GlassSurface variant="bar" radius={20} style={StyleSheet.absoluteFill} />
           <View style={s.progressTrackBg}>
             <View style={[s.progressFill, { width: `${progress * 100}%`, backgroundColor: tierC.accent }]} />
           </View>
@@ -124,8 +125,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "transparent",
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    // Rim is drawn by GlassSurface; overflow keeps blur clipped to radius.
     overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.45,

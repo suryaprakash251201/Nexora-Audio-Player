@@ -1,7 +1,8 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/ui/theme";
+import { GlassSurface } from "@/ui/Glass";
 
 export function SearchBar({
   value,
@@ -13,7 +14,7 @@ export function SearchBar({
   placeholder?: string;
 }) {
   return (
-    <View style={styles.root}>
+    <GlassSurface variant="pill" radius={12} style={styles.root}>
       <Ionicons name="search" size={16} color={colors.textMuted} />
       <TextInput
         value={value}
@@ -27,7 +28,7 @@ export function SearchBar({
         returnKeyType="search"
       />
       {value ? <Ionicons name="close-circle" size={16} color={colors.textMuted} /> : null}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -36,10 +37,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 12,
     paddingHorizontal: 12,
     height: 40,
   },

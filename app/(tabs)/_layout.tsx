@@ -1,6 +1,8 @@
+import { StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, font, accent } from "@/ui/theme";
+import { colors, font, accent, glass } from "@/ui/theme";
+import { GlassSurface } from "@/ui/Glass";
 
 /**
  * Bottom tabs (M19 refresh).
@@ -17,13 +19,18 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // Frosted bar: real blur so the library scrolls visibly behind it.
+        tabBarBackground: () => (
+          <GlassSurface variant="bar" sheen={false} border={false} style={StyleSheet.absoluteFill} />
+        ),
         tabBarStyle: {
-          backgroundColor: colors.bar,
-          borderTopColor: colors.hairline,
+          backgroundColor: "transparent",
+          borderTopColor: glass.edge.hairline,
           borderTopWidth: 1,
           height: 70,
           paddingTop: 8,
           paddingBottom: 10,
+          elevation: 0,
         },
         tabBarActiveTintColor: accent.primary,
         tabBarInactiveTintColor: colors.textMuted,

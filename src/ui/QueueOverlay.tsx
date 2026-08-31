@@ -3,9 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import { usePlayback } from "@/store/PlaybackContext";
 import { useLibrary } from "@/store/LibraryContext";
-import { colors, font, motion, radius, spacing, tierColor } from "@/ui/theme";
+import { colors, font, glass, motion, radius, spacing, tierColor } from "@/ui/theme";
+import { GlassSurface } from "@/ui/Glass";
 import { formatBitrate, formatSampleRate, formatBitDepth } from "@/audio/audioQuality";
 import { cleanTrackTitle } from "@/lib/cleanTitle";
 import { Haptics } from "@/lib/haptics";
@@ -26,8 +28,11 @@ export default function QueueOverlay({ visible, onClose }: { visible: boolean; o
 
   return (
     <View style={[s.backdrop, { paddingTop: insets.top + 12 }]} pointerEvents="box-none">
+      {/* Defocus + dim the screen behind the sheet so the queue owns focus. */}
+      <BlurView intensity={glass.blur.subtle} tint="dark" style={StyleSheet.absoluteFill} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.dim]} />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      <View style={[s.sheet, { paddingBottom: insets.bottom + 80 }]}>
+      <GlassSurface variant="sheet" radius={0} border={false} style={[s.sheet, { paddingBottom: insets.bottom + 80 }]}>
         <View style={s.handle} />
         <View style={s.header}>
           <View>
@@ -108,19 +113,20 @@ export default function QueueOverlay({ visible, onClose }: { visible: boolean; o
           }
           contentContainerStyle={{ paddingBottom: 24 }}
         />
-      </View>
+      </GlassSurface>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  backdrop: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
+  /** Dim level behind the sheet (blur is provided by BlurView). */
+  dim: { backgroundColor: "rgba(0,0,0,0.42)" },
   sheet: {
-    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    borderTopWidth: 1,
+    borderTopColor: glass.edge.strong,
     maxHeight: "78%",
     paddingTop: 8,
   },
