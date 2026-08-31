@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_service.dart';
 import '../../core/errors/exceptions.dart';
 import '../../core/sync/sync_manager.dart';
@@ -39,6 +38,7 @@ class FavoritesRepository {
             'album': s.album,
             'duration': s.duration,
             'coverUrl': s.coverUrl,
+            'streamUrl': s.streamUrl,
             'updatedAt': DateTime.now().millisecondsSinceEpoch,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
@@ -68,6 +68,7 @@ class FavoritesRepository {
                 album: t['album'] as String?,
                 duration: t['duration'] as int?,
                 coverUrl: t['coverUrl'] as String?,
+                streamUrl: t['streamUrl'] as String?,
                 isFavorite: true,
               ),
             );

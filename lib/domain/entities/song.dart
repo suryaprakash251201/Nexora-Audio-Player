@@ -24,6 +24,10 @@ class Song {
   final bool isDownloaded;
   final String? localPath;
 
+  /// For playlist items on the real server: the playlist-item id used for
+  /// reorder/remove operations (not the song identity itself).
+  final String? itemRef;
+
   const Song({
     required this.id,
     required this.title,
@@ -49,6 +53,7 @@ class Song {
     this.isFavorite = false,
     this.isDownloaded = false,
     this.localPath,
+    this.itemRef,
   });
 
   Song copyWith({
@@ -76,6 +81,7 @@ class Song {
     bool? isFavorite,
     bool? isDownloaded,
     String? localPath,
+    String? itemRef,
   }) {
     return Song(
       id: id ?? this.id,
@@ -102,6 +108,7 @@ class Song {
       isFavorite: isFavorite ?? this.isFavorite,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       localPath: localPath ?? this.localPath,
+      itemRef: itemRef ?? this.itemRef,
     );
   }
 

@@ -1,53 +1,49 @@
 class ApiConstants {
   const ApiConstants._();
 
-  // Auth
+  // Auth (real Nexora)
   static const login = '/auth/login';
-  static const refresh = '/auth/refresh';
+  static const session = '/auth/session';
   static const logout = '/auth/logout';
-  static const me = '/auth/me';
+  static const me = '/auth/session';
+  static const needsSetup = '/auth/needs-setup';
+  static const version = '/version';
+  static const healthz = '/healthz';
 
-  // Server
-  static const serverInfo = '/server/info';
-  static const health = '/health'; // may be outside /api/v1
+  // Storage roots
+  static const roots = '/roots';
 
-  // Library
-  static const songs = '/songs';
-  static String songById(String id) => '/songs/$id';
-  static String songStream(String id) => '/songs/$id/stream';
-  static String songArtwork(String id) => '/songs/$id/artwork';
-  static String songDownload(String id) => '/songs/$id/download';
-
-  static const albums = '/albums';
-  static String albumById(String id) => '/albums/$id';
-  static String albumTracks(String id) => '/albums/$id/tracks';
-  static String albumArtwork(String id) => '/albums/$id/artwork';
-
-  static const artists = '/artists';
-  static String artistById(String id) => '/artists/$id';
-  static String artistSongs(String id) => '/artists/$id/songs';
-  static String artistAlbums(String id) => '/artists/$id/albums';
-  static String artistArtwork(String id) => '/artists/$id/artwork';
-
-  // Playlists
-  static const playlists = '/playlists';
-  static String playlistById(String id) => '/playlists/$id';
-  static String playlistTracks(String id) => '/playlists/$id/tracks';
-  static String playlistTrackById(String playlistId, String songId) =>
-      '/playlists/$playlistId/tracks/$songId';
-  static String playlistReorder(String id) => '/playlists/$id/reorder';
-
-  // Favorites
-  static const favorites = '/favorites';
-  static String favoriteBySongId(String songId) => '/favorites/$songId';
-
-  // History
-  static const history = '/history';
+  // Files (library source of truth: audio files)
+  static const files = '/files';
+  static const filesRaw = '/files/raw';
+  static const filesThumbnail = '/files/thumbnail';
+  static const filesDownload = '/files/download';
+  static const audioInfo = '/audio/info';
+  static const audioLyrics = '/audio/lyrics';
 
   // Search
   static const search = '/search';
 
-  // Settings
-  static const settings = '/settings';
-  static const user = '/user';
+  // Favorites (real: root+path based)
+  static const favorites = '/favorites';
+
+  // Recents (playback history as tracked by the server)
+  static const recents = '/recents';
+
+  // Playlists
+  static const playlists = '/playlists';
+  static String playlistById(String id) => '/playlists/$id';
+  static String playlistItems(String id) => '/playlists/$id/items';
+  static String playlistItemOrder(String id) => '/playlists/$id/items/order';
+
+  // Home dashboard
+  static const home = '/home';
+
+  // Legacy/compat (unused by real server but kept for alt backends)
+  static const refresh = '/auth/refresh';
+  static const albums = '/albums';
+  static const artists = '/artists';
+  static const history = '/history';
+  static const serverInfo = '/server/info';
+  static const health = '/health';
 }

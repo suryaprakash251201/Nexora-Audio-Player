@@ -93,14 +93,23 @@ class QueueManager {
   }
 
   MediaItem songToMediaItem(Song song, {String? baseUrl, String? token}) {
-    final stream = song.streamUrl ?? song.id;
-    // Build full URL if relative
-    String fullStream = stream;
-    if (!stream.startsWith('http') && baseUrl != null) {
-      final base = baseUrl.endsWith('/')
-          ? baseUrl.substring(0, baseUrl.length - 1)
-          : baseUrl;
-      fullStream = stream.startsWith('/') ? '$base$stream' : '$base/$stream';
+    // Song id is "rootId|path" for the real Nexora file server; streamUrl
+    // already carries the fully resolved /files/raw?root=&path=&token= URL
+    // (built by SongsApi). Fall back to legacy url joining for cached songs.
+    String fullStream = song.streamUrl ?? song.id;
+    if (!fullStream.startsWith('http')) {
+      final root = fullStream.contains('|') ? fullStream.split('|').first : '';
+      final path = fullStream.contains('|')
+          ? fullStream.split('|').skip(1).join('|')
+          : fullStream;
+      final t = token ?? '';
+      if (baseUrl != null && baseUrl.isNotEmpty) {
+        final base = baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl;
+        fullStream =
+            '$base/files/raw?root=$root&path=${Uri.encodeComponent(path)}&token=$t';
+      }
     }
     final artwork = song.coverUrl ?? song.artworkUrl;
     String? fullArt = artwork;

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../theme.dart';
 
-class ArtworkImage extends StatelessWidget {
+/// Provides the current bearer token for authenticated image requests.
+final authTokenProvider = FutureProvider<String?>((ref) async {
+  final storage = ref.watch(secureStorageProvider);
+  return storage.getToken();
+});
+
+class ArtworkImage extends ConsumerWidget {
   final String? url;
   final double? size;
   final double borderRadius;
@@ -16,27 +24,32 @@ class ArtworkImage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hasUrl = url != null && url!.isNotEmpty && url != 'null';
+    if (!hasUrl) return _fallback();
+
+    final tokenAsync = ref.watch(authTokenProvider);
+    final headers = <String, String>{};
+    tokenAsync.whenData((t) {
+      if (t != null && t.isNotEmpty) headers['Authorization'] = 'Bearer $t';
+    });
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: Container(
         width: size,
         height: size,
         color: AppColors.surfaceRaised,
-        child: hasUrl
-            ? Image.network(
-                url!,
-                fit: fit,
-                errorBuilder: (c, e, s) => _fallback(),
-                loadingBuilder: (c, child, progress) {
-                  if (progress == null) return child;
-                  return _fallback(isLoading: true);
-                },
-                headers:
-                    const {}, // Dio auth not needed for cached_network_image? Stream with token if needed externally
-              )
-            : _fallback(),
+        child: Image.network(
+          url!,
+          fit: fit,
+          headers: headers,
+          errorBuilder: (c, e, s) => _fallback(),
+          loadingBuilder: (c, child, progress) {
+            if (progress == null) return child;
+            return _fallback(isLoading: true);
+          },
+        ),
       ),
     );
   }

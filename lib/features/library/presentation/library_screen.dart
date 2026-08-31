@@ -279,8 +279,7 @@ class _AlbumsTab extends ConsumerWidget {
 }
 
 final _albumsProvider = FutureProvider(
-  (ref) async =>
-      (await ref.watch(albumsApiProvider).getAlbums(page: 1, limit: 50)).data,
+  (ref) async => ref.watch(albumsApiProvider).getAlbums(limit: 100),
 );
 
 class _ArtistsTab extends ConsumerWidget {
@@ -332,8 +331,7 @@ class _ArtistsTab extends ConsumerWidget {
 }
 
 final _artistsProvider = FutureProvider(
-  (ref) async =>
-      (await ref.watch(artistsApiProvider).getArtists(page: 1, limit: 50)).data,
+  (ref) async => ref.watch(artistsApiProvider).getArtists(limit: 100),
 );
 
 class _DownloadsTab extends ConsumerWidget {

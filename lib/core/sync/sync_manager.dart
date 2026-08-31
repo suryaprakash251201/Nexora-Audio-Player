@@ -135,21 +135,25 @@ class SyncManager {
         );
         break;
       case 'ADD_FAVORITE':
-        await _dio.post('/favorites/${p['songId']}');
+        // songId is "rootId|path" on the real Nexora file server
+        final parts = (p['songId'] as String).split('|');
+        await _dio.post(
+          '/favorites',
+          data: {'root': parts.first, 'path': parts.skip(1).join('|')},
+        );
         break;
       case 'REMOVE_FAVORITE':
-        await _dio.delete('/favorites/${p['songId']}');
-        break;
-      case 'RECORD_HISTORY':
-        await _dio.post(
-          '/history',
-          data: {
-            'songId': p['songId'],
-            'playedAt': p['playedAt'],
-            'duration': p['duration'],
-            'completed': p['completed'],
+        final rparts = (p['songId'] as String).split('|');
+        await _dio.delete(
+          '/favorites',
+          queryParameters: {
+            'root': rparts.first,
+            'path': rparts.skip(1).join('|'),
           },
         );
+        break;
+      case 'RECORD_HISTORY':
+        // Recorded server-side on /files/raw access; nothing to POST.
         break;
       default:
         AppLogger.sync('Unknown op $type');

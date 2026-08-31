@@ -82,12 +82,9 @@ class HistoryRepository {
     }
     _lastRecord[songId] = now;
     try {
-      await _api.recordPlay(
-        songId: songId,
-        playedAt: now,
-        duration: duration,
-        completed: completed,
-      );
+      // Real Nexora records recents automatically when a track is streamed
+      // via /files/raw; this is a best-effort no-op + local mirror.
+      await _api.recordPlay(songId, duration: duration, completed: completed);
       final db = await _db.database;
       await db.insert('history', {
         'id': '${songId}_${now.millisecondsSinceEpoch}',

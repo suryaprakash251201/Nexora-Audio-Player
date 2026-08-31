@@ -1,104 +1,59 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants/api_constants.dart';
-import '../../core/network/api_client.dart';
-import '../../domain/entities/album.dart';
 import '../../domain/entities/artist.dart';
-import '../../domain/entities/paginated.dart';
 import '../../domain/entities/song.dart';
-import '../dto/album_dto.dart';
-import '../dto/artist_dto.dart';
-import '../dto/paginated_response_dto.dart';
-import '../dto/song_dto.dart';
+import '../dto/file_dto.dart';
+import 'songs_api.dart';
 
 final artistsApiProvider = Provider<ArtistsApi>((ref) {
-  final c = ref.watch(apiClientProvider);
-  return ArtistsApi(c);
+  final songsApi = ref.watch(songsApiProvider);
+  return ArtistsApi(songsApi);
 });
 
+/// Artists are directory-based on the file server. Heuristic:
+/// prefer a root sub-directory named "Artists"; otherwise treat top-level
+/// music folders as artist groupings (same v1 behavior as Albums).
 class ArtistsApi {
-  final ApiClient _client;
-  ArtistsApi(this._client);
+  final SongsApi _songs;
+  ArtistsApi(this._songs);
 
-  Future<Paginated<Artist>> getArtists({
-    int page = 1,
-    int limit = 20,
-    String? query,
+  Future<List<Artist>> getArtists({
+    int limit = 100,
     CancelToken? cancelToken,
   }) async {
-    final res = await _client.get(
-      ApiConstants.artists,
-      query: {
-        'page': page,
-        'limit': limit,
-        if (query != null && query.isNotEmpty) 'q': query,
-      },
-      cancelToken: cancelToken,
+    final rootId = await _songs.musicRootId();
+    if (rootId == null) return [];
+    final (_, dirs) = await _songs.browseDirectory(
+      rootId: rootId,
+      limit: limit,
     );
-    final dto = PaginatedResponseDto.fromJson<Artist>(
-      res.data,
-      (m) => ArtistDto.fromJson(m).toEntity(),
-      fallbackPage: page,
-      fallbackLimit: limit,
-    );
-    return dto.toEntity();
+    final artistsDir = dirs
+        .where((d) => d.name.toLowerCase() == 'artists')
+        .toList();
+    final source = artistsDir.isNotEmpty ? artistsDir : dirs;
+    return source.map((d) => Artist(id: d.id, name: d.name)).toList();
   }
 
-  Future<Artist> getArtist(String id) async {
-    final res = await _client.get(ApiConstants.artistById(id));
-    final raw = res.data as Map<String, dynamic>?;
-    Map<String, dynamic> j = raw?['data'] is Map
-        ? raw!['data'] as Map<String, dynamic>
-        : (raw ?? {});
-    if (j['artist'] is Map) j = j['artist'] as Map<String, dynamic>;
-    return ArtistDto.fromJson(j).toEntity();
+  Future<Artist> getArtist(String artistId) async {
+    final path = NexoraFiles.parsePath(artistId);
+    final name = path.split('/').where((s) => s.isNotEmpty).lastOrNull ?? path;
+    return Artist(id: artistId, name: name);
   }
 
-  Future<Paginated<Song>> getArtistSongs(
-    String id, {
-    int page = 1,
-    int limit = 20,
-    CancelToken? cancelToken,
-  }) async {
-    final res = await _client.get(
-      ApiConstants.artistSongs(id),
-      query: {'page': page, 'limit': limit},
-      cancelToken: cancelToken,
+  Future<List<Song>> getArtistSongs(String artistId, {int limit = 200}) async {
+    final root = NexoraFiles.parseRootId(artistId);
+    final path = NexoraFiles.parsePath(artistId);
+    final (songs, subDirs) = await _songs.browseDirectory(
+      rootId: root,
+      path: path,
     );
-    final dto = PaginatedResponseDto.fromJson<Song>(
-      res.data,
-      (m) => SongDto.fromJson(m).toEntity(),
-      fallbackPage: page,
-      fallbackLimit: limit,
-    );
-    // If endpoint returns raw list without pagination wrapper
-    if (dto.data.isEmpty && res.data is List) {
-      final list = (res.data as List)
-          .whereType<Map<String, dynamic>>()
-          .map((e) => SongDto.fromJson(e).toEntity())
-          .toList();
-      return Paginated.singlePage(list);
+    if (songs.isEmpty && subDirs.isNotEmpty) {
+      for (final d in subDirs.take(20)) {
+        final p = NexoraFiles.parsePath(d.id);
+        final (s2, _) = await _songs.browseDirectory(rootId: root, path: p);
+        songs.addAll(s2);
+        if (songs.length > limit) break;
+      }
     }
-    return dto.toEntity();
-  }
-
-  Future<Paginated<Album>> getArtistAlbums(
-    String id, {
-    int page = 1,
-    int limit = 20,
-    CancelToken? cancelToken,
-  }) async {
-    final res = await _client.get(
-      ApiConstants.artistAlbums(id),
-      query: {'page': page, 'limit': limit},
-      cancelToken: cancelToken,
-    );
-    final dto = PaginatedResponseDto.fromJson<Album>(
-      res.data,
-      (m) => AlbumDto.fromJson(m).toEntity(),
-      fallbackPage: page,
-      fallbackLimit: limit,
-    );
-    return dto.toEntity();
+    return songs;
   }
 }

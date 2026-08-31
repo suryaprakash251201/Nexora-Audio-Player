@@ -3,77 +3,82 @@ import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../domain/entities/playlist.dart';
 import '../../domain/entities/song.dart';
-import '../dto/playlist_dto.dart';
-import '../dto/song_dto.dart';
+import '../dto/file_dto.dart';
 
 final playlistsApiProvider = Provider<PlaylistsApi>((ref) {
   final c = ref.watch(apiClientProvider);
   return PlaylistsApi(c);
 });
 
+/// Real Nexora playlists:
+/// GET  /playlists -> {items:[{id,name,description,cover_root_id,cover_path,is_public,created_at,updated_at,items:[{id,root_id,path,name,extension,mime,size,modified}]}]}
+/// POST /playlists {name,description,items?} -> 201 playlist
+/// PUT  /playlists/{id} {name} | PATCH {description,is_public,...}
+/// POST /playlists/{id}/items {items:[{root_id,path}]}
+/// DEL  /playlists/{id}/items?item_id=
+/// PUT  /playlists/{id}/items/order {item_ids:[...]}
 class PlaylistsApi {
   final ApiClient _client;
   PlaylistsApi(this._client);
 
+  Song _itemToSong(Map<String, dynamic> raw) {
+    final rootId = (raw['root_id'] ?? '').toString();
+    final path = (raw['path'] ?? '').toString();
+    final name = (raw['name'] ?? '').toString();
+    final f = FileItemDto(
+      name: name,
+      path: path,
+      size: (raw['size'] is int) ? raw['size'] as int : 0,
+      isDir: false,
+      modified: (raw['modified'] ?? '').toString(),
+      mime: (raw['mime'] ?? '').toString(),
+      rootId: rootId,
+      extension:
+          (raw['extension'] ?? (name.contains('.') ? name.split('.').last : ''))
+              .toString(),
+    );
+    return NexoraFiles.toSong(f, itemRef: (raw['id'] ?? '').toString());
+  }
+
   Future<List<Playlist>> getPlaylists() async {
     final res = await _client.get(ApiConstants.playlists);
     final data = res.data;
-    List<dynamic> list;
-    if (data is Map<String, dynamic>) {
-      if (data['data'] is List)
-        list = data['data'] as List;
-      else if (data['playlists'] is List)
-        list = data['playlists'] as List;
-      else if (data['items'] is List)
-        list = data['items'] as List;
-      else
-        list = [];
-    } else if (data is List) {
-      list = data;
-    } else {
-      list = [];
+    final items =
+        (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    final out = <Playlist>[];
+    for (final raw in items) {
+      if (raw is! Map<String, dynamic>) continue;
+      final tracks = <Song>[];
+      final rawItems = (raw['items'] as List?) ?? [];
+      for (final it in rawItems) {
+        if (it is Map<String, dynamic>) tracks.add(_itemToSong(it));
+      }
+      out.add(
+        Playlist(
+          id: (raw['id'] ?? '').toString(),
+          name: (raw['name'] ?? 'Untitled').toString(),
+          description: raw['description']?.toString(),
+          coverUrl: null,
+          trackCount: tracks.length,
+          isPublic: raw['is_public'] == true,
+          tracks: tracks,
+        ),
+      );
     }
-    return list
-        .whereType<Map<String, dynamic>>()
-        .map((e) => PlaylistDto.fromJson(e).toEntity())
-        .toList();
+    return out;
   }
 
   Future<Playlist> getPlaylist(String id) async {
-    final res = await _client.get(ApiConstants.playlistById(id));
-    final raw = res.data as Map<String, dynamic>?;
-    Map<String, dynamic> j = raw?['data'] is Map
-        ? raw!['data'] as Map<String, dynamic>
-        : (raw ?? {});
-    if (j['playlist'] is Map) j = j['playlist'] as Map<String, dynamic>;
-    // Some APIs embed tracks under j['tracks']
-    return PlaylistDto.fromJson(j).toEntity();
+    final all = await getPlaylists();
+    return all.firstWhere(
+      (p) => p.id == id,
+      orElse: () => Playlist(id: id, name: 'Playlist'),
+    );
   }
 
   Future<List<Song>> getPlaylistTracks(String id) async {
-    final res = await _client.get(ApiConstants.playlistTracks(id));
-    final data = res.data;
-    List<dynamic> list;
-    if (data is Map<String, dynamic>) {
-      if (data['data'] is List)
-        list = data['data'] as List;
-      else if (data['tracks'] is List)
-        list = data['tracks'] as List;
-      else if (data['songs'] is List)
-        list = data['songs'] as List;
-      else if (data['data'] is Map && data['data']['tracks'] is List)
-        list = data['data']['tracks'] as List;
-      else
-        list = [];
-    } else if (data is List) {
-      list = data;
-    } else {
-      list = [];
-    }
-    return list
-        .whereType<Map<String, dynamic>>()
-        .map((e) => SongDto.fromJson(e).toEntity())
-        .toList();
+    final p = await getPlaylist(id);
+    return p.tracks ?? [];
   }
 
   Future<Playlist> createPlaylist({
@@ -82,34 +87,38 @@ class PlaylistsApi {
   }) async {
     final res = await _client.post(
       ApiConstants.playlists,
-      data: {'name': name, if (description != null) 'description': description},
-    );
-    final raw = res.data as Map<String, dynamic>?;
-    Map<String, dynamic> j = raw?['data'] is Map
-        ? raw!['data'] as Map<String, dynamic>
-        : (raw ?? {});
-    if (j['playlist'] is Map) j = j['playlist'] as Map<String, dynamic>;
-    return PlaylistDto.fromJson(j).toEntity();
-  }
-
-  Future<Playlist> updatePlaylist(
-    String id, {
-    String? name,
-    String? description,
-  }) async {
-    final res = await _client.put(
-      ApiConstants.playlistById(id),
       data: {
-        if (name != null) 'name': name,
-        if (description != null) 'description': description,
+        'name': name,
+        'description': description ?? '',
+        'items': <Map<String, dynamic>>[],
       },
     );
-    final raw = res.data as Map<String, dynamic>?;
-    Map<String, dynamic> j = raw?['data'] is Map
-        ? raw!['data'] as Map<String, dynamic>
-        : (raw ?? {});
-    if (j['playlist'] is Map) j = j['playlist'] as Map<String, dynamic>;
-    return PlaylistDto.fromJson(j).toEntity();
+    final raw = res.data;
+    if (raw is Map<String, dynamic>) {
+      final tracks = <Song>[];
+      for (final it in (raw['items'] as List?) ?? []) {
+        if (it is Map<String, dynamic>) tracks.add(_itemToSong(it));
+      }
+      return Playlist(
+        id: (raw['id'] ?? '').toString(),
+        name: (raw['name'] ?? name).toString(),
+        description: raw['description']?.toString(),
+        trackCount: tracks.length,
+        tracks: tracks,
+      );
+    }
+    return Playlist(id: '', name: name, description: description);
+  }
+
+  Future<void> renamePlaylist(String id, String name) async {
+    await _client.put(ApiConstants.playlistById(id), data: {'name': name});
+  }
+
+  Future<void> updateDescription(String id, String description) async {
+    await _client.patch(
+      ApiConstants.playlistById(id),
+      data: {'description': description},
+    );
   }
 
   Future<void> deletePlaylist(String id) async {
@@ -117,38 +126,29 @@ class PlaylistsApi {
   }
 
   Future<void> addTrack(String playlistId, String songId) async {
-    // Try batch and single
-    try {
-      await _client.post(
-        ApiConstants.playlistTracks(playlistId),
-        data: {'songId': songId},
-      );
-    } catch (e) {
-      // Fallback for servers expecting songIds array
-      await _client.post(
-        ApiConstants.playlistTracks(playlistId),
-        data: {
-          'songIds': [songId],
-        },
-      );
-    }
-  }
-
-  Future<void> addTracks(String playlistId, List<String> songIds) async {
+    final root = NexoraFiles.parseRootId(songId);
+    final path = NexoraFiles.parsePath(songId);
     await _client.post(
-      ApiConstants.playlistTracks(playlistId),
-      data: {'songIds': songIds},
+      ApiConstants.playlistItems(playlistId),
+      data: {
+        'items': [
+          {'root_id': root, 'path': path},
+        ],
+      },
     );
   }
 
-  Future<void> removeTrack(String playlistId, String songId) async {
-    await _client.delete(ApiConstants.playlistTrackById(playlistId, songId));
+  Future<void> removeTrack(String playlistId, String itemId) async {
+    await _client.delete(
+      ApiConstants.playlistItems(playlistId),
+      query: {'item_id': itemId},
+    );
   }
 
-  Future<void> reorder(String playlistId, List<String> orderedIds) async {
+  Future<void> reorder(String playlistId, List<String> orderedItemIds) async {
     await _client.put(
-      ApiConstants.playlistReorder(playlistId),
-      data: {'orderedIds': orderedIds},
+      ApiConstants.playlistItemOrder(playlistId),
+      data: {'item_ids': orderedItemIds},
     );
   }
 }

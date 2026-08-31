@@ -186,7 +186,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             .read(playlistsRepositoryProvider)
                             .reorder(
                               p.id,
-                              _tracks.map((e) => (e.id as String)).toList(),
+                              _tracks
+                                  .map((e) => (e.itemRef ?? e.id) as String)
+                                  .toList(),
                             );
                       } catch (e) {
                         if (mounted)

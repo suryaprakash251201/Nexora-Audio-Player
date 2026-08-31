@@ -2,87 +2,72 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../domain/entities/playback_history.dart';
-import '../dto/song_dto.dart';
+import '../dto/file_dto.dart';
 
 final historyApiProvider = Provider<HistoryApi>((ref) {
   final c = ref.watch(apiClientProvider);
   return HistoryApi(c);
 });
 
+/// Real Nexora history = /recents (server records an access whenever a file
+/// is streamed via /files/raw without a Range header).
+/// GET /recents?limit= -> {items:[{root_id,root_name,path,name,accessed_at}]}
 class HistoryApi {
   final ApiClient _client;
   HistoryApi(this._client);
 
   Future<List<PlaybackHistoryItem>> getHistory({
     int page = 1,
-    int limit = 20,
+    int limit = 30,
   }) async {
     final res = await _client.get(
-      ApiConstants.history,
-      query: {'page': page, 'limit': limit},
+      ApiConstants.recents,
+      query: {'limit': limit},
     );
     final data = res.data;
-    List<dynamic> list;
-    if (data is Map<String, dynamic>) {
-      if (data['data'] is List)
-        list = data['data'] as List;
-      else if (data['history'] is List)
-        list = data['history'] as List;
-      else if (data['items'] is List)
-        list = data['items'] as List;
-      else
-        list = [];
-    } else if (data is List) {
-      list = data;
-    } else {
-      list = [];
-    }
-
-    return list.whereType<Map<String, dynamic>>().map((e) {
-      final songJson = e['song'] is Map ? e['song'] as Map<String, dynamic> : e;
-      final song = e['song'] != null
-          ? SongDto.fromJson(songJson).toEntity()
-          : null;
-      final id = (e['songId'] ?? e['song_id'] ?? song?.id ?? '').toString();
+    final items =
+        (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    final out = <PlaybackHistoryItem>[];
+    for (final raw in items) {
+      if (raw is! Map<String, dynamic>) continue;
+      final rootId = (raw['root_id'] ?? '').toString();
+      final path = (raw['path'] ?? '').toString();
+      final name = (raw['name'] ?? '').toString();
+      if (rootId.isEmpty || path.isEmpty) continue;
       DateTime playedAt;
       try {
-        final raw = e['playedAt'] ?? e['played_at'] ?? e['createdAt'];
-        playedAt = raw is int
-            ? DateTime.fromMillisecondsSinceEpoch(raw)
-            : DateTime.parse(raw.toString());
+        playedAt = DateTime.parse((raw['accessed_at'] ?? '').toString());
       } catch (_) {
         playedAt = DateTime.now();
       }
-      return PlaybackHistoryItem(
-        songId: id,
-        song: song,
-        playedAt: playedAt,
-        playDuration: e['playDuration'] is int
-            ? e['playDuration'] as int
-            : int.tryParse((e['playDuration'] ?? '').toString()),
-        completion: (e['completion'] as num?)?.toDouble(),
+      final f = FileItemDto(
+        name: name,
+        path: path,
+        size: 0,
+        isDir: false,
+        modified: '',
+        mime: '',
+        rootId: rootId,
+        extension: name.contains('.') ? name.split('.').last : '',
       );
-    }).toList();
+      out.add(
+        PlaybackHistoryItem(
+          songId: NexoraFiles.songId(f),
+          song: NexoraFiles.toSong(f),
+          playedAt: playedAt,
+        ),
+      );
+    }
+    return out;
   }
 
-  Future<void> recordPlay({
-    required String songId,
-    DateTime? playedAt,
+  /// Streaming a track records recents server-side; no dedicated POST needed.
+  /// Kept as a no-op-ish best-effort for alternate backends.
+  Future<void> recordPlay(
+    String songId, {
     int? duration,
     bool completed = false,
   }) async {
-    await _client.post(
-      ApiConstants.history,
-      data: {
-        'songId': songId,
-        'playedAt': (playedAt ?? DateTime.now()).toIso8601String(),
-        if (duration != null) 'duration': duration,
-        'completed': completed,
-      },
-    );
-  }
-
-  Future<void> clearHistory() async {
-    await _client.delete(ApiConstants.history);
+    // Server records access automatically on /files/raw; nothing to POST.
   }
 }
