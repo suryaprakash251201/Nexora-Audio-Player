@@ -2,19 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
 import 'ui/theme.dart';
+import 'core/audio/audio_handler.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize audio service before app starts
+  late NexoraAudioHandler handler;
+  try {
+    handler = await initAudioService();
+  } catch (e) {
+    // Fallback handler if audio_service fails (e.g., on web)
+    handler = NexoraAudioHandler();
+  }
+
   runApp(
-    // ProviderScope enables Riverpod for the entire app
-    const ProviderScope(child: NexoraApp()),
+    ProviderScope(
+      overrides: [
+        audioHandlerProvider.overrideWithValue(handler),
+      ],
+      child: const NexoraApp(),
+    ),
   );
 }
 
-class NexoraApp extends StatelessWidget {
+class NexoraApp extends ConsumerWidget {
   const NexoraApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Nexora Audio Player',
       debugShowCheckedModeBanner: false,

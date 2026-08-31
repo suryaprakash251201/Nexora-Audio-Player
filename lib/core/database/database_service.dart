@@ -21,13 +21,13 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onConfigure: (db) async {
-        // Essential for offline durability and performance
         await db.execute('PRAGMA foreign_keys = ON');
         await db.execute('PRAGMA journal_mode = WAL');
       },
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -42,8 +42,33 @@ class DatabaseService {
         duration INTEGER,
         coverUrl TEXT,
         streamUrl TEXT,
+        codec TEXT,
+        bitrate INTEGER,
+        sampleRate INTEGER,
         isDownloaded INTEGER DEFAULT 0,
         localPath TEXT,
+        updatedAt INTEGER
+      )
+    ''');
+
+    // Albums
+    await db.execute('''
+      CREATE TABLE albums (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        artist TEXT,
+        coverUrl TEXT,
+        year INTEGER,
+        updatedAt INTEGER
+      )
+    ''');
+
+    // Artists
+    await db.execute('''
+      CREATE TABLE artists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        artworkUrl TEXT,
         updatedAt INTEGER
       )
     ''');
@@ -71,16 +96,112 @@ class DatabaseService {
       )
     ''');
 
+    // History
+    await db.execute('''
+      CREATE TABLE history (
+        id TEXT PRIMARY KEY,
+        songId TEXT NOT NULL,
+        playedAt INTEGER NOT NULL,
+        duration INTEGER,
+        completion REAL
+      )
+    ''');
+
+    // Favorites
+    await db.execute('''
+      CREATE TABLE favorites (
+        songId TEXT PRIMARY KEY,
+        addedAt INTEGER NOT NULL
+      )
+    ''');
+
     // Sync Operations Queue (Offline mutations)
     await db.execute('''
       CREATE TABLE sync_ops (
         id TEXT PRIMARY KEY,
-        operationType TEXT NOT NULL, -- e.g., 'ADD_TO_PLAYLIST', 'CREATE_PLAYLIST'
-        payload TEXT NOT NULL,       -- JSON string of the operation data
+        operationType TEXT NOT NULL,
+        payload TEXT NOT NULL,
         status TEXT DEFAULT 'PENDING',
         createdAt INTEGER NOT NULL,
         retryCount INTEGER DEFAULT 0
       )
     ''');
+
+    // Queue persistence
+    await db.execute('''
+      CREATE TABLE queue_state (
+        id TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add new columns/tables for v2
+      try {
+        await db.execute('ALTER TABLE tracks ADD COLUMN codec TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE tracks ADD COLUMN bitrate INTEGER');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE tracks ADD COLUMN sampleRate INTEGER');
+      } catch (_) {}
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS albums (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          artist TEXT,
+          coverUrl TEXT,
+          year INTEGER,
+          updatedAt INTEGER
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS artists (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          artworkUrl TEXT,
+          updatedAt INTEGER
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS history (
+          id TEXT PRIMARY KEY,
+          songId TEXT NOT NULL,
+          playedAt INTEGER NOT NULL,
+          duration INTEGER,
+          completion REAL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS favorites (
+          songId TEXT PRIMARY KEY,
+          addedAt INTEGER NOT NULL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS queue_state (
+          id TEXT PRIMARY KEY,
+          data TEXT NOT NULL,
+          updatedAt INTEGER NOT NULL
+        )
+      ''');
+    }
+  }
+
+  Future<void> clearAll() async {
+    final db = await database;
+    await db.delete('tracks');
+    await db.delete('albums');
+    await db.delete('artists');
+    await db.delete('playlists');
+    await db.delete('playlist_items');
+    await db.delete('history');
+    await db.delete('favorites');
+    await db.delete('sync_ops');
+    await db.delete('queue_state');
   }
 }

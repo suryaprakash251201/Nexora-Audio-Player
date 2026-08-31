@@ -1,72 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/glass_surface.dart';
-import '../../player/presentation/now_playing_overlay.dart';
+import '../../../ui/widgets/error_view.dart';
+import '../../../ui/widgets/artwork_image.dart';
+import '../providers/home_provider.dart';
+import '../../player/providers/player_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recentSongs = ref.watch(recentSongsProvider);
+    final recentlyPlayed = ref.watch(recentlyPlayedProvider);
+    final albums = ref.watch(featuredAlbumsProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Good Evening',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Good Evening'),
         actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search), onPressed: () => context.push('/search')),
+          IconButton(icon: const Icon(Icons.settings), onPressed: () => context.push('/settings')),
         ],
       ),
-      body: Stack(
-        children: [
-          ListView(
-            padding: const EdgeInsets.all(
-              16.0,
-            ).copyWith(bottom: 120), // Padding for mini player
-            children: [
-              _buildHeroBanner(),
-              const SizedBox(height: 32),
-              _buildSectionTitle('Recently Added'),
-              const SizedBox(height: 16),
-              _buildHorizontalList(),
-            ],
-          ),
-
-          // Mini Player Overlay (Gestures)
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: NowPlayingOverlay(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroBanner() {
-    return GlassSurface(
-      opacity: 0.3,
-      child: Container(
-        height: 160,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(recentSongsProvider);
+          ref.invalidate(recentlyPlayedProvider);
+          ref.invalidate(featuredAlbumsProvider);
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16).copyWith(bottom: 100),
           children: [
-            Text(
-              'Continue Listening',
-              style: TextStyle(color: AppColors.textMuted),
+            _heroBanner(context),
+            const SizedBox(height: 24),
+            _sectionTitle('Recently Added', onSeeAll: () => context.push('/library')),
+            const SizedBox(height: 12),
+            recentSongs.when(
+              data: (songs) => songs.isEmpty
+                  ? const EmptyView(title: 'No songs', subtitle: 'Pull to refresh or check server connection', icon: Icons.music_note_outlined)
+                  : SizedBox(
+                      height: 180,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: songs.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (c, i) {
+                          final s = songs[i];
+                          return GestureDetector(
+                            onTap: () => ref.read(playerProvider.notifier).playSongs(songs, initialIndex: i),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ArtworkImage(url: s.coverUrl, size: 120, borderRadius: 12),
+                                const SizedBox(height: 8),
+                                SizedBox(width: 120, child: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12))),
+                                SizedBox(width: 120, child: Text(s.artist ?? 'Unknown', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textMuted, fontSize: 11))),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+              loading: () => const SizedBox(height: 180, child: LoadingView()),
+              error: (e, _) => ErrorView(message: e.toString(), onRetry: () => ref.invalidate(recentSongsProvider)),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Dark Side of the Moon',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            const SizedBox(height: 24),
+            _sectionTitle('Recently Played'),
+            const SizedBox(height: 12),
+            recentlyPlayed.when(
+              data: (items) => items.isEmpty
+                  ? const EmptyView(title: 'No history yet', subtitle: 'Play something to see it here', icon: Icons.history)
+                  : SizedBox(
+                      height: 140,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (c, i) {
+                          final h = items[i];
+                          final song = h.song;
+                          return Container(
+                            width: 140,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ArtworkImage(url: song?.coverUrl, size: 56, borderRadius: 8),
+                                const Spacer(),
+                                Text(song?.title ?? h.songId, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                Text(song?.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+              loading: () => const SizedBox(height: 80, child: LoadingView()),
+              error: (e, _) => ErrorView(message: e.toString(), onRetry: () => ref.invalidate(recentlyPlayedProvider)),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('Featured Albums', onSeeAll: () => context.push('/library')),
+            const SizedBox(height: 12),
+            albums.when(
+              data: (list) => list.isEmpty
+                  ? const EmptyView(title: 'No albums', icon: Icons.album_outlined)
+                  : SizedBox(
+                      height: 170,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: list.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (c, i) {
+                          final a = list[i];
+                          return Column(
+                            children: [
+                              ArtworkImage(url: a.coverUrl, size: 120, borderRadius: 12),
+                              const SizedBox(height: 8),
+                              SizedBox(width: 120, child: Text(a.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12))),
+                              SizedBox(width: 120, child: Text(a.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textMuted, fontSize: 11))),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+              loading: () => const SizedBox(height: 120, child: LoadingView()),
+              error: (e, _) => ErrorView(message: e.toString(), onRetry: () => ref.invalidate(featuredAlbumsProvider)),
             ),
           ],
         ),
@@ -74,53 +136,39 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
+  Widget _heroBanner(BuildContext context) {
+    return GlassSurface(
+      opacity: 0.3,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 160,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(colors: [AppColors.primary.withOpacity(0.3), AppColors.secondary.withOpacity(0.2)]),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            const Text('Continue Listening', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            const SizedBox(height: 8),
+            const Text('Your audiophile\ncollection awaits', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, height: 1.1)),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(onPressed: () => context.push('/library'), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Browse Library')),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHorizontalList() {
-    return SizedBox(
-      height: 180,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: 5,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.music_note, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Album Name',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Text(
-                'Artist',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          );
-        },
-      ),
+  Widget _sectionTitle(String title, {VoidCallback? onSeeAll}) {
+    return Row(
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Spacer(),
+        if (onSeeAll != null) TextButton(onPressed: onSeeAll, child: const Text('See all', style: TextStyle(color: AppColors.primary, fontSize: 12))),
+      ],
     );
   }
 }

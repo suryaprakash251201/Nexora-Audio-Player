@@ -18,12 +18,17 @@ Future<NexoraAudioHandler> initAudioService() async {
   );
 }
 
-class NexoraAudioHandler extends BaseAudioHandler with SeekHandler {
+class NexoraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
 
   NexoraAudioHandler() {
     _notifyAudioHandlerAboutPlaybackEvents();
+    _listenForDurationChanges();
+    _listenForCurrentSongIndexChanges();
+    _listenForSequenceStateChanges();
   }
+
+  AudioPlayer get player => _player;
 
   void _notifyAudioHandlerAboutPlaybackEvents() {
     _player.playbackEventStream.listen((PlaybackEvent event) {
@@ -59,20 +64,138 @@ class NexoraAudioHandler extends BaseAudioHandler with SeekHandler {
     });
   }
 
-  // Load a playlist or track
-  Future<void> loadMedia(List<MediaItem> items, {int initialIndex = 0}) async {
-    final audioSource = ConcatenatingAudioSource(
-      children: items.map((item) {
-        // Here we'd map standard network URLs or local file paths
-        final source = item.extras?['localPath'] != null
-            ? AudioSource.uri(Uri.file(item.extras!['localPath']))
-            : AudioSource.uri(Uri.parse(item.id));
-        return source;
-      }).toList(),
-    );
+  void _listenForDurationChanges() {
+    _player.durationStream.listen((duration) {
+      final index = _player.currentIndex;
+      final newQueue = queue.value;
+      if (index == null || newQueue.isEmpty) return;
+      if (index >= newQueue.length) return;
+      final oldMediaItem = newQueue[index];
+      final newMediaItem = oldMediaItem.copyWith(duration: duration);
+      newQueue[index] = newMediaItem;
+      queue.add(newQueue);
+      mediaItem.add(newMediaItem);
+    });
+  }
 
+  void _listenForCurrentSongIndexChanges() {
+    _player.currentIndexStream.listen((index) {
+      final queueVal = queue.value;
+      if (index == null || queueVal.isEmpty) return;
+      if (index >= queueVal.length) return;
+      mediaItem.add(queueVal[index]);
+    });
+  }
+
+  void _listenForSequenceStateChanges() {
+    _player.sequenceStateStream.listen((SequenceState? sequenceState) {
+      final sequence = sequenceState?.effectiveSequence;
+      if (sequence == null || sequence.isEmpty) return;
+      final items = sequence.map((source) => source.tag as MediaItem).toList();
+      queue.add(items);
+    });
+  }
+
+  Future<void> loadMedia(List<MediaItem> items, {int initialIndex = 0, bool playOnLoad = true}) async {
+    if (items.isEmpty) return;
+    final audioSources = items.map((item) {
+      final localPath = item.extras?['localPath'] as String?;
+      final headers = item.extras?['headers'] as Map<String, String>?;
+      if (localPath != null && localPath.isNotEmpty) {
+        return AudioSource.uri(Uri.file(localPath), tag: item);
+      }
+      // Remote streaming with optional auth header
+      return AudioSource.uri(Uri.parse(item.id), tag: item, headers: headers);
+    }).toList();
+
+    final source = ConcatenatingAudioSource(children: audioSources);
     queue.add(items);
-    await _player.setAudioSource(audioSource, initialIndex: initialIndex);
+    mediaItem.add(items[initialIndex.clamp(0, items.length - 1)]);
+    await _player.setAudioSource(source, initialIndex: initialIndex);
+    if (playOnLoad) await _player.play();
+  }
+
+  Future<void> addQueueItems(List<MediaItem> items) async {
+    final currentQueue = queue.value;
+    final newQueue = [...currentQueue, ...items];
+    final sources = items.map((item) {
+      final localPath = item.extras?['localPath'] as String?;
+      final headers = item.extras?['headers'] as Map<String, String>?;
+      if (localPath != null && localPath.isNotEmpty) {
+        return AudioSource.uri(Uri.file(localPath), tag: item);
+      }
+      return AudioSource.uri(Uri.parse(item.id), tag: item, headers: headers);
+    }).toList();
+
+    final seq = _player.sequence;
+    if (_player.audioSource is ConcatenatingAudioSource) {
+      final concat = _player.audioSource as ConcatenatingAudioSource;
+      await concat.addAll(sources);
+    } else {
+      // No source yet, create one
+      await loadMedia(items, playOnLoad: false);
+      return;
+    }
+    queue.add(newQueue);
+  }
+
+  Future<void> insertNext(MediaItem item) async {
+    final currentQueue = queue.value;
+    final currentIndex = _player.currentIndex ?? 0;
+    final insertIndex = (currentIndex + 1).clamp(0, currentQueue.length);
+    final newQueue = [...currentQueue]..insert(insertIndex, item);
+
+    final localPath = item.extras?['localPath'] as String?;
+    final headers = item.extras?['headers'] as Map<String, String>?;
+    final source = localPath != null && localPath.isNotEmpty
+        ? AudioSource.uri(Uri.file(localPath), tag: item)
+        : AudioSource.uri(Uri.parse(item.id), tag: item, headers: headers);
+
+    if (_player.audioSource is ConcatenatingAudioSource) {
+      final concat = _player.audioSource as ConcatenatingAudioSource;
+      if (insertIndex >= concat.length) {
+        await concat.add(source);
+      } else {
+        await concat.insert(insertIndex, source);
+      }
+    }
+    queue.add(newQueue);
+  }
+
+  Future<void> removeQueueItemAt(int index) async {
+    if (index < 0 || index >= queue.value.length) return;
+    final newQueue = [...queue.value]..removeAt(index);
+    if (_player.audioSource is ConcatenatingAudioSource) {
+      final concat = _player.audioSource as ConcatenatingAudioSource;
+      await concat.removeAt(index);
+    }
+    queue.add(newQueue);
+  }
+
+  Future<void> moveQueueItem(int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) return;
+    if (oldIndex < 0 || oldIndex >= queue.value.length) return;
+    if (newIndex < 0 || newIndex >= queue.value.length) return;
+    final newQueue = [...queue.value];
+    final item = newQueue.removeAt(oldIndex);
+    newQueue.insert(newIndex, item);
+    if (_player.audioSource is ConcatenatingAudioSource) {
+      final concat = _player.audioSource as ConcatenatingAudioSource;
+      await concat.move(oldIndex, newIndex);
+    }
+    queue.add(newQueue);
+  }
+
+  Future<void> clearQueue() async {
+    await _player.stop();
+    try {
+      if (_player.audioSource is ConcatenatingAudioSource) {
+        final concat = _player.audioSource as ConcatenatingAudioSource;
+        await concat.clear();
+      }
+    } catch (_) {}
+    queue.add([]);
+    mediaItem.add(null);
   }
 
   @override
@@ -95,4 +218,36 @@ class NexoraAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToPrevious() => _player.seekToPrevious();
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    if (index < 0 || index >= queue.value.length) return;
+    await _player.seek(Duration.zero, index: index);
+    mediaItem.add(queue.value[index]);
+  }
+
+  Future<void> setShuffle(bool enable) async {
+    await _player.setShuffleModeEnabled(enable);
+    if (enable) await _player.shuffle();
+  }
+
+  Future<void> setRepeatMode(AudioServiceRepeatMode mode) async {
+    final loop = {
+      AudioServiceRepeatMode.none: LoopMode.off,
+      AudioServiceRepeatMode.one: LoopMode.one,
+      AudioServiceRepeatMode.all: LoopMode.all,
+      AudioServiceRepeatMode.group: LoopMode.all,
+    }[mode]!;
+    await _player.setLoopMode(loop);
+  }
+
+  @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    await _player.setShuffleModeEnabled(shuffleMode == AudioServiceShuffleMode.all);
+  }
+
+  @override
+  Future<void> setRepeatModeAudio(AudioServiceRepeatMode repeatMode) async {
+    await setRepeatMode(repeatMode);
+  }
 }
