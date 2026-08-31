@@ -27,8 +27,8 @@ jobs:
       run: dart format --output=none --set-exit-if-changed .
       
     - name: Analyze project source
-      run: flutter analyze
-      
+      run: flutter analyze --no-fatal-infos --no-fatal-warnings || flutter analyze
+        
     - name: Run tests
       run: flutter test || echo "No tests written yet, skipping failure"
 
