@@ -59,8 +59,8 @@ class NexoraAudioHandler extends BaseAudioHandler with SeekHandler {
 
   // Load a playlist or track
   Future<void> loadMedia(List<MediaItem> items, {int initialIndex = 0}) async {
-    final audioSource = ConcatenatingAudioSource(
-      children: items.map((item) {
+    final audioSource = AudioSource.sequence(
+      items.map((item) {
         // Here we'd map standard network URLs or local file paths
         final source = item.extras?['localPath'] != null
             ? AudioSource.uri(Uri.file(item.extras!['localPath']))

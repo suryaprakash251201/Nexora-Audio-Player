@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,7 +50,7 @@ class DownloadManager {
 
     } catch (e) {
       // Handle download failure (could add to a failed queue)
-      print('Download failed for track \$trackId: \$e');
+      debugPrint('Download failed for track $trackId: $e');
     }
   }
 

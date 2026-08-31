@@ -1,4 +1,4 @@
-package com.example.nexora_flutter
+package com.nexora.audio
 
 import io.flutter.embedding.android.FlutterActivity
 

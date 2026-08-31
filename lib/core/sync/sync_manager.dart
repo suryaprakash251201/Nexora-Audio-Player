@@ -58,7 +58,8 @@ class SyncManager {
           if (type == 'CREATE_PLAYLIST') {
             await _dio.post('/api/playlists', data: payload);
           } else if (type == 'ADD_TO_PLAYLIST') {
-            await _dio.post('/api/playlists/\${payload['playlistId']}/tracks', data: payload);
+            final playlistId = payload['playlistId'];
+            await _dio.post('/api/playlists/$playlistId/tracks', data: payload);
           }
 
           // If successful, remove from queue

@@ -71,7 +71,7 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
               boxShadow: [
                 if (!_isExpanded)
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   )
@@ -159,7 +159,7 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
                 activeTrackColor: AppColors.secondary,
                 inactiveTrackColor: AppColors.surfaceRaised,
                 thumbColor: Colors.white,
-                overlayColor: AppColors.secondary.withOpacity(0.2),
+                overlayColor: AppColors.secondary.withValues(alpha: 0.2),
               ),
               child: Slider(
                 value: 0.3,
