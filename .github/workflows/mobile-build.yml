@@ -236,7 +236,15 @@ jobs:
       - name: zip simulator app
         run: |
           set -e
-          APP=$(ls build-sim/Build/Products/Debug-iphonesimulator/*.app | head -n1)
+          # Match the .app *directory* bundle only. A plain `ls *.app | head -n1`
+          # can wrongly pick non-bundle artifacts (e.g. __preview.dylib) that
+          # happen to appear first, so use find to select an .app directory.
+          APP="$(find build-sim/Build/Products/Debug-iphonesimulator -maxdepth 1 -type d -name '*.app' | head -n1)"
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "No .app bundle found under build-sim/Build/Products/Debug-iphonesimulator/"
+            ls -la build-sim/Build/Products/Debug-iphonesimulator/ || true
+            exit 1
+          fi
           echo "Simulator app: $APP"
           zip -qry nexora-audiophile-simulator.app.zip "$APP"
           ls -lh nexora-audiophile-simulator.app.zip
