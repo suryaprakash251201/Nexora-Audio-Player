@@ -13,4 +13,9 @@ config.resolver.alias = {
   "@/": __dirname + "/src",
 };
 
+// Register `.wasm` as a Metro asset so `expo-sqlite`'s web worker can resolve
+// its `wa-sqlite.wasm` binary. Without this, `expo export --platform web`
+// fails with "Unable to resolve module ./wa-sqlite/wa-sqlite.wasm".
+config.resolver.assetExts = [...new Set([...(config.resolver.assetExts || []), "wasm"])];
+
 module.exports = config;
