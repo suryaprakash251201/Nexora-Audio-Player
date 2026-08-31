@@ -44,13 +44,15 @@ class AppConfig {
   /// - prepends http:// for bare IPs / localhost, https:// otherwise
   /// - strips trailing /
   /// - ensures /api/v1 suffix
+  /// Handles ports like 192.168.1.5:80 and localhost:3000
   static String normalizeUrl(String raw) {
     var url = raw.trim();
     if (url.isEmpty) return url;
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      final ipRegex = RegExp(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}');
-      if (ipRegex.hasMatch(url) || url.startsWith('localhost')) {
+      final ipWithPort = RegExp(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::\d+)?');
+      final localWithPort = RegExp(r'^localhost(?::\d+)?');
+      if (ipWithPort.hasMatch(url) || localWithPort.hasMatch(url)) {
         url = 'http://$url';
       } else {
         url = 'https://$url';

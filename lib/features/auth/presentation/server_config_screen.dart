@@ -41,17 +41,35 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
       setState(() {
         _testing = false;
         _status = 'error';
-        _msg = 'Enter server URL';
+        _msg = 'Enter server URL (e.g. http://192.168.1.5)';
       });
       return;
     }
     final ok = await api.testConnection(url);
+    String details = '';
+    if (ok) {
+      try {
+        final probe = await api.probeServer(url);
+        final version =
+            probe['/healthz'] is Map && (probe['/healthz']['body'] is Map)
+            ? (probe['/healthz']['body']['version'] ?? 'ok')
+            : 'ok';
+        details = '\nVersion: $version\nNormalized: ${probe['normalized']}';
+      } catch (_) {}
+    } else {
+      try {
+        final probe = await api.probeServer(url);
+        details = '\nProbe: ${probe.toString().substring(0, 200)}';
+      } catch (e) {
+        details = '\nError: $e';
+      }
+    }
     setState(() {
       _testing = false;
       _status = ok ? 'success' : 'error';
       _msg = ok
-          ? '✓ Server reachable & API compatible'
-          : '✗ Could not reach server. Check URL and network.';
+          ? '✓ Server reachable & API compatible$details'
+          : '✗ Could not reach server.\nCheck:\n• Phone & server same Wi-Fi\n• URL is http://192.168.1.5 (no extra path needed)\n• Firewall allows port 80$details';
     });
   }
 
@@ -127,7 +145,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText:
-                            'https://music.example.com  or  192.168.1.100:3000',
+                            'http://192.168.1.5  or  https://music.example.com',
                         hintStyle: const TextStyle(
                           color: AppColors.textDim,
                           fontSize: 14,

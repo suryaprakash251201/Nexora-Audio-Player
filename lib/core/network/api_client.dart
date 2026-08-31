@@ -226,17 +226,42 @@ class ApiClient {
     String? code;
     dynamic details;
     if (data is Map) {
-      if (data['error'] is Map) {
+      // Nexora style: {"error":"code_string","message":"human"}
+      if (data['error'] is String) {
+        code = data['error']?.toString();
+        if (data['message'] is String) {
+          message = data['message'] as String;
+        } else {
+          message = code ?? message;
+        }
+        details = data['details'] ?? data['request'];
+      } else if (data['error'] is Map) {
         final err = data['error'] as Map;
         message = (err['message'] ?? err['msg'] ?? message).toString();
-        code = err['code']?.toString();
+        code = err['code']?.toString() ?? err['error']?.toString();
         details = err['details'];
       } else if (data['message'] is String) {
         message = data['message'] as String;
+        if (data['error'] is String) code = data['error'] as String;
+      } else if (data['msg'] is String) {
+        message = data['msg'] as String;
       }
+      // Fallback code from string error
+      code ??= data['code']?.toString();
     }
     if (status == 401) throw UnauthorizedException(message);
+    if (status == 403) {
+      // CSRF or forbidden - surface as 403 with code
+      throw ApiException(
+        message,
+        statusCode: 403,
+        code: code ?? 'FORBIDDEN',
+        details: details,
+      );
+    }
     if (status == 404) throw NotFoundException(message);
+    if (status == 409)
+      throw ApiException(message, statusCode: 409, code: code ?? 'CONFLICT');
     if (status == 422) throw ValidationException(message, details: details);
     if (status == 429)
       throw ApiException(message, statusCode: 429, code: 'RATE_LIMITED');
@@ -341,15 +366,30 @@ class ApiClient {
     final data = e.response?.data;
     String msg = e.message ?? 'Network error';
     String? code;
-    if (data is Map && data['error'] is Map) {
-      final err = data['error'] as Map;
-      msg = (err['message'] ?? msg).toString();
-      code = err['code']?.toString();
-    } else if (data is Map && data['message'] is String) {
-      msg = data['message'] as String;
+    if (data is Map) {
+      if (data['error'] is String) {
+        code = data['error']?.toString();
+        if (data['message'] is String) msg = data['message'] as String;
+      } else if (data['error'] is Map) {
+        final err = data['error'] as Map;
+        msg = (err['message'] ?? msg).toString();
+        code = err['code']?.toString();
+      } else if (data['message'] is String) {
+        msg = data['message'] as String;
+        if (data['error'] is String) code = data['error'] as String;
+      }
+      // Also capture bare 'msg'
+      if (msg == 'Network error' && data['msg'] is String) {
+        msg = data['msg'] as String;
+      }
+    }
+    // Include HTTP status in message if still generic
+    if (msg == 'Network error' && status != null) {
+      msg = 'Request failed ($status)';
     }
     if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout) {
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
       return const TimeoutException();
     }
     if (e.type == DioExceptionType.connectionError ||
@@ -357,6 +397,8 @@ class ApiClient {
       return const NoInternetException();
     }
     if (status == 401) return UnauthorizedException(msg);
+    if (status == 403)
+      return ApiException(msg, statusCode: 403, code: code ?? 'FORBIDDEN');
     if (status == 404) return NotFoundException(msg);
     if (status == 422) return ValidationException(msg);
     if (status != null && status >= 500)
@@ -373,26 +415,71 @@ class ApiClient {
         baseUrl: origin,
         connectTimeout: const Duration(seconds: 8),
         receiveTimeout: const Duration(seconds: 8),
+        validateStatus: (s) => s != null && s < 500,
       ),
     );
     try {
-      // Try /health then /api/v1/server/info then /
+      // Nexora real endpoints: /healthz, /health, /api/v1/version, /api/v1/auth/needs-setup
       for (final p in [
+        '/healthz',
         '/health',
+        '/api/v1/version',
+        '/api/v1/auth/needs-setup',
+        '/api/v1/auth/session',
         '/api/v1/server/info',
         '/api/v1/health',
         '/',
       ]) {
         try {
           final r = await probe.get(p);
-          if (r.statusCode != null && r.statusCode! < 500) return true;
+          if (r.statusCode != null &&
+              r.statusCode! < 500 &&
+              r.statusCode != 404) {
+            // Even 401 means server is reachable and API exists
+            return true;
+          }
+          // 404 still means reachable (server responded)
+          if (r.statusCode == 404 && p == '/') {
+            return true;
+          }
         } catch (_) {
           continue;
         }
       }
+      // If all probes fail, try direct TCP connect via Dio error type check
       return false;
     } catch (_) {
       return false;
     }
+  }
+
+  Future<Map<String, dynamic>> probeServer(String rawUrl) async {
+    final normalized = AppConfig.normalizeUrl(rawUrl);
+    final origin = normalized.split('/api').first;
+    final probe = Dio(
+      BaseOptions(
+        baseUrl: origin,
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+        validateStatus: (s) => true,
+      ),
+    );
+    final results = <String, dynamic>{
+      'origin': origin,
+      'normalized': normalized,
+    };
+    for (final p in [
+      '/healthz',
+      '/api/v1/version',
+      '/api/v1/auth/needs-setup',
+    ]) {
+      try {
+        final r = await probe.get(p);
+        results[p] = {'status': r.statusCode, 'body': r.data};
+      } catch (e) {
+        results[p] = {'error': e.toString()};
+      }
+    }
+    return results;
   }
 }
