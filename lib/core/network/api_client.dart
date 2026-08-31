@@ -27,7 +27,7 @@ class ApiClient {
             // Normalize URL (default to http if IP address)
             options.baseUrl = _normalizeUrl(serverUrl);
           }
-          
+
           final token = await _secureStorage.getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -50,7 +50,8 @@ class ApiClient {
 
   String _normalizeUrl(String url) {
     String normalized = url.trim();
-    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    if (!normalized.startsWith('http://') &&
+        !normalized.startsWith('https://')) {
       // If it looks like a local IP, default to http://
       final ipRegex = RegExp(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}');
       if (ipRegex.hasMatch(normalized) || normalized.startsWith('localhost')) {

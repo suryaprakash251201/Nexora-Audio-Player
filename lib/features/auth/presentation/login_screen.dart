@@ -20,12 +20,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _handleLogin() async {
     setState(() => _isLoading = true);
-    
+
     // Simulate auth check & network normalization
     String url = _serverController.text.trim();
     if (url.isNotEmpty) {
-       final storage = ref.read(secureStorageProvider);
-       await storage.saveServerUrl(url); // API client will normalize to http:// internally
+      final storage = ref.read(secureStorageProvider);
+      await storage.saveServerUrl(
+        url,
+      ); // API client will normalize to http:// internally
     }
 
     await Future.delayed(const Duration(seconds: 1)); // Mock network call
@@ -74,18 +76,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: AppColors.primary,
                             blurRadius: 20,
                             spreadRadius: -5,
-                          )
+                          ),
                         ],
                       ),
-                      child: const Icon(Icons.shield, size: 40, color: Colors.white),
+                      child: const Icon(
+                        Icons.shield,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     Text(
                       'Nexora',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.text,
+                          ),
                     ),
                     const SizedBox(height: 32),
                     _buildTextField(
@@ -118,9 +125,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: _isLoading 
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Connect', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                'Connect',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ],

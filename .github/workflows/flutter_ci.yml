@@ -41,4 +41,4 @@ jobs:
       uses: subosito/flutter-action@v2
       
     - name: Dart Dependency Vulnerability Check
-      run: dart pub outdated --mode=security
+      run: dart pub outdated

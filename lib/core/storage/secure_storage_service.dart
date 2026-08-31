@@ -10,7 +10,7 @@ class SecureStorageService {
 
   static const _tokenKey = 'nexora_auth_token';
   static const _serverUrlKey = 'nexora_server_url';
-  
+
   Future<void> saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
   }
@@ -30,7 +30,7 @@ class SecureStorageService {
   Future<String?> getServerUrl() async {
     return await _storage.read(key: _serverUrlKey);
   }
-  
+
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }

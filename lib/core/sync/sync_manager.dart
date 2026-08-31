@@ -18,7 +18,10 @@ class SyncManager {
   SyncManager(this._dio, this._dbService);
 
   // Enqueue a mutation for offline-first optimistic updates
-  Future<void> enqueueOperation(String type, Map<String, dynamic> payload) async {
+  Future<void> enqueueOperation(
+    String type,
+    Map<String, dynamic> payload,
+  ) async {
     final db = await _dbService.database;
     await db.insert('sync_ops', {
       'id': DateTime.now().millisecondsSinceEpoch.toString(), // or UUID
@@ -28,7 +31,7 @@ class SyncManager {
       'createdAt': DateTime.now().millisecondsSinceEpoch,
       'retryCount': 0,
     });
-    
+
     // Trigger sync immediately if online
     processSyncQueue();
   }
@@ -64,17 +67,33 @@ class SyncManager {
 
           // If successful, remove from queue
           await db.delete('sync_ops', where: 'id = ?', whereArgs: [id]);
-          
         } on DioException catch (e) {
           // If it's a 4xx error (except 401/429 maybe), it's a bad request, drop it.
           // Otherwise (network error, 500), increment retry and keep pending.
-          if (e.response != null && e.response!.statusCode! >= 400 && e.response!.statusCode! < 500) {
-            await db.update('sync_ops', {'status': 'FAILED'}, where: 'id = ?', whereArgs: [id]);
+          if (e.response != null &&
+              e.response!.statusCode! >= 400 &&
+              e.response!.statusCode! < 500) {
+            await db.update(
+              'sync_ops',
+              {'status': 'FAILED'},
+              where: 'id = ?',
+              whereArgs: [id],
+            );
           } else {
-            await db.update('sync_ops', {'retryCount': retries + 1}, where: 'id = ?', whereArgs: [id]);
+            await db.update(
+              'sync_ops',
+              {'retryCount': retries + 1},
+              where: 'id = ?',
+              whereArgs: [id],
+            );
           }
         } catch (e) {
-           await db.update('sync_ops', {'retryCount': retries + 1}, where: 'id = ?', whereArgs: [id]);
+          await db.update(
+            'sync_ops',
+            {'retryCount': retries + 1},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
         }
       }
     } finally {

@@ -9,7 +9,8 @@ class NowPlayingOverlay extends StatefulWidget {
   State<NowPlayingOverlay> createState() => _NowPlayingOverlayState();
 }
 
-class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTickerProviderStateMixin {
+class _NowPlayingOverlayState extends State<NowPlayingOverlay>
+    with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _controller;
   late Animation<double> _heightAnimation;
@@ -28,9 +29,10 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
     super.didChangeDependencies();
     // Expand to full screen height minus some top padding
     final fullHeight = MediaQuery.of(context).size.height;
-    _heightAnimation = Tween<double>(begin: 80, end: fullHeight).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _heightAnimation = Tween<double>(
+      begin: 80,
+      end: fullHeight,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   void _toggleExpand() {
@@ -66,7 +68,9 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
         builder: (context, child) {
           return Container(
             height: _heightAnimation.value,
-            margin: _isExpanded ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            margin: _isExpanded
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               boxShadow: [
                 if (!_isExpanded)
@@ -74,19 +78,23 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
                     color: Colors.black.withValues(alpha: 0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
-                  )
+                  ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: _isExpanded ? BorderRadius.zero : BorderRadius.circular(16),
+              borderRadius: _isExpanded
+                  ? BorderRadius.zero
+                  : BorderRadius.circular(16),
               child: GlassSurface(
                 opacity: _isExpanded ? 0.8 : 0.6,
                 blur: 30,
-                child: _isExpanded ? _buildFullScreenPlayer() : _buildMiniPlayer(),
+                child: _isExpanded
+                    ? _buildFullScreenPlayer()
+                    : _buildMiniPlayer(),
               ),
             ),
           );
-        }
+        },
       ),
     );
   }
@@ -103,13 +111,25 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
         ),
         child: const Icon(Icons.music_note, color: Colors.white),
       ),
-      title: const Text('Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      subtitle: const Text('Pink Floyd', style: TextStyle(color: AppColors.textMuted)),
+      title: const Text(
+        'Time',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      subtitle: const Text(
+        'Pink Floyd',
+        style: TextStyle(color: AppColors.textMuted),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(icon: const Icon(Icons.play_arrow, color: Colors.white), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.skip_next, color: Colors.white), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.play_arrow, color: Colors.white),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.skip_next, color: Colors.white),
+            onPressed: () {},
+          ),
         ],
       ),
     );
@@ -138,18 +158,34 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
                   color: AppColors.surfaceRaised,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Center(child: Icon(Icons.music_note, size: 120, color: AppColors.textMuted)),
+                child: const Center(
+                  child: Icon(
+                    Icons.music_note,
+                    size: 120,
+                    color: AppColors.textMuted,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 48),
             // Track Info
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text('Time', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Time',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text('Pink Floyd', style: TextStyle(color: AppColors.primary, fontSize: 18)),
+              child: Text(
+                'Pink Floyd',
+                style: TextStyle(color: AppColors.primary, fontSize: 18),
+              ),
             ),
             const SizedBox(height: 32),
             // Continuous Slider Placeholder (Maps to Reanimated pan gesture)
@@ -161,17 +197,21 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
                 thumbColor: Colors.white,
                 overlayColor: AppColors.secondary.withValues(alpha: 0.2),
               ),
-              child: Slider(
-                value: 0.3,
-                onChanged: (val) {},
-              ),
+              child: Slider(value: 0.3, onChanged: (val) {}),
             ),
             const SizedBox(height: 16),
             // Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                IconButton(icon: const Icon(Icons.skip_previous, size: 40, color: Colors.white), onPressed: () {}),
+                IconButton(
+                  icon: const Icon(
+                    Icons.skip_previous,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {},
+                ),
                 Container(
                   width: 80,
                   height: 80,
@@ -179,9 +219,23 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay> with SingleTicker
                     color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: IconButton(icon: const Icon(Icons.pause, size: 40, color: Colors.white), onPressed: () {}),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.pause,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {},
+                  ),
                 ),
-                IconButton(icon: const Icon(Icons.skip_next, size: 40, color: Colors.white), onPressed: () {}),
+                IconButton(
+                  icon: const Icon(
+                    Icons.skip_next,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {},
+                ),
               ],
             ),
             const SizedBox(height: 32),

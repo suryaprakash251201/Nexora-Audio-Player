@@ -10,7 +10,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Good Evening', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Good Evening',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
         ],
@@ -18,7 +21,9 @@ class HomeScreen extends StatelessWidget {
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.all(16.0).copyWith(bottom: 120), // Padding for mini player
+            padding: const EdgeInsets.all(
+              16.0,
+            ).copyWith(bottom: 120), // Padding for mini player
             children: [
               _buildHeroBanner(),
               const SizedBox(height: 32),
@@ -27,7 +32,7 @@ class HomeScreen extends StatelessWidget {
               _buildHorizontalList(),
             ],
           ),
-          
+
           // Mini Player Overlay (Gestures)
           const Positioned(
             left: 0,
@@ -50,11 +55,18 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('Continue Listening', style: TextStyle(color: AppColors.textMuted)),
+            Text(
+              'Continue Listening',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
             const SizedBox(height: 8),
             const Text(
               'Dark Side of the Moon',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -65,7 +77,11 @@ class HomeScreen extends StatelessWidget {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
     );
   }
 
@@ -90,8 +106,17 @@ class HomeScreen extends StatelessWidget {
                 child: const Icon(Icons.music_note, color: AppColors.textMuted),
               ),
               const SizedBox(height: 8),
-              const Text('Album Name', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              const Text('Artist', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const Text(
+                'Album Name',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Text(
+                'Artist',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
             ],
           );
         },

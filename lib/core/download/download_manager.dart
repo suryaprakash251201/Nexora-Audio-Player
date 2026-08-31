@@ -40,14 +40,10 @@ class DownloadManager {
       final db = await _dbService.database;
       await db.update(
         'tracks',
-        {
-          'isDownloaded': 1,
-          'localPath': savePath,
-        },
+        {'isDownloaded': 1, 'localPath': savePath},
         where: 'id = ?',
         whereArgs: [trackId],
       );
-
     } catch (e) {
       // Handle download failure (could add to a failed queue)
       debugPrint('Download failed for track $trackId: $e');
@@ -56,20 +52,22 @@ class DownloadManager {
 
   Future<void> removeTrackDownload(String trackId) async {
     final db = await _dbService.database;
-    final result = await db.query('tracks', columns: ['localPath'], where: 'id = ?', whereArgs: [trackId]);
-    
+    final result = await db.query(
+      'tracks',
+      columns: ['localPath'],
+      where: 'id = ?',
+      whereArgs: [trackId],
+    );
+
     if (result.isNotEmpty && result.first['localPath'] != null) {
       final file = File(result.first['localPath'] as String);
       if (await file.exists()) {
         await file.delete();
       }
-      
+
       await db.update(
         'tracks',
-        {
-          'isDownloaded': 0,
-          'localPath': null,
-        },
+        {'isDownloaded': 0, 'localPath': null},
         where: 'id = ?',
         whereArgs: [trackId],
       );

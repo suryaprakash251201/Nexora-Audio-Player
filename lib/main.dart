@@ -6,9 +6,7 @@ import 'ui/theme.dart';
 void main() {
   runApp(
     // ProviderScope enables Riverpod for the entire app
-    const ProviderScope(
-      child: NexoraApp(),
-    ),
+    const ProviderScope(child: NexoraApp()),
   );
 }
 
