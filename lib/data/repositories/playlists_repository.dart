@@ -1,3 +1,4 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database_service.dart';
 import '../../core/errors/exceptions.dart';
