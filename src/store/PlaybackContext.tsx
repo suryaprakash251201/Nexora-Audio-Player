@@ -225,9 +225,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Warm image cache so artwork swipes don't flash to blank (see NowPlayingArtwork).
-      for (const r of safeResolved) {
-        if (r.track.artwork.url) {
-          try { await Image.prefetch(r.track.artwork.url); } catch {}
+      if (safeResolved.length <= 50) {
+        for (const r of safeResolved.slice(0, 3)) {
+          if (r.track.artwork.url) {
+            try { await Image.prefetch(r.track.artwork.url); } catch {}
+          }
         }
       }
     } catch (e: any) {

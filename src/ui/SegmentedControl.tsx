@@ -17,7 +17,14 @@ export function SegmentedControl<T extends string>({
       {options.map((o) => {
         const active = o.value === value;
         return (
-          <Pressable key={o.value} onPress={() => onChange(o.value)} style={styles.item}>
+          <Pressable 
+            key={o.value} 
+            onPress={() => onChange(o.value)} 
+            style={styles.item}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={o.label}
+          >
             {active ? (
               <GlassSurface
                 variant="pill"

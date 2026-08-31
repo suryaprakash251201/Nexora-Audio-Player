@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, font, spacing } from "@/ui/theme";
@@ -102,10 +102,21 @@ export default function SearchScreen() {
     return () => { cancelled = true; };
   }, [debounced, api, lib.tracks]);
 
+  const [category, setCategory] = useState("All");
+  
   const allResults = useMemo(() => {
-    if (!debounced.trim()) return localResults;
-    return [...localResults, ...serverResults];
-  }, [localResults, serverResults, debounced]);
+    let results = [...localResults];
+    if (debounced.trim()) {
+      results = [...results, ...serverResults];
+    }
+    
+    if (category === "Tracks") return results;
+    if (category === "Albums") return results.filter(t => t.album?.toLowerCase().includes(debounced.toLowerCase()));
+    if (category === "Artists") return results.filter(t => (t.artist || t.albumArtist)?.toLowerCase().includes(debounced.toLowerCase()));
+    if (category === "Folders") return results.filter(t => t.serverId?.path?.toLowerCase().includes(debounced.toLowerCase()));
+    
+    return results;
+  }, [localResults, serverResults, debounced, category]);
 
   const onPlay = useCallback((t: MusicTrack) => {
     void playback.play(t, allResults);
@@ -128,6 +139,8 @@ export default function SearchScreen() {
     Toast.info("Search history cleared");
   };
 
+  const categories = ["All", "Tracks", "Albums", "Artists", "Folders"];
+
   return (
     <Container padded={false}>
       <PageHeader
@@ -139,8 +152,28 @@ export default function SearchScreen() {
             : `${lib.tracks.length.toLocaleString()} tracks indexed`
         }
       />
-      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: 8 }}>
         <SearchBar value={query} onChange={setQuery} placeholder="Tracks, albums, artists…" />
+      </View>
+      
+      <View style={{ paddingBottom: spacing.md }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}>
+          {categories.map(c => {
+            const active = category === c;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => {
+                  Haptics.selection();
+                  setCategory(c);
+                }}
+                style={[styles.categoryChip, active && styles.categoryChipActive]}
+              >
+                <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>{c}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Search history */}
@@ -148,9 +181,6 @@ export default function SearchScreen() {
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase", fontFamily: font.sansBold }}>Recent searches</Text>
-            <Pressable onPress={clearHistory} hitSlop={10}>
-              <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: font.sansMedium }}>Clear</Text>
-            </Pressable>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {history.map((h) => (
@@ -160,6 +190,10 @@ export default function SearchScreen() {
               </Pressable>
             ))}
           </View>
+          <Pressable onPress={clearHistory} style={styles.clearBtn} hitSlop={10}>
+            <Ionicons name="trash-outline" size={14} color="#F87171" />
+            <Text style={styles.clearBtnText}>Clear recent searches</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -206,4 +240,43 @@ const styles = StyleSheet.create({
     borderColor: colors.hairline,
   },
   historyText: { color: colors.textDim, fontSize: 12, fontFamily: font.sansMedium },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  categoryChipActive: {
+    backgroundColor: "rgba(139,92,246,0.15)",
+    borderColor: "#8B5CF6",
+  },
+  categoryChipText: {
+    color: colors.textDim,
+    fontSize: 13,
+    fontFamily: font.sansMedium,
+  },
+  categoryChipTextActive: {
+    color: "#8B5CF6",
+    fontFamily: font.sansBold,
+  },
+  clearBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(248,113,113,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.2)",
+  },
+  clearBtnText: {
+    color: "#F87171",
+    fontSize: 12,
+    fontFamily: font.sansMedium,
+  }
 });

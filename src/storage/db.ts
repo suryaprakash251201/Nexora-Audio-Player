@@ -168,10 +168,16 @@ export async function openDb(): Promise<SQLite.SQLiteDatabase> {
   if (dbInstance) return dbInstance;
   if (!initPromise) {
     initPromise = (async () => {
-      const db = await SQLite.openDatabaseAsync(DB_NAME);
-      await applyMigrations(db);
-      dbInstance = db;
-      return db;
+      try {
+        const db = await SQLite.openDatabaseAsync(DB_NAME);
+        await db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
+        await applyMigrations(db);
+        dbInstance = db;
+        return db;
+      } catch (err) {
+        initPromise = null;
+        throw err;
+      }
     })();
   }
   return initPromise;

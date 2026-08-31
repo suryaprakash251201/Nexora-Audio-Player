@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Switch } from "react-native";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, font, radius, spacing, accent, shadow } from "@/ui/theme";
 import { useSession } from "@/store/SessionContext";
 import { Toast } from "@/ui/Toast";
@@ -25,6 +26,16 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPwd, setShowPwd] = useState(false);
+  const [rememberUrl, setRememberUrl] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem("nexora_remembered_server_url").then((url) => {
+      if (url) {
+        setBaseUrl(url);
+        setRememberUrl(true);
+      }
+    });
+  }, []);
 
   const onSubmit = async () => {
     if (!isValidUrl(baseUrl)) {
@@ -46,9 +57,15 @@ export default function LoginScreen() {
     Haptics.tapLight();
     setBusy(true);
     setError(null);
-    const res = await login(baseUrl.trim(), username.trim(), password, needsTotp ? totp : undefined);
+    const url = baseUrl.trim();
+    const res = await login(url, username.trim(), password, needsTotp ? totp : undefined);
     setBusy(false);
     if (res.ok) {
+      if (rememberUrl) {
+        await AsyncStorage.setItem("nexora_remembered_server_url", url);
+      } else {
+        await AsyncStorage.removeItem("nexora_remembered_server_url");
+      }
       Toast.success("Connected to Nexora");
       Haptics.success();
       router.replace("/(tabs)");
@@ -57,11 +74,23 @@ export default function LoginScreen() {
     if (res.totpRequired) {
       Haptics.selection();
       setNeedsTotp(true);
-      setError("Two-factor code required");
+      setError("Two-factor authentication required.");
       return;
     }
     Haptics.error();
-    setError(res.error || "Login failed. Check server URL and credentials.");
+    
+    // Improve error messages based on response
+    let msg = "Server error. Please try again.";
+    if (res.error?.toLowerCase().includes("network") || res.error?.toLowerCase().includes("fetch")) {
+      msg = "Could not reach server. Check your connection.";
+    } else if (res.error?.includes("401") || res.error?.toLowerCase().includes("unauthorized")) {
+      msg = "Invalid username or password.";
+    } else if (res.error?.includes("403")) {
+      msg = "Two-factor authentication required.";
+    } else if (res.error) {
+      msg = res.error;
+    }
+    setError(msg);
   };
 
   return (
@@ -101,22 +130,47 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Text style={styles.label}>Server URL</Text>
-            <TextInput
-              value={baseUrl}
-              onChangeText={(t) => {
-                setBaseUrl(t);
-                if (error) setError(null);
-              }}
-              placeholder="https://nexora.example.com"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              autoComplete="url"
-              textContentType="URL"
-              style={styles.input}
-            />
+            <View style={styles.inputRow}>
+              {baseUrl.startsWith("https://") ? (
+                <Ionicons name="lock-closed" size={16} color="#10B981" style={{ marginRight: 6 }} />
+              ) : baseUrl.startsWith("http://") ? (
+                <Ionicons name="lock-open" size={16} color="#FBBF24" style={{ marginRight: 6 }} />
+              ) : null}
+              <TextInput
+                value={baseUrl}
+                onChangeText={(t) => {
+                  setBaseUrl(t);
+                  if (error) setError(null);
+                }}
+                placeholder="https://nexora.example.com"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                autoComplete="url"
+                textContentType="URL"
+                style={[styles.input, { flex: 1, borderWidth: 0, paddingHorizontal: 0, backgroundColor: "transparent" }]}
+              />
+              {baseUrl.length > 0 && (
+                <Ionicons
+                  name={isValidUrl(baseUrl) ? "checkmark-circle" : "close-circle"}
+                  size={18}
+                  color={isValidUrl(baseUrl) ? "#10B981" : "#F87171"}
+                />
+              )}
+            </View>
             <Text style={styles.hint}>Include https:// — LAN URLs like http://192.168.1.50:8080 are supported.</Text>
+            
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: 8 }}>
+              <Text style={styles.hint}>Remember server URL</Text>
+              <Switch
+                value={rememberUrl}
+                onValueChange={setRememberUrl}
+                trackColor={{ false: "rgba(255,255,255,0.1)", true: accent.primary }}
+                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                ios_backgroundColor="rgba(255,255,255,0.1)"
+              />
+            </View>
 
             <Text style={styles.label}>Username or Email</Text>
             <TextInput

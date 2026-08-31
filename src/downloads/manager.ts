@@ -16,6 +16,8 @@ import type { Api } from "@/api/client";
 
 const DIR = "nexora_offline";
 
+export const activeDownloads = new Map<string, any>();
+
 function safeFilename(rootId: string, path: string): string {
   const base = path.split("/").pop() || "track";
   // keep extension, sanitize
@@ -86,12 +88,16 @@ export async function downloadTrack(
   const dir = await ensureDir();
   const filename = safeFilename(track.serverId.rootId, track.serverId.path);
   const destUri = `${dir}${filename}`;
+  const relativeUri = `${DIR}/${filename}`;
   const trackId = track.id;
 
   // If already downloading, return existing file or resume
   await setDownloadState(trackId, "DOWNLOADING", { progress: 0, error_message: null });
 
   const url = api.rawFileUrl(track.serverId.rootId, track.serverId.path);
+
+  let lastUpdateTime = 0;
+  let lastUpdateProgress = 0;
 
   const downloadResumable = (FileSystem as any).createDownloadResumable ? (FileSystem as any).createDownloadResumable(
     url,
@@ -101,10 +107,19 @@ export async function downloadTrack(
       const expected = prog.totalBytesExpectedToWrite || track.fileSize || 1;
       const p = Math.min(1, prog.totalBytesWritten / expected);
       onProgress?.(p);
-      // opportunistic DB update throttled: every 5%
-      void setDownloadState(trackId, "DOWNLOADING", { progress: p, bytes_received: prog.totalBytesWritten, bytes_total: expected });
+      
+      const now = Date.now();
+      if (now - lastUpdateTime >= 500 || p - lastUpdateProgress >= 0.05 || p === 1) {
+        lastUpdateTime = now;
+        lastUpdateProgress = p;
+        void setDownloadState(trackId, "DOWNLOADING", { progress: p, bytes_received: prog.totalBytesWritten, bytes_total: expected });
+      }
     },
   ) : null;
+
+  if (downloadResumable) {
+    activeDownloads.set(trackId, downloadResumable);
+  }
 
   try {
     let result: any;
@@ -116,13 +131,15 @@ export async function downloadTrack(
     if (!result || result.status !== 200) {
       throw new Error(`Download failed: ${result?.status ?? "unknown"}`);
     }
-    await setDownloadState(trackId, "AVAILABLE_OFFLINE", { progress: 1, local_uri: result.uri, error_message: null });
+    await setDownloadState(trackId, "AVAILABLE_OFFLINE", { progress: 1, local_uri: relativeUri, error_message: null });
     // Also ensure the unified `tracks` mirror marks it offline (so library dedupe can prefer it)
     // For M4 we just rely on downloads table; offline.ts joins it.
-    return result.uri as string;
+    return destUri;
   } catch (e: any) {
     await setDownloadState(trackId, "FAILED", { error_message: e?.message || String(e) });
     throw e;
+  } finally {
+    activeDownloads.delete(trackId);
   }
 }
 
@@ -130,8 +147,10 @@ export async function removeDownload(trackId: string): Promise<void> {
   const row = await getDownloadRow(trackId);
   if (row?.local_uri) {
     try {
-      const info = await FileSystem.getInfoAsync(row.local_uri);
-      if (info.exists) await FileSystem.deleteAsync(row.local_uri, { idempotent: true });
+      const base = (FileSystem as any).documentDirectory as string;
+      const absoluteUri = row.local_uri.startsWith("file://") ? row.local_uri : `${base}${row.local_uri}`;
+      const info = await FileSystem.getInfoAsync(absoluteUri);
+      if (info.exists) await FileSystem.deleteAsync(absoluteUri, { idempotent: true });
     } catch { /* ignore */ }
   }
   const db = await openDb();
@@ -141,7 +160,11 @@ export async function removeDownload(trackId: string): Promise<void> {
 export async function listDownloads(): Promise<{ track_id: string; state: string; local_uri: string | null; progress: number }[]> {
   const db = await openDb();
   const rows = await db.getAllAsync<any>(`SELECT track_id, state, local_uri, progress FROM downloads ORDER BY completed_at DESC`);
-  return rows;
+  const base = (FileSystem as any).documentDirectory as string;
+  return rows.map(r => ({
+    ...r,
+    local_uri: r.local_uri ? (r.local_uri.startsWith("file://") ? r.local_uri : `${base}${r.local_uri}`) : null
+  }));
 }
 
 // Batch helpers for playlists/albums (concurrency-limited)

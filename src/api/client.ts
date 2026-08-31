@@ -57,8 +57,12 @@ let mediaBaseUrl = "";
 let mediaToken: string | null = null;
 
 export function syncMediaAuth(baseUrl: string, token: string | null) {
-  mediaBaseUrl = baseUrl.replace(/\/+$/, "");
-  mediaToken = token;
+  const newBaseUrl = baseUrl.replace(/\/+$/, "");
+  if (mediaBaseUrl && mediaBaseUrl !== newBaseUrl) {
+    mediaToken = null;
+  }
+  mediaBaseUrl = newBaseUrl;
+  if (token !== undefined) mediaToken = token;
 }
 
 export function mediaThumbnailUrl(rootId: string, path: string, size = 512): string {
@@ -144,6 +148,7 @@ export class Api {
       method,
       headers,
       body,
+      signal: AbortSignal.timeout(15000),
     });
 
     if (res.status === 204) return undefined as T;

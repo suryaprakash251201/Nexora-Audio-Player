@@ -95,7 +95,8 @@ export class SyncManager {
     // local-only pending mutations by deferring the overwrite when conflict).
     const localLists = await getLocalPlaylists().catch(() => [] as any[]);
     const localById = new Map(localLists.map((p: any) => [p.id, p]));
-    const pendingOps = await listDue("9999-12-31T23:59:59.000Z").catch(() => [] as any[]);
+    const { listPending } = await import("./queue");
+    const pendingOps = await listPending(1000).catch(() => [] as any[]);
 
     const pendingByPlaylist = new Map<string, any[]>();
     for (const op of pendingOps) {
@@ -153,6 +154,10 @@ export class SyncManager {
             const { deleteLocalPlaylist } = await import("./playlistStore");
             await deleteLocalPlaylist(op.entityId).catch(() => {});
             await upsertPlaylistsFromServer([created]);
+            
+            const { openDb } = await import("@/storage/db");
+            const db = await openDb();
+            await db.runAsync(`UPDATE sync_ops SET entity_id = ? WHERE entity_id = ?`, created.id, op.entityId);
             break;
           }
           case "rename_playlist": {

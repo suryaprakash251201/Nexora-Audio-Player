@@ -11,6 +11,7 @@
 import { openDb } from "@/storage/db";
 import type { MusicTrack } from "./types";
 import { mediaThumbnailUrl } from "@/api/client";
+import * as FileSystem from "expo-file-system";
 
 export async function fetchOfflineTracks(): Promise<MusicTrack[]> {
   const db = await openDb();
@@ -63,10 +64,10 @@ export async function fetchOfflineTracks(): Promise<MusicTrack[]> {
         tags: {},
       },
       fileSize: r.file_size ?? null,
-      localUri: r.local_uri,
-      streamUrl: r.local_uri,
+      localUri: r.local_uri ? (r.local_uri.startsWith("file://") ? r.local_uri : `${(FileSystem as any).documentDirectory}${r.local_uri}`) : null,
+      streamUrl: r.local_uri ? (r.local_uri.startsWith("file://") ? r.local_uri : `${(FileSystem as any).documentDirectory}${r.local_uri}`) : null,
       artwork: { url: r.artwork_url || mediaThumbnailUrl(rootId, path, 512), dominantColor: null },
-      download: { state: "AVAILABLE_OFFLINE", progress: 1, errorMessage: null, localUri: r.local_uri },
+      download: { state: "AVAILABLE_OFFLINE", progress: 1, errorMessage: null, localUri: r.local_uri ? (r.local_uri.startsWith("file://") ? r.local_uri : `${(FileSystem as any).documentDirectory}${r.local_uri}`) : null },
       favorite: false,
       lastPlayedAt: null,
       playCount: 0,

@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -156,6 +157,30 @@ export default function HomeScreen() {
             }
             action={api ? { label: "Refresh", onPress: () => void refresh() } : { label: "Connect to Nexora", onPress: () => router.push("/login") }}
           />
+        ) : null}
+
+        {/* Continue Listening Section */}
+        {playback.current && playback.currentTime > 0 && playback.currentTime < playback.duration ? (
+          <Section title="Continue Listening" count={1}>
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <Pressable
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 12, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.hairline }}
+                onPress={() => playback.setShowPlayer(true)}
+              >
+                <View style={{ width: 48, height: 48, borderRadius: radius.md, overflow: "hidden", backgroundColor: colors.raised }}>
+                  {playback.current.artwork.url && <Image source={{ uri: playback.current.artwork.url }} style={{ width: "100%", height: "100%" }} />}
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.sansBold }} numberOfLines={1}>{playback.current.title}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: font.sansMedium }} numberOfLines={1}>{playback.current.artist || "Unknown"}</Text>
+                  <View style={{ height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden", marginTop: 4 }}>
+                    <View style={{ height: "100%", width: `${(playback.currentTime / playback.duration) * 100}%`, backgroundColor: accent.primary }} />
+                  </View>
+                </View>
+                <Ionicons name={playback.playing ? "pause" : "play"} size={20} color={colors.text} />
+              </Pressable>
+            </View>
+          </Section>
         ) : null}
 
         {/* Recently Added Section */}

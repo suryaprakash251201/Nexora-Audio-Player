@@ -51,7 +51,7 @@ export async function upsertPlaylistsFromServer(playlists: Playlist[]): Promise<
            VALUES (?, ?, ?, ?, ?)`,
           it.id,
           pl.id,
-          `${it.root_id}:${it.path}`,
+          `srv:${it.root_id}:${it.path}`,
           pos++,
           it.created_at ?? nowIso(),
         );
@@ -86,8 +86,8 @@ export async function getLocalPlaylists(): Promise<(Playlist & { client_revision
       items: items.map((it: any) => ({
         id: it.id,
         playlist_id: it.playlist_id,
-        root_id: it.track_id.split(":")[0],
-        path: it.track_id.split(":").slice(1).join(":"),
+        root_id: it.track_id.replace(/^srv:/, "").split(":")[0],
+        path: it.track_id.replace(/^srv:/, "").split(":").slice(1).join(":"),
         created_at: it.added_at,
         position: it.position,
         name: it.title || it.track_id,

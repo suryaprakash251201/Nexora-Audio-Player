@@ -77,9 +77,16 @@ export function DownloadsProvider({ children }: { children: React.ReactNode }) {
       for (const t of tracks) next[t.id] = "DOWNLOADING";
       return next;
     });
+    let lastRefreshTime = 0;
     const res = await DownloadManager.downloadTracks(api, tracks, {
       concurrency: 2,
-      onProgress: () => { void refresh(); },
+      onProgress: () => {
+        const now = Date.now();
+        if (now - lastRefreshTime >= 1000) {
+          lastRefreshTime = now;
+          void refresh();
+        }
+      },
     });
     await refresh();
     return res;
