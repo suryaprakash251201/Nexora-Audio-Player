@@ -8,6 +8,7 @@ import { colors, font, radius, spacing, accent, shadow } from "@/ui/theme";
 import { useSession } from "@/store/SessionContext";
 import { Toast } from "@/ui/Toast";
 import { Haptics } from "@/lib/haptics";
+import { Image } from "expo-image";
 
 function normalizeUrl(input: string): string {
   let s = input.trim();
@@ -132,9 +133,11 @@ export default function LoginScreen() {
 
           <View style={styles.hero}>
             <View style={styles.logoRing}>
-              <View style={styles.logo}>
-                <Ionicons name="headset" size={32} color="#fff" />
-              </View>
+              <Image
+                source={require("../assets/icon.png")}
+                style={styles.logoImage}
+                contentFit="cover"
+              />
             </View>
             <Text style={styles.title}>Connect to Nexora</Text>
             <Text style={styles.subtitle}>
@@ -285,22 +288,20 @@ const styles = StyleSheet.create({
   },
   hero: { alignItems: "center", gap: 10, paddingVertical: 12 },
   logoRing: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: "rgba(139,92,246,0.35)",
+    borderColor: "rgba(139,92,246,0.45)",
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0B0B12",
     ...shadow.glow(accent.primary, 0.4),
   },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: accent.primary,
-    alignItems: "center",
-    justifyContent: "center",
+  logoImage: {
+    width: 80,
+    height: 80,
   },
   title: {
     color: colors.text,
