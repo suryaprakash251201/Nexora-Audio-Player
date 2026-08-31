@@ -117,17 +117,35 @@ jobs:
       - name: build unsigned device app
         run: |
           set -x
-          WORKSPACE=$(ls *.xcworkspace | head -n1)
-          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
-          echo "Workspace: $WORKSPACE"
+          # `expo prebuild` generates a `.xcodeproj`; when CocoaPods runs it also
+          # creates a matching `.xcworkspace`. Prefer the workspace when present,
+          # otherwise fall back to the xcodeproj so we never pass an empty target.
+          if ls *.xcworkspace >/dev/null 2>&1; then
+            XCODE_TARGET="$(ls *.xcworkspace | head -n1)"
+            XCODE_FLAG="-workspace"
+          else
+            XCODE_TARGET="$(ls *.xcodeproj | head -n1)"
+            XCODE_FLAG="-project"
+          fi
+          SCHEME="$(basename "$XCODE_TARGET" | sed -E 's/\.(xcworkspace|xcodeproj)$//')"
+          echo "Xcode target: $XCODE_TARGET"
           echo "Scheme: $SCHEME"
-          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
-            -configuration Release -sdk iphoneos \
+          xcodebuild "$XCODE_FLAG" "$XCODE_TARGET" -scheme "$SCHEME" \
+            -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build
-        working-directory: ./ios
+            build 2>&1 | tee ios-build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: upload device build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-device-build-log
+          path: ios/ios-build.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: package unsigned IPA
         run: |
@@ -151,14 +169,30 @@ jobs:
       - name: build simulator app
         run: |
           set -x
-          WORKSPACE=$(ls *.xcworkspace | head -n1)
-          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
-          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
+          if ls *.xcworkspace >/dev/null 2>&1; then
+            XCODE_TARGET="$(ls *.xcworkspace | head -n1)"
+            XCODE_FLAG="-workspace"
+          else
+            XCODE_TARGET="$(ls *.xcodeproj | head -n1)"
+            XCODE_FLAG="-project"
+          fi
+          SCHEME="$(basename "$XCODE_TARGET" | sed -E 's/\.(xcworkspace|xcodeproj)$//')"
+          xcodebuild "$XCODE_FLAG" "$XCODE_TARGET" -scheme "$SCHEME" \
             -configuration Debug -sdk iphonesimulator \
             -derivedDataPath build-sim \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build
+            build 2>&1 | tee ios-sim-build.log
+          exit ${PIPESTATUS[0]}
         working-directory: ./ios
+
+      - name: upload simulator build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-sim-build-log
+          path: ios/ios-sim-build.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: zip simulator app
         run: |
