@@ -2,78 +2,192 @@ name: Mobile Build
 
 on:
   push:
-    tags: ["v*"]
+    branches:
+      - main
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
+      release_tag:
+        description: "Tag to create a release for (leave empty for build-only)"
+        required: false
+        type: string
       build_ios:
-        description: "Build iOS (unsigned IPA + Simulator)"
+        description: "Also build the iOS unsigned IPA (sideload)"
+        required: false
         type: boolean
         default: true
 
+permissions: {}
+
 jobs:
   build-android:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-java@v4
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
-      - uses: android-actions/setup-android@v3
-      - run: npm ci --legacy-peer-deps
-      - run: npx expo prebuild --platform android --clean
-      - run: |
-          npx patch-package --error-on-fail || true
-          cd android && ./gradlew assembleRelease
-      - uses: actions/upload-artifact@v4
+          java-version: "17"
+
+      - name: install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: verify patches
+        run: npx patch-package --error-on-fail
+
+      - name: expo prebuild (android)
+        run: npx expo prebuild -p android --no-install
+
+      - name: build release APK
+        run: ./gradlew assembleRelease
+        working-directory: ./android
+
+      - name: upload APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: android-release-apk
+          name: nexora-audiophile-android
           path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: warn
+          retention-days: 14
 
   build-ios:
-    if: ${{ inputs.build_ios }}
+    # Mirrors upstream nexora: run on push/tags by default, and on workflow_dispatch only if build_ios == true
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.build_ios == 'true'
+    permissions:
+      contents: read
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
-      - run: npx expo prebuild --platform ios --clean
-      - run: |
-          npx patch-package --error-on-fail || true
-          cd ios && pod install
-      - run: |
-          xcodebuild -workspace ios/NexoraAudiophile.xcworkspace -scheme NexoraAudiophile -configuration Release -sdk iphoneos -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO -derivedDataPath ios/build -archivePath ios/build/Nexora.xcarchive archive || true
-          xcodebuild -workspace ios/NexoraAudiophile.xcworkspace -scheme NexoraAudiophile -configuration Release -sdk iphonesimulator -derivedDataPath ios/build-sim -destination 'platform=iOS Simulator,name=iPhone 15' build || true
-      - uses: actions/upload-artifact@v4
+
+      - name: install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: verify patches
+        run: npx patch-package --error-on-fail
+
+      - name: expo prebuild (ios)
+        run: npx expo prebuild -p ios --no-install
+
+      - name: install CocoaPods
+        run: pod install
+        working-directory: ./ios
+
+      # ── Device build (unsigned) — for sideloading via Sideloadly/AltStore ──
+      - name: build unsigned device app
+        run: |
+          set -x
+          WORKSPACE=$(ls *.xcworkspace | head -n1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Workspace: $WORKSPACE"
+          echo "Scheme: $SCHEME"
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
+            -configuration Release -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+        working-directory: ./ios
+
+      - name: package unsigned IPA
+        run: |
+          set -e
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -qry nexora-audiophile-unsigned.ipa Payload
+          rm -rf Payload
+          ls -lh nexora-audiophile-unsigned.ipa
+        working-directory: ./ios
+
+      - name: upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: ios-builds
-          path: |
-            ios/build/*.xcarchive
-            ios/build-sim
+          name: nexora-audiophile-ios-ipa
+          path: ios/nexora-audiophile-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      # ── Simulator build (no signing needed) ───────────────────────────────
+      - name: build simulator app
+        run: |
+          set -x
+          WORKSPACE=$(ls *.xcworkspace | head -n1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
+            -configuration Debug -sdk iphonesimulator \
+            -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+        working-directory: ./ios
+
+      - name: zip simulator app
+        run: |
+          set -e
+          APP=$(ls build-sim/Build/Products/Debug-iphonesimulator/*.app | head -n1)
+          echo "Simulator app: $APP"
+          zip -qry nexora-audiophile-simulator.app.zip "$APP"
+          ls -lh nexora-audiophile-simulator.app.zip
+        working-directory: ./ios
+
+      - name: upload simulator app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexora-audiophile-ios-simulator
+          path: ios/nexora-audiophile-simulator.app.zip
+          if-no-files-found: warn
+          retention-days: 14
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
     needs: [build-android, build-ios]
-    runs-on: ubuntu-latest
     permissions:
       contents: write
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: dist-artifacts
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist-artifacts/**/*
-          body: |
-            **Nexora Audiophile**
-            - Android: install `app-release.apk` (allow unknown sources)
-            - iOS: unsigned IPA — sideload via AltStore / Sideloadly with a free Apple ID
-            - See README and docs/
+          path: bundles
+          merge-multiple: true
 
+      - name: publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Nexora Audiophile ${{ github.event.inputs.release_tag || github.ref_name }}
+          body: |
+            ## Install
+
+            - **Android**: download the `.apk` and install it (allow unknown sources).
+            - **iOS (free Apple ID)**: download the `.ipa` and sideload with
+              [Sideloadly](https://sideloadly.io) or
+              [AltStore](https://altstore.io) — see `SIDELOAD.md`.
+            - **iOS Simulator**: download `nexora-audiophile-simulator.app.zip`,
+              unzip, and drag `*.app` onto a running simulator.
+
+            > iOS builds are unsigned on purpose — no paid Apple Developer
+            > account is used in CI. Free-account sideloads expire after 7 days
+            > and need a re-sign (AltStore can automate this while
+            > AltServer is reachable).
+          draft: false
+          prerelease: false
+          files: |
+            bundles/**/*.apk
+            bundles/**/*.ipa
+            bundles/**/*.app.zip
