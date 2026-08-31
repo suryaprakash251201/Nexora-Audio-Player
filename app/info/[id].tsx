@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/ui/theme";
 import { useLibrary } from "@/store/LibraryContext";
 import { useDsp } from "@/store/DspContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatBitDepth, formatBitrate, formatChannels, formatSampleRate } from "@/audio/audioQuality";
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -21,6 +22,7 @@ export default function InfoScreen() {
   const decoded = id ? decodeURIComponent(String(id)) : "";
   const lib = useLibrary();
   const dsp = useDsp();
+  const insets = useSafeAreaInsets();
   const track = decoded ? lib.tracks.find((t) => t.id === decoded) || lib.bySource.nexora.find((t) => t.id === decoded) || lib.bySource.device.find((t) => t.id === decoded) || null : null;
 
   if (!track) {
@@ -37,7 +39,7 @@ export default function InfoScreen() {
 
   return (
     <View style={s.root}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={() => router.back()} style={s.iconBtn}>
           <Ionicons name="close" size={18} color={colors.text} />
         </Pressable>

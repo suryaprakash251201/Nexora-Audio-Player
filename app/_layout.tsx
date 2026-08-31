@@ -19,6 +19,7 @@ import { TrackPlayer } from "@/audio/trackPlayerShim";
 import { PlaybackService } from "@/audio/playbackService";
 import { Platform } from "react-native";
 import MiniPlayerBar from "@/ui/MiniPlayerBar";
+import { ToastHost } from "@/ui/Toast";
 
 if (Platform.OS !== "web") {
   try {
@@ -78,6 +79,7 @@ export default function RootLayout() {
                             />
                           </Stack>
                           <MiniPlayerBar />
+                          <ToastHost />
                         </View>
                       </PlaybackProvider>
                     </DspProvider>

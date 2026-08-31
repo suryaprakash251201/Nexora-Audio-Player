@@ -1,10 +1,9 @@
 import React, { useMemo } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { colors } from "@/ui/theme";
+import { colors, font, spacing, tierColor } from "@/ui/theme";
+import { useLayout } from "@/ui/layout";
 import { useLibrary } from "@/store/LibraryContext";
 import { useSession } from "@/store/SessionContext";
 import { usePlayback } from "@/store/PlaybackContext";
@@ -13,166 +12,188 @@ import { Section } from "@/ui/Section";
 import { EmptyState } from "@/ui/EmptyState";
 import { ConnectBanner } from "@/ui/ConnectBanner";
 import { TrackRow } from "@/ui/TrackRow";
+import { AlbumCard, ArtistCard } from "@/ui/AlbumCard";
+import { StatsRow } from "@/ui/StatsRow";
+import { PageHeader } from "@/ui/PageHeader";
+import { Container } from "@/ui/Container";
+import { Toast } from "@/ui/Toast";
 import type { MusicTrack } from "@/library/types";
-
-function AlbumCard({ title, count, cover, onPress }: { title: string; count: number; cover: string | null; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={styles.albumCard}>
-      <View style={styles.albumArt}>
-        {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={["#1C2650", "#5B8CFF"]} style={StyleSheet.absoluteFill} />}
-        <View style={styles.albumShade} />
-        <Text numberOfLines={2} style={styles.albumTitle}>{title}</Text>
-        <Text style={styles.albumCount}>{count} tracks</Text>
-      </View>
-    </Pressable>
-  );
-}
 
 export default function HomeScreen() {
   const { tracks, bySource, counts, loading, refresh } = useLibrary();
   const { api, user } = useSession();
   const playback = usePlayback();
+  const { albumColumns, isTablet } = useLayout();
 
-  const recents = useMemo(() => [...tracks].sort((a, b) => Date.parse(b.modifiedAt || "0") - Date.parse(a.modifiedAt || "0")).slice(0, 8), [tracks]);
+  const recents = useMemo(
+    () => [...tracks].sort((a, b) => Date.parse(b.modifiedAt || "0") - Date.parse(a.modifiedAt || "0")).slice(0, 8),
+    [tracks],
+  );
+
   const albums = useMemo(() => {
     const m = groupByAlbum(tracks);
-    const entries = [...m.entries()].filter(([k]) => k !== "__singles__").sort((a, b) => b[1].length - a[1].length).slice(0, 8);
-    return entries;
-  }, [tracks]);
+    return [...m.entries()].filter(([k]) => k !== "__singles__").sort((a, b) => b[1].length - a[1].length).slice(0, isTablet ? 12 : 8);
+  }, [tracks, isTablet]);
+
   const artists = useMemo(() => {
     const m = groupByArtist(tracks);
-    return [...m.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 10);
-  }, [tracks]);
+    return [...m.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, isTablet ? 8 : 6);
+  }, [tracks, isTablet]);
 
-  const onPlay = (t: MusicTrack, list: MusicTrack[]) => { void playback.play(t, list); };
+  const onPlay = (t: MusicTrack, list: MusicTrack[]) => {
+    void playback.play(t, list);
+    Toast.show(`Now playing · ${t.title}`, "info", { icon: "play", duration: 1500 });
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <Container padded={false}>
+      <PageHeader
+        kicker="Welcome"
+        title={user ? `Good evening, ${user.username}` : "Good evening"}
+        subtitle={`${counts.unified.toLocaleString()} tracks across Nexora, device and offline`}
+        right={
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={styles.headerDot} />
+          </View>
+        }
+      />
+
       <ScrollView
+        contentContainerStyle={{ paddingBottom: 120, gap: spacing.lg }}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={colors.text} />}
-        contentContainerStyle={{ paddingBottom: 28 }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Good evening{user?.username ? `, ${user.username}` : ""}</Text>
-            <Text style={styles.sub}>Your music · {counts.unified} tracks</Text>
-          </View>
-          <Pressable onPress={() => router.push("/(tabs)/search")} style={styles.searchBtn}>
-            <Ionicons name="search" size={18} color={colors.textDim} />
-          </Pressable>
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+          <StatsRow
+            nexora={counts.nexora}
+            device={counts.device}
+            offline={counts.offline}
+            refreshing={loading}
+            onRefresh={() => void refresh()}
+          />
         </View>
 
-        {/* Library stats strip */}
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statNum}>{counts.nexora}</Text>
-            <Text style={styles.statLabel}>Nexora</Text>
-            <View style={[styles.statDot, { backgroundColor: "#38BDF8" }]} />
+        {!api ? (
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <ConnectBanner />
           </View>
-          <View style={styles.stat}>
-            <Text style={styles.statNum}>{counts.device}</Text>
-            <Text style={styles.statLabel}>On Device</Text>
-            <View style={[styles.statDot, { backgroundColor: "#22C55E" }]} />
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statNum}>{counts.offline}</Text>
-            <Text style={styles.statLabel}>Offline</Text>
-            <View style={[styles.statDot, { backgroundColor: "#F5C451" }]} />
-          </View>
-          <Pressable onPress={() => void refresh()} style={styles.refreshBtn}>
-            <Ionicons name="refresh" size={16} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
-        {!api ? <ConnectBanner /> : null}
+        ) : null}
 
         {tracks.length === 0 && !loading ? (
           <EmptyState
-            title={api ? "No music found" : "Connect to see your library"}
-            subtitle={api ? "Your Nexora search for kind=audio returned no files. Add audio to your roots and pull to refresh." : "Once connected, your library, albums, artists and playlists appear here. On-device tracks appear automatically when you grant permission."}
+            title={api ? "No music found" : "Welcome to Nexora Audiophile"}
+            subtitle={api
+              ? "Your Nexora search for kind=audio returned no files. Add audio to your roots and pull to refresh."
+              : "Connect to your Nexora server to stream FLAC, ALAC, WAV and DSD. On-device tracks appear automatically."}
             action={api ? { label: "Refresh", onPress: () => void refresh() } : { label: "Connect to Nexora", onPress: () => router.push("/login") }}
           />
         ) : null}
 
-        {/* Recently added */}
         {recents.length ? (
           <Section title="Recently added" count={recents.length} action={{ label: "See all", onPress: () => router.push("/(tabs)/library") }}>
             <View>
               {recents.slice(0, 5).map((t) => (
-                <TrackRow key={t.id} track={t} onPress={() => onPlay(t, recents)} active={playback.current?.id === t.id} />
+                <TrackRow
+                  key={t.id}
+                  track={t}
+                  onPress={() => onPlay(t, recents)}
+                  active={playback.current?.id === t.id}
+                />
               ))}
             </View>
           </Section>
         ) : null}
 
-        {/* Albums */}
         {albums.length ? (
           <Section title="Albums" count={albums.length}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-              {albums.map(([name, list]) => (
-                <AlbumCard key={name} title={name.split(" — ")[0]} count={list.length} cover={list[0]?.artwork.url ?? null} onPress={() => onPlay(list[0], list)} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
+            >
+              {albums.map(([name, list]) => {
+                const w = albumColumns === 2 ? 200 : albumColumns >= 4 ? 168 : 180;
+                const sub = name.split(" — ")[1] || "Various Artists";
+                return (
+                  <AlbumCard
+                    key={name}
+                    title={name.split(" — ")[0]}
+                    subtitle={sub}
+                    count={list.length}
+                    cover={list[0]?.artwork.url ?? null}
+                    width={w}
+                    onPress={() => onPlay(list[0], list)}
+                  />
+                );
+              })}
+            </ScrollView>
+          </Section>
+        ) : null}
+
+        {artists.length ? (
+          <Section title="Artists" count={artists.length}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
+            >
+              {artists.map(([name, list], i) => (
+                <ArtistCard
+                  key={name}
+                  name={name}
+                  count={list.length}
+                  cover={list[0]?.artwork.url ?? null}
+                  onPress={() => onPlay(list[0], list)}
+                  size={i === 0 ? 168 : 132}
+                />
               ))}
             </ScrollView>
           </Section>
         ) : null}
 
-        {/* Artists */}
-        {artists.length ? (
-          <Section title="Artists" count={artists.length}>
-            <View style={{ paddingHorizontal: 16, gap: 8 }}>
-              {artists.slice(0, 6).map(([name, list]) => (
-                <Pressable key={name} onPress={() => onPlay(list[0], list)} style={styles.artistRow}>
-                  <View style={styles.artistArt}>
-                    {list[0]?.artwork.url ? <Image source={{ uri: list[0].artwork.url! }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={["#2A2A3A", "#444"] as const} style={StyleSheet.absoluteFill} />}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text numberOfLines={1} style={styles.artistName}>{name}</Text>
-                    <Text style={styles.artistMeta}>{list.length} tracks</Text>
-                  </View>
-                  <Ionicons name="play-circle" size={22} color={colors.textMuted} />
-                </Pressable>
-              ))}
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+          <View style={styles.card}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={styles.cardIcon}>
+                <Ionicons name="library-outline" size={20} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.cardTitle}>Library structure</Text>
+                <Text style={styles.cardBody}>Nexora · On Device · Downloads · Favorites · Recently Played · Playlists</Text>
+              </View>
             </View>
-          </Section>
-        ) : null}
-
-        {/* Library structure teaser */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Library structure</Text>
-          <Text style={styles.cardBody}>Library → Nexora · On Device · Downloads · Favorites · Recently Played · Playlists. Use the Library tab to filter by source. Downloads arrive in M4.</Text>
-          <Pressable onPress={() => router.push("/(tabs)/library")} style={styles.cardBtn}>
-            <Text style={styles.cardBtnLabel}>Open Library</Text>
-          </Pressable>
+            <View style={styles.cardRow}>
+              <Tile onPress={() => router.push("/(tabs)/library")} icon="folder" label="Open Library" />
+              <Tile onPress={() => router.push("/(tabs)/playlists")} icon="list" label="Playlists" />
+              <Tile onPress={() => router.push("/(tabs)/search")} icon="search" label="Search" />
+            </View>
+          </View>
         </View>
       </ScrollView>
+    </Container>
+  );
+}
+
+function Tile({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <View
+        // eslint-disable-next-line react-native/no-inline-styles
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: colors.hairline, gap: 4 }}
+        onTouchEnd={onPress}
+      >
+        <Ionicons name={icon} size={16} color={colors.text} />
+        <Text style={{ color: colors.text, fontSize: 11, fontFamily: font.sansSemibold }}>{label}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
-  greeting: { color: colors.text, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
-  sub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  searchBtn: { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.06)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.hairline },
-  statsRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 10, alignItems: "center" },
-  stat: { flex: 1, backgroundColor: colors.bgRaised, borderWidth: 1, borderColor: colors.hairline, borderRadius: 12, padding: 12, gap: 4 },
-  statNum: { color: colors.text, fontSize: 20, fontWeight: "800" },
-  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
-  statDot: { position: "absolute", right: 10, top: 10, width: 8, height: 8, borderRadius: 4 },
-  refreshBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.bgRaised, borderWidth: 1, borderColor: colors.hairline, alignItems: "center", justifyContent: "center" },
-  albumCard: { width: 128 },
-  albumArt: { height: 128, borderRadius: 12, overflow: "hidden", backgroundColor: "#16161F", justifyContent: "flex-end", padding: 10 },
-  albumShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" },
-  albumTitle: { color: "#fff", fontWeight: "800", fontSize: 12, lineHeight: 14 },
-  albumCount: { color: "rgba(255,255,255,0.75)", fontSize: 10, marginTop: 2 },
-  artistRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.bgRaised, borderWidth: 1, borderColor: colors.hairline, borderRadius: 12, padding: 10 },
-  artistArt: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", backgroundColor: "#1E1E2A" },
-  artistName: { color: colors.text, fontWeight: "700", fontSize: 13 },
-  artistMeta: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
-  card: { margin: 16, backgroundColor: colors.bgRaised, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.hairline, gap: 8 },
-  cardTitle: { color: colors.text, fontWeight: "800", fontSize: 14 },
-  cardBody: { color: colors.textMuted, fontSize: 12, lineHeight: 16 },
-  cardBtn: { alignSelf: "flex-start", marginTop: 6, backgroundColor: colors.accent, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  cardBtnLabel: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  headerDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: tierColor.hires.accent, shadowColor: tierColor.hires.accent, shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.hairline, borderRadius: 16, padding: 16, gap: 12 },
+  cardIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(139,92,246,0.16)", alignItems: "center", justifyContent: "center" },
+  cardTitle: { color: colors.text, fontWeight: "800", fontSize: 14, fontFamily: font.sansBold },
+  cardBody: { color: colors.textMuted, fontSize: 12, lineHeight: 16, fontFamily: font.sansRegular },
+  cardRow: { flexDirection: "row", gap: 8 },
 });

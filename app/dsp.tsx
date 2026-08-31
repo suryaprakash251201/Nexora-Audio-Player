@@ -7,6 +7,7 @@ import { useDsp, EQ_BAND_LABELS } from "@/store/DspContext";
 import { BUILT_IN_PRESETS } from "@/dsp/constants";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Haptics } from "@/lib/haptics";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,7 +34,7 @@ export default function DspScreen() {
           <Text style={s.title}>STUDIO DSP</Text>
           <Text style={s.sub}>Preamp · 10-band EQ · Spatial · Limiter — changes are DSP-derived; the source file is never altered.</Text>
         </View>
-        <Pressable onPress={() => dsp.reset()} style={[s.iconBtn, { borderColor: "rgba(248,113,113,0.22)" }]}>
+        <Pressable onPress={() => { Haptics.tapMedium(); dsp.reset(); }} style={[s.iconBtn, { borderColor: "rgba(248,113,113,0.22)" }]}>
           <Ionicons name="refresh" size={16} color="#FCA5A5" />
         </Pressable>
       </View>
@@ -72,14 +73,14 @@ export default function DspScreen() {
             <Slider value={dsp.balance} minimumValue={-1} maximumValue={1} step={0.01} onValueChange={(v) => dsp.setBalance(v)} minimumTrackTintColor={colors.accent} maximumTrackTintColor="rgba(255,255,255,0.12)" thumbTintColor={colors.accent} />
           </Row>
           <Row label="Limiter">
-            <Pressable onPress={() => dsp.setLimiterEnabled(!dsp.limiterEnabled)} style={[s.toggle, dsp.limiterEnabled && s.toggleOn]}>
+            <Pressable onPress={() => { Haptics.tapLight(); dsp.setLimiterEnabled(!dsp.limiterEnabled); }} style={[s.toggle, dsp.limiterEnabled && s.toggleOn]}>
               <Text style={[s.toggleLabel, dsp.limiterEnabled && s.toggleLabelOn]}>{dsp.limiterEnabled ? "ON" : "OFF"}</Text>
             </Pressable>
           </Row>
           <Row label={`ReplayGain · ${dsp.replayGainMode}`}>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {(["off", "track", "album"] as const).map((m) => (
-                <Pressable key={m} onPress={() => dsp.setReplayGainMode(m)} style={[s.chip, dsp.replayGainMode === m && s.chipOn]}>
+                <Pressable key={m} onPress={() => { Haptics.selection(); dsp.setReplayGainMode(m); }} style={[s.chip, dsp.replayGainMode === m && s.chipOn]}>
                   <Text style={[s.chipLabel, dsp.replayGainMode === m && s.chipLabelOn]}>{m}</Text>
                 </Pressable>
               ))}
@@ -91,7 +92,7 @@ export default function DspScreen() {
         <View style={s.card}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={s.cardTitle}>10-band EQ</Text>
-            <Pressable onPress={() => dsp.setEnabled(!dsp.enabled)} style={[s.toggle, dsp.enabled && s.toggleOn]}>
+            <Pressable onPress={() => { Haptics.tapLight(); dsp.setEnabled(!dsp.enabled); }} style={[s.toggle, dsp.enabled && s.toggleOn]}>
               <Text style={[s.toggleLabel, dsp.enabled && s.toggleLabelOn]}>{dsp.enabled ? "ON" : "OFF"}</Text>
             </Pressable>
           </View>
@@ -122,7 +123,7 @@ export default function DspScreen() {
           </View>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {BUILT_IN_PRESETS.map((p) => (
-              <Pressable key={p.id} onPress={() => dsp.applyPreset(p.id)} style={[s.chip, dsp.presetId === p.id && s.chipOn]}>
+              <Pressable key={p.id} onPress={() => { Haptics.selection(); dsp.applyPreset(p.id); }} style={[s.chip, dsp.presetId === p.id && s.chipOn]}>
                 <Text style={[s.chipLabel, dsp.presetId === p.id && s.chipLabelOn]}>{p.name}</Text>
               </Pressable>
             ))}

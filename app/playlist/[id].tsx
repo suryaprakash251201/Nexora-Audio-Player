@@ -11,6 +11,8 @@ import { useDownloads } from "@/store/DownloadsContext";
 import { TrackRow } from "@/ui/TrackRow";
 import { EmptyState } from "@/ui/EmptyState";
 import { SearchBar } from "@/ui/SearchBar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Haptics } from "@/lib/haptics";
 import type { MusicTrack } from "@/library/types";
 import { mapServerItemToTrack } from "@/library/mapper";
 
@@ -20,6 +22,7 @@ export default function PlaylistDetailScreen() {
   const lib = useLibrary();
   const playback = usePlayback();
   const downloads = useDownloads();
+  const insets = useSafeAreaInsets();
   const [q, setQ] = useState("");
   const [pickMode, setPickMode] = useState(false);
 
@@ -47,26 +50,26 @@ export default function PlaylistDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={s.header}>
-        <Pressable onPress={() => router.back()} style={s.iconBtn}>
+      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable onPress={() => { Haptics.tapLight(); router.back(); }} style={s.iconBtn}>
           <Ionicons name="arrow-back" size={18} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} style={s.title}>{playlist.name}</Text>
           <Text style={s.meta}>{playlist.items.length} tracks {playlist.is_public ? "· Public" : ""} {playlist.description ? `· ${playlist.description}` : ""}</Text>
         </View>
-        <Pressable onPress={() => { if (playlistTracks.length) void playback.play(playlistTracks[0], playlistTracks); }} style={s.playBtn}>
+        <Pressable onPress={() => { if (playlistTracks.length) { Haptics.tapMedium(); void playback.play(playlistTracks[0], playlistTracks); } }} style={s.playBtn}>
           <Ionicons name="play" size={18} color="#fff" />
         </Pressable>
       </View>
 
       <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 10 }}>
-        <Pressable onPress={() => setPickMode((v) => !v)} style={[s.smallBtn, pickMode && { backgroundColor: colors.accent }]}>
+        <Pressable onPress={() => { Haptics.tapLight(); setPickMode((v) => !v); }} style={[s.smallBtn, pickMode && { backgroundColor: colors.accent }]}>
           <Ionicons name="add" size={14} color={pickMode ? "#fff" : colors.text} />
           <Text style={[s.smallBtnLabel, pickMode && { color: "#fff" }]}>{pickMode ? "Done" : "Add tracks"}</Text>
         </Pressable>
         <Pressable
-          onPress={() => void downloads.downloadMany(playlistTracks).catch((e) => Alert.alert("Download failed", String(e?.message || e)))}
+          onPress={() => { Haptics.tapLight(); void downloads.downloadMany(playlistTracks).catch((e) => Alert.alert("Download failed", String(e?.message || e))); }}
           style={[s.smallBtn, { backgroundColor: "rgba(34,197,94,0.12)", borderColor: "rgba(34,197,94,0.22)" }]}
         >
           <Ionicons name="download-outline" size={14} color="#22C55E" />
@@ -74,6 +77,7 @@ export default function PlaylistDetailScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
+            Haptics.tapLight();
             Alert.alert("Rename playlist", undefined, [
               { text: "Cancel", style: "cancel" },
               { text: "Rename", onPress: () => {
@@ -90,6 +94,7 @@ export default function PlaylistDetailScreen() {
         </Pressable>
         <Pressable
           onPress={() => {
+            Haptics.tapMedium();
             Alert.alert("Delete playlist?", `Delete “${playlist.name}”?`, [
               { text: "Cancel", style: "cancel" },
               { text: "Delete", style: "destructive", onPress: () => { void pl.deletePlaylist(playlist.id).then(() => router.back()); } },
@@ -115,6 +120,7 @@ export default function PlaylistDetailScreen() {
                 track={item}
                 onPress={() => {
                   if (!item.serverId) { Alert.alert("Only Nexora tracks can be added (server needs root+path)."); return; }
+                  Haptics.tapLight();
                   void pl.addItems(playlist.id, [{ root_id: item.serverId.rootId, path: item.serverId.path }]);
                 }}
               />
