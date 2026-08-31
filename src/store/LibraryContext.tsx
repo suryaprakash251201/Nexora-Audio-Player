@@ -86,28 +86,36 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         fetchOfflineTracks().catch(() => [] as MusicTrack[]),
         api ? api.listFavorites().catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
       ]);
-      if (ac.signal.aborted) return;
+      if (ac.signal.aborted || abortRef.current !== ac) return;
       const favPaths = new Set(favs.items.map((f: any) => `${f.root_id}:${f.path}`));
       const markedNx = nx.map((t) => (t.serverId && favPaths.has(`${t.serverId.rootId}:${t.serverId.path}`) ? { ...t, favorite: true } : t));
+      // Re-apply favorites to offline tracks that may be dedup primary (offline > remote)
+      const markedOff = off.map((t) => (t.serverId && favPaths.has(`${t.serverId.rootId}:${t.serverId.path}`) ? { ...t, favorite: true } : t));
+      if (abortRef.current !== ac) return;
       setNexora(markedNx);
       setDevice(dev);
-      setOffline(off);
-      const { tracks: deduped } = dedupeTracks([...markedNx, ...dev, ...off]);
+      setOffline(markedOff);
+      const { tracks: deduped } = dedupeTracks([...markedNx, ...dev, ...markedOff]);
+      if (abortRef.current !== ac) return;
       setUnified(deduped);
       // keep permission in sync after a device scan
       void refreshDevicePermission();
     } catch (e: any) {
       if (e?.name === "AbortError") return;
+      if (abortRef.current !== ac) return;
       setError(e?.message || String(e));
     } finally {
-      if (!ac.signal.aborted) setLoading(false);
+      if (abortRef.current === ac && !ac.signal.aborted) setLoading(false);
     }
   }, [api, refreshDevicePermission]);
 
   const toggleFavorite = useCallback(async (track: MusicTrack) => {
     const nextFav = !track.favorite;
-    setUnified((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: nextFav } : t)));
-    setNexora((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: nextFav } : t)));
+    const key = track.serverId ? `${track.serverId.rootId}:${track.serverId.path}` : null;
+    const match = (t: MusicTrack) => t.id === track.id || (key && t.serverId ? `${t.serverId.rootId}:${t.serverId.path}` === key : false);
+    setUnified((prev) => prev.map((t) => (match(t) ? { ...t, favorite: nextFav } : t)));
+    setNexora((prev) => prev.map((t) => (match(t) ? { ...t, favorite: nextFav } : t)));
+    setOffline((prev) => prev.map((t) => (match(t) ? { ...t, favorite: nextFav } : t)));
     if (api && track.serverId) {
       try {
         if (nextFav) {
@@ -117,8 +125,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
         // Revert on network failure
-        setUnified((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: !nextFav } : t)));
-        setNexora((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: !nextFav } : t)));
+        setUnified((prev) => prev.map((t) => (match(t) ? { ...t, favorite: !nextFav } : t)));
+        setNexora((prev) => prev.map((t) => (match(t) ? { ...t, favorite: !nextFav } : t)));
+        setOffline((prev) => prev.map((t) => (match(t) ? { ...t, favorite: !nextFav } : t)));
       }
     }
   }, [api]);
@@ -142,7 +151,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, [api, refresh]);
 
   const filtered = useMemo(() => {
-    let base = unified.filter((t) => !t.serverId || !isTrashOrHiddenPath(t.serverId.path, t.title));
+    let base = unified.filter((t) => {
+      if (!t.serverId) return true;
+      const filename = t.serverId.path.split("/").pop() ?? t.title;
+      return !isTrashOrHiddenPath(t.serverId.path, filename);
+    });
     if (filter.source !== "all") base = base.filter((t) => t.source === filter.source);
     const q = filter.query.trim().toLowerCase();
     if (!q) return base;

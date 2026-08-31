@@ -2,15 +2,12 @@ import React, { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, font, spacing } from "@/ui/theme";
+import { colors, font, spacing, radius, accent, shadow } from "@/ui/theme";
 import { useLayout } from "@/ui/layout";
 import { Haptics } from "@/lib/haptics";
 
 /**
- * PageHeader — consistent top-of-screen chrome. Replaces the ad-hoc
- * `header` styles scattered across every screen. Adds a safe-area top
- * inset, a kicker, a title, optional subtitle, and optional left/right
- * action buttons.
+ * PageHeader — Studio Top Chrome.
  */
 export function PageHeader({
   title,
@@ -40,7 +37,12 @@ export function PageHeader({
         <View style={styles.row}>
           {left}
           <View style={{ flex: 1 }}>
-            {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
+            {kicker ? (
+              <View style={styles.kickerRow}>
+                <View style={styles.kickerDot} />
+                <Text style={styles.kicker}>{kicker}</Text>
+              </View>
+            ) : null}
             <Text numberOfLines={1} style={styles.title}>{title}</Text>
             {subtitle ? <Text numberOfLines={2} style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
@@ -54,27 +56,117 @@ export function PageHeader({
 /** Standard "back" button used by PageHeader. */
 export function HeaderBack({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable onPress={() => { Haptics.tapLight(); onPress(); }} hitSlop={10} style={styles.iconBtn}>
+    <Pressable
+      onPress={() => {
+        Haptics.tapLight();
+        onPress();
+      }}
+      hitSlop={10}
+      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+    >
       <Ionicons name="chevron-back" size={20} color={colors.text} />
     </Pressable>
   );
 }
 
-export function HeaderAction({ icon, label, onPress, danger }: { icon: keyof typeof Ionicons.glyphMap; label?: string; onPress: () => void; danger?: boolean }) {
+export function HeaderAction({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label?: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
   return (
-    <Pressable onPress={() => { Haptics.tapLight(); onPress(); }} hitSlop={10} style={styles.iconBtn}>
+    <Pressable
+      onPress={() => {
+        Haptics.tapLight();
+        onPress();
+      }}
+      hitSlop={10}
+      style={({ pressed }) => [
+        styles.iconBtn,
+        label ? { width: "auto", paddingHorizontal: 12 } : {},
+        danger ? { borderColor: "rgba(239,68,68,0.35)", backgroundColor: "rgba(239,68,68,0.12)" } : {},
+        pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+      ]}
+    >
       <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.text} />
-      {label ? <Text style={{ color: danger ? colors.danger : colors.text, fontSize: 12, fontWeight: "700", marginLeft: 6 }}>{label}</Text> : null}
+      {label ? (
+        <Text style={[styles.actionLabel, { color: danger ? colors.danger : colors.text }]}>{label}</Text>
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  outer: { backgroundColor: colors.bg, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  inner: { alignSelf: "center", width: "100%" },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  kicker: { color: colors.textMuted, fontSize: 10, fontWeight: "800", letterSpacing: 1.4, textTransform: "uppercase", fontFamily: font.sansMedium },
-  title: { color: colors.text, fontSize: 22, fontWeight: "800", fontFamily: font.sansBold, marginTop: 2 },
-  subtitle: { color: colors.textMuted, fontSize: 12, fontFamily: font.sansRegular, marginTop: 2, lineHeight: 16 },
-  iconBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.06)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.hairline, flexDirection: "row", paddingHorizontal: 8 },
+  outer: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  inner: {
+    alignSelf: "center",
+    width: "100%",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  kickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  kickerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: accent.primary,
+  },
+  kicker: {
+    color: accent.primary,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontFamily: font.sansBold,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "900",
+    fontFamily: font.sansBold,
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: font.sansMedium,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  iconBtn: {
+    height: 38,
+    minWidth: 38,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.hairlineStrong,
+    flexDirection: "row",
+    paddingHorizontal: 8,
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: font.sansBold,
+    marginLeft: 6,
+  },
 });

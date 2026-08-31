@@ -41,8 +41,8 @@ export function isTrashOrHiddenPath(path: string, name?: string): boolean {
   )
     return true;
   if (lower.includes("/.trash/") || lower.startsWith(".trash/") || lower === ".trash" || lower.startsWith(".trash-")) return true;
-  // hidden dot-file or dot-folder anywhere in the path
-  if (segs.some((s) => s.startsWith("."))) return true;
+  // hidden dot-file or dot-folder anywhere in the path (skip "." / ".." segments)
+  if (segs.some((s) => s !== "." && s !== ".." && s.startsWith("."))) return true;
   if (name && name.startsWith(".")) return true;
   return false;
 }
@@ -159,7 +159,8 @@ export function groupByFolder(tracks: MusicTrack[]): Map<string, MusicTrack[]> {
   const m = new Map<string, MusicTrack[]>();
   for (const t of tracks) {
     if (!t.serverId) continue;
-    if (isTrashOrHiddenPath(t.serverId.path, t.title)) continue;
+    const filename = t.serverId.path.split("/").pop() ?? t.title;
+    if (isTrashOrHiddenPath(t.serverId.path, filename)) continue;
     const folder = getFolderPath(t.serverId.path);
     const key = `${t.serverId.rootId}:${folder}`;
     const a = m.get(key);

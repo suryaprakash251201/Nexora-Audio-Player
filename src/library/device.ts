@@ -32,9 +32,10 @@ export async function requestDevicePermission(): Promise<DevicePermissionState> 
   return "undetermined";
 }
 
+const AUDIO_EXTS = new Set(["mp3", "m4a", "m4b", "aac", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "wma", "alac", "ape", "wv", "dsf", "dff"]);
 function isAudioFilename(name: string): boolean {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  return new Set(["mp3", "m4a", "m4b", "aac", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "wma", "alac", "ape", "wv", "dsf", "dff"]).has(ext);
+  return AUDIO_EXTS.has(ext);
 }
 
 export interface FetchDeviceOptions {
@@ -88,6 +89,8 @@ export async function fetchDeviceTracks(opts: FetchDeviceOptions = {}): Promise<
     hasNextPage = page.hasNextPage;
     after = page.endCursor;
     if (!hasNextPage) break;
+    if (!page.assets.length) break;
+    if (hasNextPage && !after) break;
   }
 
   return out;

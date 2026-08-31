@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, font, radius, spacing } from "@/ui/theme";
+import { colors, font, radius, spacing, accent, shadow } from "@/ui/theme";
 import { useSession } from "@/store/SessionContext";
 import { Toast } from "@/ui/Toast";
 import { Haptics } from "@/lib/haptics";
@@ -27,12 +27,25 @@ export default function LoginScreen() {
   const [showPwd, setShowPwd] = useState(false);
 
   const onSubmit = async () => {
-    if (!isValidUrl(baseUrl)) { setError("Server URL must start with http:// or https://"); return; }
-    if (!username.trim()) { setError("Username or email is required"); return; }
-    if (!password) { setError("Password is required"); return; }
-    if (needsTotp && totp.length !== 6) { setError("Authenticator code must be 6 digits"); return; }
+    if (!isValidUrl(baseUrl)) {
+      setError("Server URL must start with http:// or https://");
+      return;
+    }
+    if (!username.trim()) {
+      setError("Username or email is required");
+      return;
+    }
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+    if (needsTotp && totp.length !== 6) {
+      setError("Authenticator code must be 6 digits");
+      return;
+    }
     Haptics.tapLight();
-    setBusy(true); setError(null);
+    setBusy(true);
+    setError(null);
     const res = await login(baseUrl.trim(), username.trim(), password, needsTotp ? totp : undefined);
     setBusy(false);
     if (res.ok) {
@@ -58,27 +71,42 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20 }]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.topBar}>
-            <Pressable onPress={() => { Haptics.tapLight(); router.back(); }} hitSlop={10} style={styles.closeBtn} accessibilityLabel="Close">
-              <Ionicons name="close" size={20} color={colors.textMuted} />
+            <Pressable
+              onPress={() => {
+                Haptics.tapLight();
+                router.back();
+              }}
+              hitSlop={10}
+              style={styles.closeBtn}
+              accessibilityLabel="Close"
+            >
+              <Ionicons name="close" size={20} color={colors.textDim} />
             </Pressable>
-            <View style={{ flex: 1 }} />
           </View>
 
           <View style={styles.hero}>
-            <View style={styles.logo}>
-              <Ionicons name="headset" size={28} color="#fff" />
+            <View style={styles.logoRing}>
+              <View style={styles.logo}>
+                <Ionicons name="headset" size={32} color="#fff" />
+              </View>
             </View>
             <Text style={styles.title}>Connect to Nexora</Text>
-            <Text style={styles.subtitle}>Enter your self-hosted server URL and sign in. Your session is stored in the device secure enclave.</Text>
+            <Text style={styles.subtitle}>
+              Sign into your self-hosted high-resolution audio library. Credentials are encrypted in the hardware secure enclave.
+            </Text>
           </View>
 
           <View style={styles.form}>
             <Text style={styles.label}>Server URL</Text>
             <TextInput
               value={baseUrl}
-              onChangeText={(t) => { setBaseUrl(t); if (error) setError(null); }}
+              onChangeText={(t) => {
+                setBaseUrl(t);
+                if (error) setError(null);
+              }}
               placeholder="https://nexora.example.com"
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
@@ -88,13 +116,16 @@ export default function LoginScreen() {
               textContentType="URL"
               style={styles.input}
             />
-            <Text style={styles.hint}>Include https:// — LAN URLs like http://192.168.1.50:8080 work too.</Text>
+            <Text style={styles.hint}>Include https:// — LAN URLs like http://192.168.1.50:8080 are supported.</Text>
 
-            <Text style={styles.label}>Username or email</Text>
+            <Text style={styles.label}>Username or Email</Text>
             <TextInput
               value={username}
-              onChangeText={(t) => { setUsername(t); if (error) setError(null); }}
-              placeholder="you"
+              onChangeText={(t) => {
+                setUsername(t);
+                if (error) setError(null);
+              }}
+              placeholder="username"
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
@@ -107,7 +138,10 @@ export default function LoginScreen() {
             <View style={styles.inputRow}>
               <TextInput
                 value={password}
-                onChangeText={(t) => { setPassword(t); if (error) setError(null); }}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  if (error) setError(null);
+                }}
                 placeholder="••••••••"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showPwd}
@@ -115,14 +149,14 @@ export default function LoginScreen() {
                 textContentType="password"
                 style={[styles.input, { flex: 1, borderWidth: 0, paddingHorizontal: 0, backgroundColor: "transparent" }]}
               />
-              <Pressable onPress={() => setShowPwd((v) => !v)} hitSlop={10} style={{ paddingHorizontal: 6 }}>
+              <Pressable onPress={() => setShowPwd((v) => !v)} hitSlop={10} style={{ paddingHorizontal: 8 }}>
                 <Ionicons name={showPwd ? "eye-off" : "eye"} size={18} color={colors.textMuted} />
               </Pressable>
             </View>
 
             {needsTotp ? (
               <>
-                <Text style={styles.label}>Authenticator code</Text>
+                <Text style={styles.label}>Authenticator 2FA Code</Text>
                 <TextInput
                   value={totp}
                   onChangeText={(t) => setTotp(t.replace(/\D/g, "").slice(0, 6))}
@@ -130,28 +164,37 @@ export default function LoginScreen() {
                   placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
                   maxLength={6}
-                  style={[styles.input, { letterSpacing: 8, textAlign: "center" }]}
+                  style={[styles.input, { letterSpacing: 8, textAlign: "center", fontFamily: font.monoBold }]}
                 />
               </>
             ) : null}
 
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={14} color="#FCA5A5" />
+                <Ionicons name="alert-circle" size={16} color="#F87171" />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            <Pressable onPress={onSubmit} disabled={busy} style={[styles.btn, busy && { opacity: 0.7 }]} accessibilityLabel="Sign in">
-              {busy ? <ActivityIndicator color="#fff" /> : (
+            <Pressable
+              onPress={onSubmit}
+              disabled={busy}
+              style={({ pressed }) => [styles.btn, busy && { opacity: 0.7 }, pressed && { opacity: 0.85 }]}
+              accessibilityLabel="Sign in"
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
                 <>
-                  <Ionicons name={needsTotp ? "shield-checkmark" : "log-in"} size={16} color="#fff" />
-                  <Text style={styles.btnLabel}>{needsTotp ? "Verify & sign in" : "Sign in"}</Text>
+                  <Ionicons name={needsTotp ? "shield-checkmark" : "log-in"} size={18} color="#fff" />
+                  <Text style={styles.btnLabel}>{needsTotp ? "Verify & Connect" : "Connect to Server"}</Text>
                 </>
               )}
             </Pressable>
 
-            <Text style={styles.foot}>Nexora supports Tailscale MagicDNS and local-network discovery. Use your LAN IP if your server is on Wi-Fi.</Text>
+            <Text style={styles.foot}>
+              Nexora supports Tailscale MagicDNS and local WiFi streaming.
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -162,19 +205,136 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: spacing.lg, gap: spacing.lg },
   topBar: { flexDirection: "row", alignItems: "center", minHeight: 36 },
-  closeBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.card, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.hairline },
+  closeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.hairlineStrong,
+  },
   hero: { alignItems: "center", gap: 10, paddingVertical: 12 },
-  logo: { width: 64, height: 64, borderRadius: 18, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", shadowColor: colors.accent, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  title: { color: colors.text, fontSize: 24, fontWeight: "800", fontFamily: font.sansBold, letterSpacing: -0.4 },
-  subtitle: { color: colors.textMuted, fontSize: 13, textAlign: "center", lineHeight: 18, paddingHorizontal: 12, fontFamily: font.sansRegular },
-  form: { gap: 10, backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.hairline },
-  label: { color: colors.textDim, fontSize: 10, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase", fontFamily: font.sansBold, marginTop: 4 },
-  input: { backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.hairline, borderRadius: 12, paddingHorizontal: 12, height: 46, color: colors.text, fontSize: 14, fontFamily: font.sansRegular },
-  inputRow: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.hairline, borderRadius: 12, paddingHorizontal: 12, height: 46 },
-  hint: { color: colors.textMuted, fontSize: 11, lineHeight: 14, fontFamily: font.sansRegular },
-  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "rgba(248,113,113,0.14)", borderWidth: 1, borderColor: "rgba(248,113,113,0.32)", borderRadius: 10, padding: 10, marginTop: 6 },
-  errorText: { color: "#FECACA", fontSize: 12, lineHeight: 16, fontFamily: font.sansMedium, flex: 1 },
-  btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.accent, height: 50, borderRadius: 14, marginTop: 6, shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  btnLabel: { color: "#fff", fontWeight: "800", fontSize: 15, fontFamily: font.sansBold },
-  foot: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: "center", marginTop: 6, fontFamily: font.sansRegular },
+  logoRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 1.5,
+    borderColor: "rgba(139,92,246,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow.glow(accent.primary, 0.4),
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: accent.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "900",
+    fontFamily: font.sansBold,
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
+    paddingHorizontal: 12,
+    fontFamily: font.sansRegular,
+  },
+  form: {
+    gap: 10,
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.hairlineStrong,
+    ...shadow.sm,
+  },
+  label: {
+    color: colors.textDim,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.0,
+    textTransform: "uppercase",
+    fontFamily: font.sansBold,
+    marginTop: 4,
+  },
+  input: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    height: 48,
+    color: colors.text,
+    fontSize: 14,
+    fontFamily: font.sansMedium,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    height: 48,
+  },
+  hint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: font.sansRegular,
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(239,68,68,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.3)",
+    borderRadius: radius.md,
+    padding: 12,
+    marginTop: 6,
+  },
+  errorText: {
+    color: "#FECACA",
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: font.sansMedium,
+    flex: 1,
+  },
+  btn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: accent.primary,
+    height: 50,
+    borderRadius: radius.md,
+    marginTop: 8,
+    ...shadow.glow(accent.primary, 0.4),
+  },
+  btnLabel: {
+    color: "#fff",
+    fontWeight: "900",
+    fontSize: 15,
+    fontFamily: font.sansBold,
+  },
+  foot: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 6,
+    fontFamily: font.sansRegular,
+  },
 });

@@ -33,7 +33,7 @@ export function mapServerItemToTrack(
   const name = (item as any).name as string;
   const path = (item as any).path as string;
   const rootId = (item as any).root_id as string;
-  const ext = ((item as any).extension as string | undefined) || path.split(".").pop() || "";
+  const ext = ((item as any).extension as string | undefined) || (path.includes(".") ? (path.split(".").pop() as string) : "") || "";
   const mime = (item as any).mime as string | undefined;
   const size = (item as any).size as number | undefined;
   const modified = (item as any).modified as string | undefined;
@@ -118,15 +118,15 @@ export function enrichWithAudioInfo(track: MusicTrack, info: AudioInfo): MusicTr
     trackNumber: trackRaw ? parseInt(String(trackRaw).split("/")[0], 10) || null : null,
     discNumber: discRaw ? parseInt(String(discRaw).split("/")[0], 10) || null : null,
     metadata: {
-      codec: info.codec || track.metadata.codec,
-      bitDepth: info.bit_depth || track.metadata.bitDepth,
-      sampleRateHz: info.sample_rate || track.metadata.sampleRateHz,
-      channels: info.channels || track.metadata.channels,
-      bitrateKbps: info.bit_rate ? Math.round(info.bit_rate / 1000) : track.metadata.bitrateKbps,
-      durationSec: info.duration || track.metadata.durationSec,
+      codec: info.codec ?? track.metadata.codec,
+      bitDepth: info.bit_depth ?? track.metadata.bitDepth,
+      sampleRateHz: info.sample_rate ?? track.metadata.sampleRateHz,
+      channels: info.channels ?? track.metadata.channels,
+      bitrateKbps: info.bit_rate != null ? Math.round(info.bit_rate / 1000) : track.metadata.bitrateKbps,
+      durationSec: info.duration ?? track.metadata.durationSec,
       quality: q,
-      replayGainTrackDb: rgTrack ? parseFloat(String(rgTrack).replace(" dB", "")) || null : null,
-      replayGainAlbumDb: rgAlbum ? parseFloat(String(rgAlbum).replace(" dB", "")) || null : null,
+      replayGainTrackDb: rgTrack != null ? (() => { const v = parseFloat(String(rgTrack).replace(" dB", "")); return Number.isFinite(v) ? v : null; })() : null,
+      replayGainAlbumDb: rgAlbum != null ? (() => { const v = parseFloat(String(rgAlbum).replace(" dB", "")); return Number.isFinite(v) ? v : null; })() : null,
       tags,
     },
   };
@@ -143,7 +143,7 @@ export function mapDeviceAssetToTrack(asset: {
   mediaType?: string;
   albumId?: string;
 }): MusicTrack {
-  const ext = asset.filename.split(".").pop() || "";
+  const ext = asset.filename.includes(".") ? (asset.filename.split(".").pop() as string) : "";
   const q = detectAudioQuality(ext, undefined, undefined, asset.duration || undefined);
   const { artist, title } = parseArtistTitle(asset.filename);
   return {
@@ -179,6 +179,12 @@ export function mapDeviceAssetToTrack(asset: {
     favorite: false,
     lastPlayedAt: null,
     playCount: 0,
-    modifiedAt: asset.modificationTime ? new Date(asset.modificationTime).toISOString() : new Date(asset.creationTime).toISOString(),
+    modifiedAt: (() => {
+      const toIso = (t: number) => {
+        const ms = t < 1e12 ? t * 1000 : t; // handle seconds vs ms
+        return new Date(ms).toISOString();
+      };
+      return asset.modificationTime ? toIso(asset.modificationTime) : toIso(asset.creationTime);
+    })(),
   };
 }

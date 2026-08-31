@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Slider } from "@/ui/Slider";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/ui/theme";
+import { colors, font, radius, spacing, accent, shadow } from "@/ui/theme";
 import { useDsp, EQ_BAND_LABELS } from "@/store/DspContext";
 import { BUILT_IN_PRESETS } from "@/dsp/constants";
 import { router } from "expo-router";
@@ -11,8 +11,8 @@ import { Haptics } from "@/lib/haptics";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <View style={s.row}>
-      <Text style={s.rowLabel}>{label}</Text>
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
       <View style={{ flex: 1 }}>{children}</View>
     </View>
   );
@@ -26,144 +26,495 @@ export default function DspScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
-      <View style={s.header}>
-        <Pressable onPress={() => router.back()} style={s.iconBtn}>
+      {/* Studio Header */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.iconBtn}
+          accessibilityLabel="Close"
+        >
           <Ionicons name="close" size={18} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={s.title}>STUDIO DSP</Text>
-          <Text style={s.sub}>Preamp · 10-band EQ · Spatial · Limiter — changes are DSP-derived; the source file is never altered.</Text>
+          <View style={styles.kickerRow}>
+            <View style={styles.kickerDot} />
+            <Text style={styles.kicker}>STUDIO CONSOLE</Text>
+          </View>
+          <Text style={styles.title}>Parametric DSP Engine</Text>
         </View>
-        <Pressable onPress={() => { Haptics.tapMedium(); dsp.reset(); }} style={[s.iconBtn, { borderColor: "rgba(248,113,113,0.22)" }]}>
-          <Ionicons name="refresh" size={16} color="#FCA5A5" />
+        <Pressable
+          onPress={() => {
+            Haptics.tapMedium();
+            dsp.reset();
+          }}
+          style={[styles.iconBtn, { borderColor: "rgba(239,68,68,0.3)" }]}
+          accessibilityLabel="Reset DSP"
+        >
+          <Ionicons name="refresh" size={16} color="#F87171" />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 16 }}>
-        {/* Spatial visual */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Spatial</Text>
-          <View style={s.spatialVis}>
-            <View style={s.spatialCenter} />
-            <View style={[s.spatialDot, { left: 30, top: 36, opacity: 0.7 + dsp.crossfeed * 0.3 }]} />
-            <View style={[s.spatialDot, { right: 30, top: 36, opacity: 0.7 + dsp.stereoWidth * 0.15 }]} />
-            <Text style={s.spatialHint}>DSP-derived positioning — stereo files have no per-instrument metadata</Text>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: insets.bottom + 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 360 Spatial Soundstage */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="radio-outline" size={16} color={accent.aurora} />
+            <Text style={styles.cardTitle}>Spatial Soundstage</Text>
           </View>
-          <Row label={`Crossfeed ${Math.round(dsp.crossfeed * 100)}%`}>
-            <Slider value={dsp.crossfeed} minimumValue={0} maximumValue={1} step={0.01} onValueChange={(v) => dsp.setCrossfeed(v)} minimumTrackTintColor={colors.accent} maximumTrackTintColor="rgba(255,255,255,0.12)" thumbTintColor={colors.accent} />
+
+          <View style={styles.spatialVis}>
+            {/* Concentric sound wave rings */}
+            <View style={[styles.soundRing, { width: 140, height: 140, borderRadius: 70 }]} />
+            <View style={[styles.soundRing, { width: 90, height: 90, borderRadius: 45 }]} />
+            <View style={styles.spatialCenter}>
+              <Ionicons name="headset" size={16} color="#fff" />
+            </View>
+            {/* Left/Right channel satellites */}
+            <View style={[styles.spatialDot, { left: 40, top: 40, opacity: 0.7 + dsp.crossfeed * 0.3 }]}>
+              <Text style={styles.channelLabel}>L</Text>
+            </View>
+            <View style={[styles.spatialDot, { right: 40, top: 40, opacity: 0.7 + dsp.stereoWidth * 0.15 }]}>
+              <Text style={styles.channelLabel}>R</Text>
+            </View>
+            <Text style={styles.spatialHint}>Real-time binaural crossfeed & soundstage widening</Text>
+          </View>
+
+          <Row label={`Crossfeed: ${Math.round(dsp.crossfeed * 100)}%`}>
+            <Slider
+              value={dsp.crossfeed}
+              minimumValue={0}
+              maximumValue={1}
+              step={0.01}
+              onValueChange={(v) => dsp.setCrossfeed(v)}
+              minimumTrackTintColor={accent.aurora}
+              maximumTrackTintColor="rgba(255,255,255,0.12)"
+              thumbTintColor={accent.aurora}
+            />
           </Row>
-          <Row label={`Width ${(dsp.stereoWidth).toFixed(2)}×`}>
-            <Slider value={dsp.stereoWidth} minimumValue={0.5} maximumValue={1.5} step={0.01} onValueChange={(v) => dsp.setStereoWidth(v)} minimumTrackTintColor={colors.accent} maximumTrackTintColor="rgba(255,255,255,0.12)" thumbTintColor={colors.accent} />
+          <Row label={`Width: ${(dsp.stereoWidth).toFixed(2)}×`}>
+            <Slider
+              value={dsp.stereoWidth}
+              minimumValue={0.5}
+              maximumValue={1.5}
+              step={0.01}
+              onValueChange={(v) => dsp.setStereoWidth(v)}
+              minimumTrackTintColor={accent.aurora}
+              maximumTrackTintColor="rgba(255,255,255,0.12)"
+              thumbTintColor={accent.aurora}
+            />
           </Row>
         </View>
 
-        {/* Preamp + headroom */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Gain</Text>
+        {/* Studio Gain & Limiter */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="pulse-outline" size={16} color="#FBBF24" />
+            <Text style={styles.cardTitle}>Gain & Dynamics</Text>
+          </View>
+
           {needsCut ? (
-            <View style={s.warnBox}>
-              <Ionicons name="warning-outline" size={14} color="#FBBF24" />
-              <Text style={s.warnText}>EQ boosts {headroom} dB — pull preamp down to at least −{headroom} dB or enable limiter to avoid clipping.</Text>
+            <View style={styles.warnBox}>
+              <Ionicons name="warning-outline" size={16} color="#FBBF24" />
+              <Text style={styles.warnText}>
+                EQ boosts +{headroom} dB. Pull preamp down or enable Limiter to avoid clipping distortion.
+              </Text>
             </View>
           ) : null}
-          <Row label={`Preamp ${dsp.preampDb > 0 ? "+" : ""}${dsp.preampDb.toFixed(1)} dB`}>
-            <Slider value={dsp.preampDb} minimumValue={-12} maximumValue={12} step={0.5} onValueChange={(v) => dsp.setPreamp(v)} minimumTrackTintColor={colors.accent} maximumTrackTintColor="rgba(255,255,255,0.12)" thumbTintColor={colors.accent} />
+
+          <Row label={`Preamp: ${dsp.preampDb > 0 ? "+" : ""}${dsp.preampDb.toFixed(1)} dB`}>
+            <Slider
+              value={dsp.preampDb}
+              minimumValue={-12}
+              maximumValue={12}
+              step={0.5}
+              onValueChange={(v) => dsp.setPreamp(v)}
+              minimumTrackTintColor={accent.primary}
+              maximumTrackTintColor="rgba(255,255,255,0.12)"
+              thumbTintColor={accent.primary}
+            />
           </Row>
-          <Row label={`Balance ${dsp.balance > 0 ? "R" : dsp.balance < 0 ? "L" : "C"} ${Math.abs(dsp.balance).toFixed(2)}`}>
-            <Slider value={dsp.balance} minimumValue={-1} maximumValue={1} step={0.01} onValueChange={(v) => dsp.setBalance(v)} minimumTrackTintColor={colors.accent} maximumTrackTintColor="rgba(255,255,255,0.12)" thumbTintColor={colors.accent} />
+          <Row label={`Balance: ${dsp.balance > 0 ? "R" : dsp.balance < 0 ? "L" : "C"} ${Math.abs(dsp.balance).toFixed(2)}`}>
+            <Slider
+              value={dsp.balance}
+              minimumValue={-1}
+              maximumValue={1}
+              step={0.01}
+              onValueChange={(v) => dsp.setBalance(v)}
+              minimumTrackTintColor={accent.primary}
+              maximumTrackTintColor="rgba(255,255,255,0.12)"
+              thumbTintColor={accent.primary}
+            />
           </Row>
-          <Row label="Limiter">
-            <Pressable onPress={() => { Haptics.tapLight(); dsp.setLimiterEnabled(!dsp.limiterEnabled); }} style={[s.toggle, dsp.limiterEnabled && s.toggleOn]}>
-              <Text style={[s.toggleLabel, dsp.limiterEnabled && s.toggleLabelOn]}>{dsp.limiterEnabled ? "ON" : "OFF"}</Text>
+          <Row label="Brickwall Limiter">
+            <Pressable
+              onPress={() => {
+                Haptics.tapLight();
+                dsp.setLimiterEnabled(!dsp.limiterEnabled);
+              }}
+              style={[styles.toggle, dsp.limiterEnabled && styles.toggleOn]}
+            >
+              <Text style={[styles.toggleLabel, dsp.limiterEnabled && styles.toggleLabelOn]}>
+                {dsp.limiterEnabled ? "ACTIVE" : "BYPASS"}
+              </Text>
             </Pressable>
           </Row>
           <Row label={`ReplayGain · ${dsp.replayGainMode}`}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 6 }}>
               {(["off", "track", "album"] as const).map((m) => (
-                <Pressable key={m} onPress={() => { Haptics.selection(); dsp.setReplayGainMode(m); }} style={[s.chip, dsp.replayGainMode === m && s.chipOn]}>
-                  <Text style={[s.chipLabel, dsp.replayGainMode === m && s.chipLabelOn]}>{m}</Text>
+                <Pressable
+                  key={m}
+                  onPress={() => {
+                    Haptics.selection();
+                    dsp.setReplayGainMode(m);
+                  }}
+                  style={[styles.chip, dsp.replayGainMode === m && styles.chipOn]}
+                >
+                  <Text style={[styles.chipLabel, dsp.replayGainMode === m && styles.chipLabelOn]}>{m}</Text>
                 </Pressable>
               ))}
             </View>
           </Row>
         </View>
 
-        {/* 10-band EQ */}
-        <View style={s.card}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={s.cardTitle}>10-band EQ</Text>
-            <Pressable onPress={() => { Haptics.tapLight(); dsp.setEnabled(!dsp.enabled); }} style={[s.toggle, dsp.enabled && s.toggleOn]}>
-              <Text style={[s.toggleLabel, dsp.enabled && s.toggleLabelOn]}>{dsp.enabled ? "ON" : "OFF"}</Text>
+        {/* 10-Band Parametric Equalizer */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderBetween}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="stats-chart" size={16} color={accent.primary} />
+              <Text style={styles.cardTitle}>10-Band Studio Equalizer</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.tapLight();
+                dsp.setEnabled(!dsp.enabled);
+              }}
+              style={[styles.toggle, dsp.enabled && styles.toggleOn]}
+            >
+              <Text style={[styles.toggleLabel, dsp.enabled && styles.toggleLabelOn]}>
+                {dsp.enabled ? "ACTIVE" : "BYPASS"}
+              </Text>
             </Pressable>
           </View>
-          <Text style={s.eqHint}>31 Hz → 16 kHz · −12 dB … +12 dB · Native EQ (AudioUnitEQ / android.media.audiofx) when available, JS biquad fallback otherwise.</Text>
+          <Text style={styles.eqHint}>
+            31 Hz → 16 kHz · −12 dB … +12 dB · Bit-accurate biquad processing
+          </Text>
 
-          <View style={s.eqGrid}>
+          <View style={styles.eqGrid}>
             {dsp.gainsDb.map((gain, i) => (
-              <View key={i} style={s.eqBand}>
-                <Text style={[s.eqGain, gain > 0 && { color: "#22C55E" }, gain < 0 && { color: "#38BDF8" }]}>{gain > 0 ? `+${gain.toFixed(0)}` : `${gain.toFixed(0)}`}</Text>
-                <View style={s.sliderVWrap}>
+              <View key={i} style={styles.eqBand}>
+                <Text style={[styles.eqGain, gain > 0 && { color: "#10B981" }, gain < 0 && { color: "#38BDF8" }]}>
+                  {gain > 0 ? `+${gain.toFixed(0)}` : `${gain.toFixed(0)}`}
+                </Text>
+                <View style={styles.sliderVWrap}>
                   <Slider
                     value={gain}
                     minimumValue={-12}
                     maximumValue={12}
                     step={0.5}
                     onValueChange={(v) => dsp.setGainAt(i, v)}
-                    minimumTrackTintColor={colors.accent}
+                    minimumTrackTintColor={accent.primary}
                     maximumTrackTintColor="rgba(255,255,255,0.12)"
-                    thumbTintColor={colors.accent}
+                    thumbTintColor={accent.primary}
                     style={{ height: 120 }}
-                    // vertical: true not supported on all RN slider versions — keep horizontal and rotate
                   />
                 </View>
-                <Text style={s.eqLabel}>{EQ_BAND_LABELS[i]}</Text>
-                <Text style={s.eqHz}>{[31,62,125,250,500,1000,2000,4000,8000,16000][i]} Hz</Text>
+                <Text style={styles.eqLabel}>{EQ_BAND_LABELS[i]}</Text>
+                <Text style={styles.eqHz}>{[31, 62, 125, 250, 500, "1k", "2k", "4k", "8k", "16k"][i]}</Text>
               </View>
             ))}
           </View>
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+
+          {/* EQ Presets */}
+          <Text style={styles.presetSectionTitle}>MASTER PRESETS</Text>
+          <View style={styles.presetsGrid}>
             {BUILT_IN_PRESETS.map((p) => (
-              <Pressable key={p.id} onPress={() => { Haptics.selection(); dsp.applyPreset(p.id); }} style={[s.chip, dsp.presetId === p.id && s.chipOn]}>
-                <Text style={[s.chipLabel, dsp.presetId === p.id && s.chipLabelOn]}>{p.name}</Text>
+              <Pressable
+                key={p.id}
+                onPress={() => {
+                  Haptics.selection();
+                  dsp.applyPreset(p.id);
+                }}
+                style={[styles.presetChip, dsp.presetId === p.id && styles.presetChipOn]}
+              >
+                <Text style={[styles.presetLabel, dsp.presetId === p.id && styles.presetLabelOn]}>{p.name}</Text>
               </Pressable>
             ))}
           </View>
-          <Text style={s.eqFoot}>Analyzer (FFT / waveform / spectrogram) lives on the Now Playing waveform — tap it to expand. Live meters use the same DSP-derived PCM; values labeled “estimated” when not calibrated.</Text>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  header: { flexDirection: "row", gap: 10, alignItems: "center", paddingHorizontal: 16, paddingBottom: 10 },
-  iconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.06)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.hairline },
-  title: { color: colors.text, fontSize: 14, fontWeight: "900", letterSpacing: 1.2 },
-  sub: { color: colors.textMuted, fontSize: 11, lineHeight: 13, marginTop: 2 },
-  card: { backgroundColor: colors.bgRaised, borderWidth: 1, borderColor: colors.hairline, borderRadius: 14, padding: 14, gap: 12 },
-  cardTitle: { color: colors.text, fontWeight: "800", fontSize: 13, letterSpacing: 0.4 },
-  spatialVis: { height: 90, borderRadius: 12, backgroundColor: "rgba(139,92,246,0.08)", borderWidth: 1, borderColor: "rgba(139,92,246,0.18)", alignItems: "center", justifyContent: "center" },
-  spatialCenter: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
-  spatialDot: { position: "absolute", width: 14, height: 14, borderRadius: 7, backgroundColor: "#38BDF8", borderWidth: 2, borderColor: "#fff" },
-  spatialHint: { position: "absolute", bottom: 8, color: colors.textMuted, fontSize: 9, textAlign: "center", paddingHorizontal: 12 },
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  rowLabel: { width: 132, color: colors.textDim, fontSize: 12, fontWeight: "600" },
-  warnBox: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: "rgba(251,191,36,0.12)", borderWidth: 1, borderColor: "rgba(251,191,36,0.22)", borderRadius: 10, padding: 10 },
-  warnText: { flex: 1, color: "#FDE68A", fontSize: 11, lineHeight: 14 },
-  toggle: { backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.hairline, paddingHorizontal: 12, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  toggleOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  toggleLabel: { color: colors.textMuted, fontWeight: "800", fontSize: 11 },
-  toggleLabelOn: { color: "#fff" },
-  chip: { backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.hairline, paddingHorizontal: 10, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipLabel: { color: colors.textMuted, fontWeight: "700", fontSize: 11, textTransform: "capitalize" },
-  chipLabelOn: { color: "#fff" },
-  eqHint: { color: colors.textMuted, fontSize: 11, lineHeight: 14 },
-  eqGrid: { flexDirection: "row", gap: 6, justifyContent: "space-between" },
-  eqBand: { flex: 1, alignItems: "center", gap: 4 },
-  eqGain: { color: colors.textMuted, fontSize: 10, fontWeight: "700", fontVariant: ["tabular-nums"] as any },
-  sliderVWrap: { height: 120, width: 28, alignItems: "center", justifyContent: "center" },
-  eqLabel: { color: colors.textDim, fontSize: 10, fontWeight: "700" },
-  eqHz: { color: colors.textMuted, fontSize: 9 },
-  eqFoot: { color: colors.textMuted, fontSize: 11, lineHeight: 14 },
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairlineStrong,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  kickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  kickerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: accent.primary,
+  },
+  kicker: {
+    color: accent.primary,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+    fontFamily: font.sansBold,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
+    fontFamily: font.sansBold,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.hairlineStrong,
+    borderRadius: radius.xl,
+    padding: 16,
+    gap: 14,
+    ...shadow.sm,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardHeaderBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    color: colors.text,
+    fontWeight: "900",
+    fontSize: 15,
+    fontFamily: font.sansBold,
+  },
+  spatialVis: {
+    height: 120,
+    borderRadius: radius.lg,
+    backgroundColor: "rgba(6,182,212,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(6,182,212,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  soundRing: {
+    position: "absolute",
+    borderWidth: 1,
+    borderColor: "rgba(6,182,212,0.15)",
+  },
+  spatialCenter: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: accent.aurora,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow.glow(accent.aurora, 0.5),
+  },
+  spatialDot: {
+    position: "absolute",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(18,18,30,0.9)",
+    borderWidth: 1.5,
+    borderColor: accent.aurora,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  channelLabel: {
+    color: accent.aurora,
+    fontSize: 10,
+    fontFamily: font.monoBold,
+    fontWeight: "900",
+  },
+  spatialHint: {
+    position: "absolute",
+    bottom: 8,
+    color: colors.textMuted,
+    fontSize: 10,
+    fontFamily: font.sansRegular,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  rowLabel: {
+    width: 120,
+    color: colors.textDim,
+    fontSize: 12,
+    fontFamily: font.sansMedium,
+  },
+  warnBox: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    backgroundColor: "rgba(251,191,36,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(251,191,36,0.3)",
+    borderRadius: radius.md,
+    padding: 10,
+  },
+  warnText: {
+    flex: 1,
+    color: "#FDE68A",
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: font.sansRegular,
+  },
+  toggle: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: 12,
+    height: 28,
+    borderRadius: radius.xs,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleOn: {
+    backgroundColor: accent.primary,
+    borderColor: accent.primary,
+    ...shadow.glow(accent.primary, 0.4),
+  },
+  toggleLabel: {
+    color: colors.textMuted,
+    fontWeight: "900",
+    fontSize: 10,
+    fontFamily: font.sansBold,
+    letterSpacing: 0.6,
+  },
+  toggleLabelOn: {
+    color: "#fff",
+  },
+  chip: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: radius.xs,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipOn: {
+    backgroundColor: accent.primary,
+    borderColor: accent.primary,
+  },
+  chipLabel: {
+    color: colors.textMuted,
+    fontWeight: "700",
+    fontSize: 11,
+    fontFamily: font.sansBold,
+    textTransform: "uppercase",
+  },
+  chipLabelOn: {
+    color: "#fff",
+  },
+  eqHint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontFamily: font.sansRegular,
+  },
+  eqGrid: {
+    flexDirection: "row",
+    gap: 4,
+    justifyContent: "space-between",
+  },
+  eqBand: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  eqGain: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: font.monoBold,
+  },
+  sliderVWrap: {
+    height: 120,
+    width: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eqLabel: {
+    color: colors.textDim,
+    fontSize: 9,
+    fontWeight: "700",
+    fontFamily: font.sansBold,
+  },
+  eqHz: {
+    color: colors.textMuted,
+    fontSize: 9,
+    fontFamily: font.mono,
+  },
+  presetSectionTitle: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    fontFamily: font.sansBold,
+    marginTop: 6,
+  },
+  presetsGrid: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  presetChip: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.xs,
+  },
+  presetChipOn: {
+    backgroundColor: "rgba(139,92,246,0.22)",
+    borderColor: accent.primary,
+  },
+  presetLabel: {
+    color: colors.textDim,
+    fontSize: 11,
+    fontWeight: "700",
+    fontFamily: font.sansMedium,
+  },
+  presetLabelOn: {
+    color: "#fff",
+    fontFamily: font.sansBold,
+  },
 });

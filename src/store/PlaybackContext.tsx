@@ -88,13 +88,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     player.setRepeat(repeat === "one" ? "track" : "off" as any);
   }, [repeat]);
 
-  // Keep notification buttons routing through this context (honouring shuffle).
+  // Keep notification buttons routing through this context (honouring shuffle/repeat).
   const stepRef = useRef<(dir: 1 | -1) => MusicTrack | null>(() => null);
-  const stateRef = useRef({ current, queue, shuffle });
-  useEffect(() => { stateRef.current = { current, queue, shuffle }; }, [current, queue, shuffle]);
+  const stateRef = useRef({ current, queue, shuffle, repeat });
+  useEffect(() => { stateRef.current = { current, queue, shuffle, repeat }; }, [current, queue, shuffle, repeat]);
   useEffect(() => {
     stepRef.current = (dir: 1 | -1): MusicTrack | null => {
-      const { current: c, queue: q, shuffle: sh } = stateRef.current;
+      const { current: c, queue: q, shuffle: sh, repeat: rp } = stateRef.current as { current: MusicTrack | null; queue: MusicTrack[]; shuffle: boolean; repeat: RepeatMode };
       if (!q.length) return null;
       if (q.length === 1) return c ?? q[0];
       if (sh) {
@@ -105,7 +105,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       }
       const idx = c ? q.findIndex((x) => x.id === c.id) : -1;
       if (idx >= 0 && idx + dir >= 0 && idx + dir < q.length) return q[idx + dir];
-      return dir > 0 ? q[0] : q[q.length - 1];
+      // Respect repeat mode: only wrap when repeat is "all"
+      if (rp === "all") return dir > 0 ? q[0] : q[q.length - 1];
+      return null;
     };
   }, []);
 

@@ -21,7 +21,7 @@ import { glass as G, radius as R } from "@/ui/theme";
  * permanently dark (see ThemeContext); the `tint` prop here is the overlay
  * colour sitting on top of the blur, controlling the perceived frosted tone.
  */
-export type GlassVariant = "bar" | "card" | "sheet" | "pill" | "modal";
+export type GlassVariant = "bar" | "card" | "sheet" | "pill" | "modal" | "neon" | "studio";
 
 type GlassPreset = { intensity: number; tint: string; radius: number };
 
@@ -30,8 +30,10 @@ const PRESET: Record<GlassVariant, GlassPreset> = {
   bar: { intensity: G.blur.bar, tint: G.tint.bar, radius: 0 },
   card: { intensity: G.blur.card, tint: G.tint.card, radius: R.lg },
   sheet: { intensity: G.blur.sheet, tint: G.tint.sheet, radius: R.xl },
-  pill: { intensity: G.blur.subtle, tint: G.tint.pill, radius: R.md },
+  pill: { intensity: G.blur.subtle, tint: G.tint.pill, radius: R.pill },
   modal: { intensity: G.blur.modal, tint: G.tint.strong, radius: R.xl },
+  neon: { intensity: G.blur.card, tint: "rgba(139,92,246,0.12)", radius: R.lg },
+  studio: { intensity: G.blur.sheet, tint: "rgba(18,18,30,0.88)", radius: R.xl },
 };
 
 export type GlassSurfaceProps = {
@@ -52,6 +54,8 @@ export type GlassSurfaceProps = {
   sheen?: boolean;
   /** 1px glass rim (the lit edge that makes it read as glass). */
   border?: boolean;
+  /** Neon glow border. */
+  glow?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -64,6 +68,7 @@ export function GlassSurface({
   blur = true,
   sheen = true,
   border = true,
+  glow = false,
   style,
 }: GlassSurfaceProps) {
   const preset = PRESET[variant];
@@ -72,7 +77,7 @@ export function GlassSurface({
   const overlay = tint ?? preset.tint;
 
   return (
-    <View style={[styles.base, { borderRadius: r }, border && styles.rim, style]}>
+    <View style={[styles.base, { borderRadius: r }, border && (glow ? styles.rimGlow : styles.rim), style]}>
       {blur && G.allowRealBlur ? (
         <BlurView intensity={i} tint="dark" style={StyleSheet.absoluteFill} />
       ) : null}
@@ -111,4 +116,5 @@ export const GlassPanel = React.memo(function GlassPanel(props: GlassSurfaceProp
 const styles = StyleSheet.create({
   base: { overflow: "hidden", backgroundColor: "transparent" },
   rim: { borderWidth: 1, borderColor: G.edge.hairline },
+  rimGlow: { borderWidth: 1, borderColor: G.edge.glow },
 });

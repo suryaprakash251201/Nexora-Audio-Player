@@ -1,14 +1,12 @@
 /**
- * Design tokens (M19) — refreshed colors, real fonts, motion, semantic surface layers.
+ * Design tokens (M20 Redesign) — Luxury Audiophile Studio UI/UX.
  *
- * Keep the dark-audiophile language. Add:
- *  - 8-step surface scale (more depth in the player + DSP)
- *  - 6-step accent (purple) + a subtle teal "aurora" companion
- *  - 5-step severity (success/warn/danger/info + an offline "muted" tone)
- *  - Quality-tier palette shared with the web/Tauri app (so the same artwork
- *    badge looks consistent across surfaces)
- *  - Real typography: Sora for UI, JetBrains Mono for technical info
- *  - Motion tokens (spring presets) and semantic spacing
+ * Visual Language:
+ *  - Deep Obsidian Void (`#06060A`, `#0B0B12`, `#12121D`)
+ *  - Electric Neon Glow (Violet `#8B5CF6`, Cyan Aurora `#06B6D4`, Gold `#F59E0B`)
+ *  - Quality-tier palette: Studio Master Hi-Res Gold, Lossless Violet, DSD Emerald, Dolby Sky Blue
+ *  - Typography: Sora (UI) + JetBrains Mono (Technical audio telemetry)
+ *  - Tactile Motion & Elevation with Neon Sheen
  */
 
 export const font = {
@@ -27,60 +25,73 @@ export const textSize = {
   sm: 12,
   md: 14,
   lg: 16,
-  xl: 20,
-  "2xl": 24,
-  "3xl": 32,
+  xl: 18,
+  "2xl": 22,
+  "3xl": 28,
+  "4xl": 36,
 };
 
 /* ------------------------------------------------------------------ */
-/* Color                                                              */
+/* Surfaces & Colors                                                  */
 /* ------------------------------------------------------------------ */
 
 export const surface = {
-  /** App background (deep, slightly blue-black to match brand accent). */
-  bg: "#0A0A12",
-  /** Tab bar / sticky header. */
-  bar: "#0E0E18",
-  /** Cards (library rows, settings cards, DSP cards). */
-  card: "#15151F",
-  /** Slightly raised (now-playing meta strip, etc.). */
-  raised: "#1C1C28",
-  /** Glassy overlay (frosted top bar on Now Playing). */
-  glass: "rgba(255,255,255,0.06)",
-  glassStrong: "rgba(20,20,32,0.72)",
-  /** Hairline / divider / focus ring. */
+  /** Ultra-deep obsidian app background. */
+  bg: "#06060A",
+  /** Tab bar / floating dock. */
+  bar: "#0B0B14",
+  /** Cards & list panels. */
+  card: "#12121E",
+  /** Elevated cards & modal sheets. */
+  raised: "#181826",
+  /** Studio console surface. */
+  studio: "#1A1A2B",
+  /** Glassy frosted overlays. */
+  glass: "rgba(255,255,255,0.05)",
+  glassStrong: "rgba(18,18,30,0.85)",
+  /** Borders & dividers. */
   hairline: "rgba(255,255,255,0.08)",
-  hairlineStrong: "rgba(255,255,255,0.16)",
-  focus: "rgba(139,92,246,0.45)",
+  hairlineStrong: "rgba(255,255,255,0.18)",
+  focus: "rgba(139,92,246,0.55)",
 };
 
 export const text = {
-  primary: "#F5F5FA",
-  secondary: "#B8B8C8",
-  muted: "#7A7A8C",
-  inverse: "#0A0A12",
+  primary: "#FFFFFF",
+  secondary: "#C4C4D4",
+  muted: "#7E7E94",
+  dim: "rgba(255,255,255,0.45)",
+  inverse: "#06060A",
 };
 
 export const accent = {
-  /** Primary brand purple. */
+  /** Primary brand violet. */
   primary: "#8B5CF6",
-  primarySoft: "rgba(139,92,246,0.18)",
-  primaryGlow: "rgba(139,92,246,0.42)",
-  /** Subtle teal "aurora" companion. */
-  aurora: "#22D3EE",
-  auroraSoft: "rgba(34,211,238,0.16)",
-  /** Synced / success / online. */
-  success: "#22C55E",
-  successSoft: "rgba(34,197,94,0.16)",
-  warn: "#F5C451",
-  warnSoft: "rgba(245,196,81,0.18)",
-  danger: "#F87171",
-  dangerSoft: "rgba(248,113,113,0.16)",
-  info: "#60A5FA",
-  infoSoft: "rgba(96,165,250,0.16)",
-  /** Offline / muted. */
-  offline: "#8A8A9A",
-  offlineSoft: "rgba(138,138,154,0.16)",
+  primaryHover: "#7C3AED",
+  primarySoft: "rgba(139,92,246,0.16)",
+  primaryGlow: "rgba(139,92,246,0.45)",
+  /** Cyan aurora companion. */
+  aurora: "#06B6D4",
+  auroraSoft: "rgba(6,182,212,0.16)",
+  auroraGlow: "rgba(6,182,212,0.45)",
+  /** Gold / Hi-Res Master. */
+  gold: "#F59E0B",
+  goldSoft: "rgba(245,158,11,0.18)",
+  goldGlow: "rgba(245,158,11,0.45)",
+  /** Success / Online / DSD Emerald. */
+  success: "#10B981",
+  successSoft: "rgba(16,185,129,0.16)",
+  /** Warning / Alert. */
+  warn: "#F59E0B",
+  warnSoft: "rgba(245,158,11,0.18)",
+  /** Danger / Clipping / Error. */
+  danger: "#EF4444",
+  dangerSoft: "rgba(239,68,68,0.16)",
+  /** Info / Cloud Blue. */
+  info: "#3B82F6",
+  infoSoft: "rgba(59,130,246,0.16)",
+  /** Offline / Muted. */
+  offline: "#94A3B8",
+  offlineSoft: "rgba(148,163,184,0.16)",
 };
 
 export const colors = {
@@ -90,48 +101,48 @@ export const colors = {
   textMuted: text.muted,
   accent: accent.primary,
   accentSoft: accent.primarySoft,
+  accentGlow: accent.primaryGlow,
   success: accent.success,
   warning: accent.warn,
   danger: accent.danger,
-  // Legacy aliases (so older screens don't break after the visual refresh).
+  // Legacy aliases
   bgRaised: surface.raised,
   bgGlass: surface.glass,
   bgGlassStrong: surface.glassStrong,
-  // Semantic aliases (M20).
   interactive: accent.primary,
   disabled: "rgba(255,255,255,0.12)",
   placeholder: text.muted,
 };
 
 /* ------------------------------------------------------------------ */
-/* Quality tier palette (shared with the track badge)                 */
+/* Quality Tier Palette                                               */
 /* ------------------------------------------------------------------ */
 
 export const tierColor: Record<
   "mp3" | "aac" | "lossless" | "hires" | "dsd" | "dolby" | "spatial",
-  { accent: string; soft: string; label: string }
+  { accent: string; soft: string; label: string; glow: string }
 > = {
-  mp3: { accent: "#8A8A9A", soft: "rgba(138,138,154,0.18)", label: "MP3" },
-  aac: { accent: "#60A5FA", soft: "rgba(96,165,250,0.18)", label: "AAC" },
-  lossless: { accent: "#A78BFA", soft: "rgba(167,139,250,0.18)", label: "LOSSLESS" },
-  hires: { accent: "#F5C451", soft: "rgba(245,196,81,0.18)", label: "HI-RES" },
-  dsd: { accent: "#22C55E", soft: "rgba(34,197,94,0.18)", label: "DSD" },
-  dolby: { accent: "#38BDF8", soft: "rgba(56,189,248,0.18)", label: "DOLBY ATMOS" },
-  spatial: { accent: "#22D3EE", soft: "rgba(34,211,238,0.18)", label: "SPATIAL" },
+  mp3: { accent: "#94A3B8", soft: "rgba(148,163,184,0.16)", glow: "rgba(148,163,184,0.3)", label: "MP3" },
+  aac: { accent: "#38BDF8", soft: "rgba(56,189,248,0.16)", glow: "rgba(56,189,248,0.35)", label: "AAC" },
+  lossless: { accent: "#A78BFA", soft: "rgba(167,139,250,0.18)", glow: "rgba(167,139,250,0.45)", label: "LOSSLESS" },
+  hires: { accent: "#FBBF24", soft: "rgba(251,191,36,0.20)", glow: "rgba(251,191,36,0.5)", label: "HI-RES" },
+  dsd: { accent: "#10B981", soft: "rgba(16,185,129,0.18)", glow: "rgba(16,185,129,0.45)", label: "DSD" },
+  dolby: { accent: "#60A5FA", soft: "rgba(96,165,250,0.18)", glow: "rgba(96,165,250,0.4)", label: "DOLBY ATMOS" },
+  spatial: { accent: "#06B6D4", soft: "rgba(6,182,212,0.18)", glow: "rgba(6,182,212,0.45)", label: "SPATIAL" },
 };
 
 /* ------------------------------------------------------------------ */
-/* Spectrum palette for the FFT bars (warm low → cool high)            */
+/* Spectrum Palette for FFT Bars                                      */
 /* ------------------------------------------------------------------ */
 
 export const spectrum = {
-  low: "#F5C451",
-  mid: "#A78BFA",
-  high: "#22D3EE",
+  low: "#F59E0B",
+  mid: "#8B5CF6",
+  high: "#06B6D4",
 };
 
 /* ------------------------------------------------------------------ */
-/* Spacing / radius / motion                                            */
+/* Spacing / Radius / Motion                                          */
 /* ------------------------------------------------------------------ */
 
 export const spacing = {
@@ -140,9 +151,9 @@ export const spacing = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 22,
-  xxl: 32,
-  xxxl: 48,
+  xl: 20,
+  xxl: 28,
+  xxxl: 40,
 };
 
 export const radius = {
@@ -151,146 +162,119 @@ export const radius = {
   md: 12,
   lg: 18,
   xl: 24,
+  xxl: 32,
   pill: 999,
 };
 
 export const motion = {
-  fast: 160,
+  fast: 150,
   base: 240,
-  slow: 380,
-  spring: { damping: 22, stiffness: 220, mass: 0.9 },
-  springTight: { damping: 24, stiffness: 320, mass: 0.7 },
-  springSnappy: { damping: 28, stiffness: 400, mass: 0.6 },
-  springBouncy: { damping: 12, stiffness: 180, mass: 1.0 },
-  springGentle: { damping: 20, stiffness: 120, mass: 1.2 },
+  slow: 360,
+  spring: { damping: 20, stiffness: 240, mass: 0.8 },
+  springTight: { damping: 24, stiffness: 340, mass: 0.6 },
+  springSnappy: { damping: 26, stiffness: 420, mass: 0.5 },
+  springBouncy: { damping: 14, stiffness: 200, mass: 0.9 },
+  springGentle: { damping: 22, stiffness: 140, mass: 1.0 },
 };
+
+/* ------------------------------------------------------------------ */
+/* Elevation & Shadows                                                */
+/* ------------------------------------------------------------------ */
 
 export const shadow = {
   sm: {
     shadowColor: "#000",
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
   md: {
     shadowColor: "#000",
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.5,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
   lg: {
     shadowColor: "#000",
-    shadowOpacity: 0.55,
+    shadowOpacity: 0.65,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
     elevation: 14,
   },
   xl: {
     shadowColor: "#000",
-    shadowOpacity: 0.65,
+    shadowOpacity: 0.8,
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 12 },
     elevation: 20,
   },
-  glow: (color: string) => ({
+  glow: (color: string, opacity = 0.4) => ({
     shadowColor: color,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
+    shadowOpacity: opacity,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    elevation: 10,
   }),
   card: {
     shadowColor: "#000",
-    shadowOpacity: 0.55,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 14,
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
   },
   fab: {
     shadowColor: accent.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    elevation: 10,
   },
 };
 
 /* ------------------------------------------------------------------ */
-/* Gradients                                                           */
+/* Gradients                                                          */
 /* ------------------------------------------------------------------ */
 
 export const gradients = {
-  hero: ["rgba(139,92,246,0.32)", "rgba(10,10,18,0)"] as const,
-  heroOverlay: ["rgba(10,10,18,0.05)", "rgba(10,10,18,0.55)", "rgba(10,10,18,0.98)"] as const,
-  player: ["rgba(255,255,255,0.07)", "rgba(255,255,255,0.02)"] as const,
+  hero: ["rgba(139,92,246,0.35)", "rgba(6,182,212,0.12)", "rgba(6,6,10,0)"] as const,
+  heroOverlay: ["rgba(6,6,10,0.02)", "rgba(6,6,10,0.6)", "rgba(6,6,10,0.98)"] as const,
+  player: ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.02)"] as const,
   aurora: [accent.primary, accent.aurora, accent.success] as const,
+  goldHiRes: ["#F59E0B", "#D97706", "#78350F"] as const,
+  vinyl: ["#1F1F2E", "#0A0A12", "#181828", "#07070D"] as const,
   danger: [accent.danger, "#B91C1C"] as const,
 };
 
 /* ------------------------------------------------------------------ */
-/* Glass (M25) — frosted surface system                                */
+/* Glassmorphism System                                               */
 /* ------------------------------------------------------------------ */
 
-/**
- * A real glass surface is three layers stacked:
- *   1. blur          (expo-blur BlurView, or CSS backdrop-filter on web)
- *   2. tint          (translucent colour laid over the blur)
- *   3. edge + sheen  (1px lit stroke + a specular top highlight)
- *
- * The tint is not decoration — it is what keeps text legible. Blur alone
- * lets busy artwork bleed through and destroys contrast, so every glass
- * surface carries enough tint to hold text contrast.
- */
 export const glass = {
-  /**
-   * Blur radius per role. Deliberately modest: high values read as fog and
-   * cost real GPU time, especially on Android.
-   */
   blur: {
-    subtle: 18,
-    card: 30,
-    bar: 55,
-    sheet: 68,
+    subtle: 16,
+    card: 28,
+    bar: 50,
+    sheet: 64,
     modal: 80,
   },
-
-  /** Translucent colour laid over the blur. */
   tint: {
-    /** Bottom tab bar — content scrolls visibly behind it. */
-    bar: "rgba(14,14,24,0.58)",
-    /** Cards / list surfaces. */
-    card: "rgba(255,255,255,0.05)",
-    /** Bottom sheets (queue, pickers). */
-    sheet: "rgba(18,18,28,0.70)",
-    /** Small controls: pills, chips, search field, segmented track. */
-    pill: "rgba(255,255,255,0.07)",
-    /** Dialogs that must fully own the screen behind them. */
-    strong: "rgba(20,20,32,0.80)",
-    /** Heavier scrim for any glass sitting directly over album artwork. */
-    scrim: "rgba(10,10,18,0.55)",
+    bar: "rgba(11,11,20,0.68)",
+    card: "rgba(255,255,255,0.04)",
+    sheet: "rgba(14,14,26,0.82)",
+    pill: "rgba(255,255,255,0.08)",
+    strong: "rgba(16,16,28,0.90)",
+    scrim: "rgba(6,6,10,0.60)",
   },
-
-  /**
-   * The glass edge. A surface reads as *glass* because light catches its top
-   * rim and falls off toward the bottom — a flat translucent panel has no rim.
-   */
   edge: {
-    top: "rgba(255,255,255,0.14)",
-    bottom: "rgba(255,255,255,0.04)",
+    top: "rgba(255,255,255,0.18)",
+    bottom: "rgba(255,255,255,0.03)",
     hairline: "rgba(255,255,255,0.10)",
-    strong: "rgba(255,255,255,0.18)",
+    strong: "rgba(255,255,255,0.22)",
+    glow: "rgba(139,92,246,0.30)",
   },
-
-  /** Specular highlight: bright at the top-left, gone by ~40% down. */
-  sheen: ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.03)", "rgba(255,255,255,0)"] as const,
-
-  /**
-   * Which roles may use a real BlurView. Anything rendered inside a recycled
-   * list (FlashList rows, grid cards) must use faux glass instead — a
-   * BlurView per row destroys scroll performance.
-   */
+  sheen: ["rgba(255,255,255,0.12)", "rgba(255,255,255,0.03)", "rgba(255,255,255,0)"] as const,
   allowRealBlur: true,
 };
 
