@@ -88,8 +88,30 @@ jobs:
         run: npx expo prebuild -p ios --no-install
 
       - name: install CocoaPods
-        run: pod install
+        run: |
+          set -x
+          echo "CocoaPods version:"
+          pod --version || (sudo gem install cocoapods --no-document && pod --version)
+          echo "Pod env:"
+          pod env | head -30
+          echo "Running pod install --repo-update..."
+          pod install --repo-update --verbose 2>&1 | tee pod.log; status=${PIPESTATUS[0]}
+          if [ $status -ne 0 ]; then
+            echo "pod install failed, retrying without repo-update..."
+            pod install --verbose 2>&1 | tee -a pod.log
+            status=${PIPESTATUS[0]}
+          fi
+          exit $status
         working-directory: ./ios
+
+      - name: upload pod log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pod-install-log
+          path: ios/pod.log
+          if-no-files-found: warn
+          retention-days: 7
 
       # ── Device build (unsigned) — for sideloading via Sideloadly/AltStore ──
       - name: build unsigned device app
