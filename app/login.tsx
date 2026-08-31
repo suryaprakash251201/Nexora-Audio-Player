@@ -9,16 +9,26 @@ import { useSession } from "@/store/SessionContext";
 import { Toast } from "@/ui/Toast";
 import { Haptics } from "@/lib/haptics";
 
+function normalizeUrl(input: string): string {
+  let s = input.trim();
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) {
+    // If user provided a raw host or IP like 192.168.1.5 or localhost:3000, default to http://
+    s = `http://${s}`;
+  }
+  return s.replace(/\/+$/, "");
+}
+
 function isValidUrl(s: string): boolean {
-  const t = s.trim();
-  if (!t) return false;
-  return /^https?:\/\/[\w.-]+(?::\d+)?(\/.*)?$/i.test(t);
+  const norm = normalizeUrl(s);
+  if (!norm) return false;
+  return /^https?:\/\/[\w.-]+(?::\d+)?(\/.*)?$/i.test(norm);
 }
 
 export default function LoginScreen() {
   const { login } = useSession();
   const insets = useSafeAreaInsets();
-  const [baseUrl, setBaseUrl] = useState("https://");
+  const [baseUrl, setBaseUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [totp, setTotp] = useState("");
@@ -26,7 +36,7 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPwd, setShowPwd] = useState(false);
-  const [rememberUrl, setRememberUrl] = useState(false);
+  const [rememberUrl, setRememberUrl] = useState(true);
 
   useEffect(() => {
     AsyncStorage.getItem("nexora_remembered_server_url").then((url) => {
@@ -38,8 +48,14 @@ export default function LoginScreen() {
   }, []);
 
   const onSubmit = async () => {
-    if (!isValidUrl(baseUrl)) {
-      setError("Server URL must start with http:// or https://");
+    const rawUrl = baseUrl.trim();
+    if (!rawUrl) {
+      setError("Server URL or IP address is required (e.g. 192.168.1.5 or http://192.168.1.5:3000)");
+      return;
+    }
+    const normalizedUrl = normalizeUrl(rawUrl);
+    if (!isValidUrl(normalizedUrl)) {
+      setError("Please enter a valid server URL or IP address (e.g. 192.168.1.5 or http://192.168.1.5:3000)");
       return;
     }
     if (!username.trim()) {
@@ -57,12 +73,11 @@ export default function LoginScreen() {
     Haptics.tapLight();
     setBusy(true);
     setError(null);
-    const url = baseUrl.trim();
-    const res = await login(url, username.trim(), password, needsTotp ? totp : undefined);
+    const res = await login(normalizedUrl, username.trim(), password, needsTotp ? totp : undefined);
     setBusy(false);
     if (res.ok) {
       if (rememberUrl) {
-        await AsyncStorage.setItem("nexora_remembered_server_url", url);
+        await AsyncStorage.setItem("nexora_remembered_server_url", normalizedUrl);
       } else {
         await AsyncStorage.removeItem("nexora_remembered_server_url");
       }
@@ -80,18 +95,17 @@ export default function LoginScreen() {
     Haptics.error();
     
     // Improve error messages based on response
-    let msg = "Server error. Please try again.";
-    if (res.error?.toLowerCase().includes("network") || res.error?.toLowerCase().includes("fetch")) {
-      msg = "Could not reach server. Check your connection.";
-    } else if (res.error?.includes("401") || res.error?.toLowerCase().includes("unauthorized")) {
+    let msg = res.error || "Server error. Please try again.";
+    if (msg.includes("401") || msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("invalid username")) {
       msg = "Invalid username or password.";
-    } else if (res.error?.includes("403")) {
-      msg = "Two-factor authentication required.";
-    } else if (res.error) {
-      msg = res.error;
+    } else if (msg.includes("403")) {
+      msg = "Access denied or 2FA required.";
     }
     setError(msg);
   };
+
+  const currentNormalized = normalizeUrl(baseUrl);
+  const isCurrentValid = isValidUrl(baseUrl);
 
   return (
     <>
@@ -129,12 +143,12 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Server URL</Text>
+            <Text style={styles.label}>Server URL or IP</Text>
             <View style={styles.inputRow}>
-              {baseUrl.startsWith("https://") ? (
+              {currentNormalized.startsWith("https://") ? (
                 <Ionicons name="lock-closed" size={16} color="#10B981" style={{ marginRight: 6 }} />
-              ) : baseUrl.startsWith("http://") ? (
-                <Ionicons name="lock-open" size={16} color="#FBBF24" style={{ marginRight: 6 }} />
+              ) : currentNormalized.startsWith("http://") ? (
+                <Ionicons name="globe-outline" size={16} color="#06B6D4" style={{ marginRight: 6 }} />
               ) : null}
               <TextInput
                 value={baseUrl}
@@ -142,7 +156,7 @@ export default function LoginScreen() {
                   setBaseUrl(t);
                   if (error) setError(null);
                 }}
-                placeholder="https://nexora.example.com"
+                placeholder="192.168.1.5 or https://nexora.example.com"
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -151,15 +165,15 @@ export default function LoginScreen() {
                 textContentType="URL"
                 style={[styles.input, { flex: 1, borderWidth: 0, paddingHorizontal: 0, backgroundColor: "transparent" }]}
               />
-              {baseUrl.length > 0 && (
+              {baseUrl.trim().length > 0 && (
                 <Ionicons
-                  name={isValidUrl(baseUrl) ? "checkmark-circle" : "close-circle"}
+                  name={isCurrentValid ? "checkmark-circle" : "close-circle"}
                   size={18}
-                  color={isValidUrl(baseUrl) ? "#10B981" : "#F87171"}
+                  color={isCurrentValid ? "#10B981" : "#F87171"}
                 />
               )}
             </View>
-            <Text style={styles.hint}>Include https:// — LAN URLs like http://192.168.1.50:8080 are supported.</Text>
+            <Text style={styles.hint}>LAN IPs like 192.168.1.5 (or with port e.g. 192.168.1.5:3000) and HTTPS domains are supported.</Text>
             
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: 8 }}>
               <Text style={styles.hint}>Remember server URL</Text>

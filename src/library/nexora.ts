@@ -71,7 +71,11 @@ export async function fetchNexoraTracks(
   let hasMore = true;
 
   while (hasMore && tracks.length < limit) {
-    if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    if (opts.signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     const pageLimit = Math.min(PAGE_SIZE, limit - tracks.length);
     const res = await api.search(query, {
       kind: "audio",

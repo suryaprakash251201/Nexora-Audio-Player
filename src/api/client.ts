@@ -144,12 +144,31 @@ export class Api {
     }
     if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
 
-    const res = await fetch(`${this.baseUrl}/api/v1${path}${buildQuery(opts.query)}`, {
-      method,
-      headers,
-      body,
-      signal: AbortSignal.timeout(15000),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      try {
+        controller.abort();
+      } catch {
+        /* ignore */
+      }
+    }, 15000);
+
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}/api/v1${path}${buildQuery(opts.query)}`, {
+        method,
+        headers,
+        body,
+        signal: controller.signal,
+      });
+    } catch (e: any) {
+      if (e?.name === "AbortError" || controller.signal?.aborted) {
+        throw new NexoraError("timeout", `Request timed out (15s). Could not connect to ${this.baseUrl}. Check server IP and port.`, 408);
+      }
+      throw new NexoraError("network_error", `Could not connect to ${this.baseUrl}: ${e?.message || "Network request failed"}`, 0);
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (res.status === 204) return undefined as T;
 
@@ -169,7 +188,7 @@ export class Api {
 
     if (!res.ok) {
       const err = (data ?? {}) as { error?: string; message?: string };
-      throw new NexoraError(err.error || "http_error", err.message || res.statusText, res.status);
+      throw new NexoraError(err.error || "http_error", err.message || res.statusText || `HTTP ${res.status}`, res.status);
     }
     return data as T;
   }

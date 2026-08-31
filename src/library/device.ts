@@ -60,7 +60,11 @@ export async function fetchDeviceTracks(opts: FetchDeviceOptions = {}): Promise<
   let hasNextPage = true;
 
   while (hasNextPage && out.length < limit) {
-    if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    if (opts.signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     const pageSize = Math.min(200, limit - out.length);
     const page = await MediaLibrary.getAssetsAsync({
       mediaType: ["audio"],
@@ -71,7 +75,11 @@ export async function fetchDeviceTracks(opts: FetchDeviceOptions = {}): Promise<
 
     const BATCH_SIZE = 12;
     for (let i = 0; i < page.assets.length; i += BATCH_SIZE) {
-      if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (opts.signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
       const batch = page.assets.slice(i, i + BATCH_SIZE);
       
       const processedBatch = await Promise.all(batch.map(async (a) => {
