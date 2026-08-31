@@ -71,11 +71,27 @@ export async function fetchDeviceTracks(opts: FetchDeviceOptions = {}): Promise<
 
     for (const a of page.assets) {
       if (!isAudioFilename(a.filename)) continue;
+      // On iOS, `a.uri` is a `ph://` identifier which AVPlayer cannot play directly.
+      // Resolve to a `file://` path via getAssetInfoAsync. On Android, `a.uri` is already file://.
+      let fileUri: string = a.uri;
+      if (Platform.OS === "ios" && a.uri.startsWith("ph://")) {
+        try {
+          const info = await MediaLibrary.getAssetInfoAsync(a as any);
+          // `localUri` is file://, `uri` may still be ph://
+          const local = (info as any)?.localUri as string | undefined;
+          if (local && local.startsWith("file://")) fileUri = local;
+          else if ((info as any)?.uri && String((info as any).uri).startsWith("file://")) fileUri = (info as any).uri;
+        } catch {
+          // Fallback: skip this asset if we cannot resolve a file uri — ph:// will crash TrackPlayer on iOS.
+          continue;
+        }
+        if (fileUri.startsWith("ph://")) continue; // still not resolvable, skip
+      }
       out.push(
         mapDeviceAssetToTrack({
           id: a.id,
           filename: a.filename,
-          uri: a.uri,
+          uri: fileUri,
           duration: (a as any).duration ?? 0,
           creationTime: a.creationTime,
           modificationTime: a.modificationTime,

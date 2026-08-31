@@ -50,7 +50,8 @@
       "bundleIdentifier": "dev.suryaprakash.nexora.audio",
       "infoPlist": {
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsArbitraryLoadsForMedia": true
         },
         "UIBackgroundModes": [
           "audio",
@@ -58,7 +59,8 @@
           "processing"
         ],
         "NSLocalNetworkUsageDescription": "Nexora connects to your self-hosted server on the local network to browse and stream your music.",
-        "NSMicrophoneUsageDescription": "Not used. Nexora does not record audio."
+        "NSMicrophoneUsageDescription": "Not used. Nexora does not record audio.",
+        "NSAppleMusicUsageDescription": "Allow Nexora to read your audio library for playback."
       }
     },
     "android": {

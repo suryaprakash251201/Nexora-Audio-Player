@@ -37,6 +37,7 @@ export type ControllerEvent =
 export type Listener = (payload: any) => void;
 
 let initialised = false;
+let initPromise: Promise<void> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 class PlayerController {
@@ -55,68 +56,81 @@ class PlayerController {
 
   async ensureInit(): Promise<void> {
     if (initialised) return;
+    if (initPromise) return initPromise;
+    initPromise = (async () => {
+      try {
+        await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
+      } catch (e: any) {
+        // setupPlayer throws "The player has already been initialized" on hot
+        // reload — swallow. Also swallow iOS "already setup" variants.
+        const msg = String(e?.message || e).toLowerCase();
+        if (!msg.includes("already been initialized") && !msg.includes("already")) throw e;
+      }
+      await TrackPlayer.updateOptions({
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+        },
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo,
+          Capability.Stop,
+          Capability.JumpForward,
+          Capability.JumpBackward,
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+        ],
+        progressUpdateEventInterval: 1,
+        forwardJumpInterval: 15,
+        backwardJumpInterval: 15,
+      });
+
+      TrackPlayer.addEventListener(Event.PlaybackState, (e: any) => {
+        this.status = mapState(e.state);
+        this.playing = e.state === State.Playing;
+        this.emit("statusChange", { status: this.status });
+        this.emit("playingChange", { playing: this.playing });
+      });
+
+      TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (e: any) => {
+        const t = (e as any).track;
+        this.trackId = t?.id ?? null;
+        this.currentIndex = (e as any).lastIndex ?? -1;
+        this.emit("activeTrackChanged", { track: t, index: this.currentIndex });
+      });
+
+      TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
+        this.emit("ended", {});
+      });
+
+      TrackPlayer.addEventListener(Event.PlaybackError, (e: any) => {
+        this.status = "error";
+        this.emit("statusChange", { status: "error", error: e });
+        // Prevent native unhandled error from killing JS context on iOS
+        // RNTP emits PlaybackError for 401/404/stream decode failures — keep app alive.
+        console.warn("[player] PlaybackError", e?.message || e);
+      });
+
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => void this.poll(), 500);
+
+      TrackPlayer.addEventListener(Event.RemoteNext, () => this.remoteHandlers.next?.());
+      TrackPlayer.addEventListener(Event.RemotePrevious, () => this.remoteHandlers.previous?.());
+
+      initialised = true;
+    })();
     try {
-      await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
-    } catch (e: any) {
-      // setupPlayer throws "The player has already been initialized" on hot
-      // reload — swallow.
-      if (!String(e?.message || e).includes("already been initialized")) throw e;
+      await initPromise;
+    } finally {
+      // allow retry if init failed
+      if (!initialised) initPromise = null;
     }
-    await TrackPlayer.updateOptions({
-      android: {
-        appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
-      },
-      capabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-        Capability.SeekTo,
-        Capability.Stop,
-        Capability.JumpForward,
-        Capability.JumpBackward,
-      ],
-      compactCapabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-      ],
-      progressUpdateEventInterval: 1,
-      forwardJumpInterval: 15,
-      backwardJumpInterval: 15,
-    });
-
-    TrackPlayer.addEventListener(Event.PlaybackState, (e: any) => {
-      this.status = mapState(e.state);
-      this.playing = e.state === State.Playing;
-      this.emit("statusChange", { status: this.status });
-      this.emit("playingChange", { playing: this.playing });
-    });
-
-    TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (e: any) => {
-      const t = (e as any).track;
-      this.trackId = t?.id ?? null;
-      this.currentIndex = (e as any).lastIndex ?? -1;
-      this.emit("activeTrackChanged", { track: t, index: this.currentIndex });
-    });
-
-    TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
-      this.emit("ended", {});
-    });
-
-    TrackPlayer.addEventListener(Event.PlaybackError, (e: any) => {
-      this.status = "error";
-      this.emit("statusChange", { status: "error", error: e });
-    });
-
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(() => void this.poll(), 500);
-
-    TrackPlayer.addEventListener(Event.RemoteNext, () => this.remoteHandlers.next?.());
-    TrackPlayer.addEventListener(Event.RemotePrevious, () => this.remoteHandlers.previous?.());
-
-    initialised = true;
   }
 
   private async poll() {
@@ -179,16 +193,22 @@ class PlayerController {
     return TrackPlayer.setVolume(Math.max(0, Math.min(1, v)));
   }
 
-  async replaceQueue(tracks: Array<{ id: string; url: string; title: string; artist: string; artwork?: string; duration?: number }>) {
+  async replaceQueue(tracks: Array<{ id: string; url: string; title: string; artist: string; artwork?: string; duration?: number; headers?: Record<string,string> }>) {
+    // Guard: RNTP on iOS crashes if add() receives tracks with invalid url (e.g. ph://, empty).
+    const safe = tracks.filter(t => typeof t.url === "string" && t.url.length > 4 && !t.url.startsWith("ph://"));
+    if (!safe.length) throw new Error("No playable URLs (check ph:// on iOS or auth token)");
     await TrackPlayer.reset();
-    await TrackPlayer.add(tracks);
+    await TrackPlayer.add(safe as any);
   }
 
-  async addToQueue(tracks: Array<{ id: string; url: string; title: string; artist: string; artwork?: string; duration?: number }>) {
-    await TrackPlayer.add(tracks);
+  async addToQueue(tracks: Array<{ id: string; url: string; title: string; artist: string; artwork?: string; duration?: number; headers?: Record<string,string> }>) {
+    const safe = tracks.filter(t => typeof t.url === "string" && t.url.length > 4 && !t.url.startsWith("ph://"));
+    if (!safe.length) throw new Error("No playable URLs");
+    await TrackPlayer.add(safe as any);
   }
 
   async skipToIndex(index: number, _initial = false) {
+    if (index < 0) throw new Error(`skipToIndex: invalid index ${index}`);
     this.currentIndex = index;
     await TrackPlayer.skip(index);
   }

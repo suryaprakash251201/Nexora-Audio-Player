@@ -11,10 +11,12 @@
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Image } from "expo-image";
+import { Platform } from "react-native";
 import { useSession } from "./SessionContext";
 import type { MusicTrack } from "@/library/types";
 import { player } from "@/audio/player";
 import { resolveStreamUrl } from "@/audio/streamRouter";
+import { Toast } from "@/ui/Toast";
 
 export type RepeatMode = "off" | "one" | "all";
 export type ShuffleMode = boolean;
@@ -68,9 +70,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeatState] = useState<RepeatMode>("off");
   const [showPlayer, setShowPlayer] = useState(false);
 
-  // Keep player.controller wired (idempotent).
+  // Keep player.controller wired (idempotent). Fire-and-forget but catch to avoid unhandled rejection on iOS.
   useEffect(() => {
-    player.ensureInit();
+    void player.ensureInit().catch((e) => console.warn("[Playback] ensureInit failed", e));
   }, []);
 
   // Mirror controller → context playback time.
@@ -115,11 +117,21 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   const resolveUrl = useCallback(async (t: MusicTrack, sessionId: string): Promise<string | null> => {
     // Prefer any available download (even for REMOTE tracks that have been cached)
+    // On iOS, ph:// URIs are not playable by AVPlayer — treat them as missing so we fall back or skip.
     const offlineUri = (t.download?.localUri || t.localUri) ?? null;
-    if (offlineUri) return offlineUri;
+    if (offlineUri) {
+      if (Platform.OS === "ios" && offlineUri.startsWith("ph://")) return null;
+      return offlineUri;
+    }
     // For cached NEXORA_OFFLINE tracks the above already returns.
-    if (t.localUri && t.source !== "NEXORA_REMOTE") return t.localUri;
-    if (!api || !t.serverId) return t.localUri ?? null;
+    if (t.localUri && t.source !== "NEXORA_REMOTE") {
+      if (Platform.OS === "ios" && t.localUri.startsWith("ph://")) return null;
+      return t.localUri;
+    }
+    if (!t.serverId) return t.localUri ?? null;
+    // If track is remote but we have no API (offline/not logged in) we cannot resolve a stream URL.
+    // Return null so caller can skip it and surface a friendly error instead of crashing.
+    if (!api) return null;
     try {
       return await resolveStreamUrl(api, t.serverId.rootId, t.serverId.path, {
         extension: t.serverId.path.split(".").pop(),
@@ -132,51 +144,120 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   const buildNativeQueue = useCallback(async (items: MusicTrack[], sessionId: string) => {
     const BATCH = 6;
-    const resolved: Array<{ track: MusicTrack; url: string }> = [];
+    const resolved: Array<{ track: MusicTrack; url: string; headers?: Record<string,string> }> = [];
+    const token = (api as any)?.token as string | null | undefined;
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
     for (let i = 0; i < items.length; i += BATCH) {
       const batch = items.slice(i, i + BATCH);
       const results = await Promise.all(batch.map(async (t) => {
-        const url = await resolveUrl(t, sessionId);
-        return url ? { track: t, url } : null;
+        try {
+          const url = await resolveUrl(t, sessionId);
+          if (!url) return null;
+          // Extra guard: skip unplayable ph:// on iOS (should already be filtered)
+          if (Platform.OS === "ios" && url.startsWith("ph://")) return null;
+          // For http(s) remote URLs, attach Authorization header as well — AVPlayer on iOS
+          // can use the track.headers field (RNTP passes via AVURLAsset options). Query token
+          // already present, but header is belt-and-suspenders for servers that check header.
+          const needsHeader = url.startsWith("http") && !!authHeaders;
+          return needsHeader ? { track: t, url, headers: authHeaders } : { track: t, url };
+        } catch {
+          return null;
+        }
       }));
       for (const r of results) if (r) resolved.push(r);
     }
     return resolved;
-  }, [resolveUrl]);
+  }, [resolveUrl, api]);
 
   const play = useCallback(async (track: MusicTrack, nextQueue?: MusicTrack[]) => {
     const q = nextQueue ?? [track];
     const sessionId = newSessionId();
+    // Optimistically set queue/current so UI reflects intent immediately
     setQueue(q);
     setCurrent(track);
 
-    if (!api) return;
-    const resolved = await buildNativeQueue(q, sessionId);
-    if (!resolved.length) return;
-    await player.replaceQueue(resolved.map((r) => ({
-      id: r.track.id,
-      url: r.url,
-      title: r.track.title,
-      artist: r.track.artist ?? "Unknown",
-      artwork: r.track.artwork.url ?? undefined,
-      duration: r.track.metadata.durationSec ?? undefined,
-    })));
-    const idx = resolved.findIndex((r) => r.track.id === track.id);
-    if (idx >= 0) await player.skipToIndex(idx, true);
-    setShowPlayer(true);
-    // Warm image cache so artwork swipes don't flash to blank (see NowPlayingArtwork).
-    for (const r of resolved) {
-      if (r.track.artwork.url) {
-        try { await Image.prefetch(r.track.artwork.url); } catch {}
+    try {
+      await player.ensureInit();
+
+      const resolved = await buildNativeQueue(q, sessionId);
+      if (!resolved.length) {
+        // Check why we have no URL: iOS ph:// handling or not logged in for remote files
+        const isRemoteNeedingAuth = track.source === "NEXORA_REMOTE" && !api && !track.localUri && !track.download?.localUri;
+        if (Platform.OS === "ios" && (track.localUri?.startsWith("ph://") || track.download?.localUri?.startsWith("ph://"))) {
+          Toast.error("iOS: this file needs file access — please allow media library and re-sync.");
+        } else if (isRemoteNeedingAuth) {
+          Toast.error("Connect to Nexora to stream this track, or download it for offline playback.");
+        } else {
+          Toast.error("No playable URL — check network, login, or try a downloaded/local file.");
+        }
+        console.warn("[Playback] No resolved URLs for queue", { trackId: track.id, queueLen: q.length });
+        return;
       }
+
+      // Guard: on iOS, ensure we don't pass ph:// which crashes AVPlayer
+      const safeResolved = resolved.filter(r => !(Platform.OS === "ios" && r.url.startsWith("ph://")));
+      if (!safeResolved.length) {
+        Toast.error("This audio file cannot be played on iOS (unsupported URI).");
+        return;
+      }
+
+      await player.replaceQueue(safeResolved.map((r) => ({
+        id: r.track.id,
+        url: r.url,
+        title: r.track.title,
+        artist: r.track.artist ?? "Unknown",
+        artwork: r.track.artwork.url ?? undefined,
+        duration: r.track.metadata.durationSec ?? undefined,
+        headers: r.headers,
+      } as any)));
+
+      const idx = safeResolved.findIndex((r) => r.track.id === track.id);
+      // If the chosen track was filtered out (unplayable), play first playable
+      const targetIdx = idx >= 0 ? idx : 0;
+      await player.skipToIndex(targetIdx, true);
+      // Actually start playback — skip alone leaves state Paused/Stopped on iOS
+      await player.play();
+      setShowPlayer(true);
+
+      // If we fell back to a different track, sync current
+      if (targetIdx !== idx && safeResolved[targetIdx]) {
+        setCurrent(safeResolved[targetIdx].track);
+      }
+
+      // Warm image cache so artwork swipes don't flash to blank (see NowPlayingArtwork).
+      for (const r of safeResolved) {
+        if (r.track.artwork.url) {
+          try { await Image.prefetch(r.track.artwork.url); } catch {}
+        }
+      }
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      console.warn("[Playback] play failed:", msg, e);
+      // Don't leave UI stuck on a non-playable current — keep queue but hide player if nothing can play
+      if (msg.includes("No playable URLs") || msg.includes("ph://") || msg.includes("player has not been initialized")) {
+        Toast.error(`Playback failed: ${msg}`);
+      } else {
+        Toast.error(`Playback failed: ${msg.slice(0, 120)}`);
+      }
+      // On hard failure, re-throw as handled so callers with `void` don't trigger unhandled rejection crash on iOS
     }
   }, [api, buildNativeQueue]);
 
-  const pause = useCallback(async () => { await player.pause(); }, []);
-  const resume = useCallback(async () => { await player.play(); }, []);
-  const toggle = useCallback(async () => { if (playing) await player.pause(); else await player.play(); }, [playing]);
-  const seekTo = useCallback(async (sec: number) => { await player.seekTo(sec); }, []);
-  const seekBy = useCallback(async (d: number) => { await player.seekBy(d); }, []);
+  const pause = useCallback(async () => {
+    try { await player.ensureInit(); await player.pause(); } catch (e) { console.warn("[Playback] pause failed", e); }
+  }, []);
+  const resume = useCallback(async () => {
+    try { await player.ensureInit(); await player.play(); } catch (e) { console.warn("[Playback] resume failed", e); Toast.error("Cannot resume playback"); }
+  }, []);
+  const toggle = useCallback(async () => {
+    try { await player.ensureInit(); if (playing) await player.pause(); else await player.play(); } catch (e) { console.warn("[Playback] toggle failed", e); }
+  }, [playing]);
+  const seekTo = useCallback(async (sec: number) => {
+    try { await player.ensureInit(); await player.seekTo(sec); } catch (e) { console.warn("[Playback] seekTo failed", e); }
+  }, []);
+  const seekBy = useCallback(async (d: number) => {
+    try { await player.ensureInit(); await player.seekBy(d); } catch (e) { console.warn("[Playback] seekBy failed", e); }
+  }, []);
 
   const next = useCallback(async () => {
     const t = stepRef.current(1);
@@ -186,9 +267,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     setCurrent(t);
     if (idx >= 0) {
       try {
+        await player.ensureInit();
         await player.skipToIndex(idx);
         await player.play();
-      } catch {}
+      } catch (e) { console.warn("[Playback] next skip failed", e); }
     }
   }, []);
 
@@ -200,9 +282,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     setCurrent(t);
     if (idx >= 0) {
       try {
+        await player.ensureInit();
         await player.skipToIndex(idx);
         await player.play();
-      } catch {}
+      } catch (e) { console.warn("[Playback] prev skip failed", e); }
     }
   }, []);
 
@@ -226,14 +309,24 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   const addToQueue = useCallback(async (track: MusicTrack) => {
     setQueue((prev) => [...prev, track]);
-    // Also push to native queue
-    const url = await resolveUrl(track, newSessionId());
-    if (!url) return hasFailed();
-    await player.addToQueue([{ id: track.id, url, title: track.title, artist: track.artist ?? "Unknown", artwork: track.artwork.url ?? undefined }]);
-    // Warm art for the new item
-    if (track.artwork.url) { try { await Image.prefetch(track.artwork.url); } catch {} }
-    function hasFailed() { setQueue((prev) => prev.filter((x) => x.id !== track.id)); }
-  }, [resolveUrl]);
+    try {
+      await player.ensureInit();
+      const url = await resolveUrl(track, newSessionId());
+      if (!url || (Platform.OS === "ios" && url.startsWith("ph://"))) {
+        Toast.error("Cannot add to queue — no playable URL");
+        setQueue((prev) => prev.filter((x) => x.id !== track.id));
+        return;
+      }
+      const token = (api as any)?.token as string | null | undefined;
+      const headers = token && url.startsWith("http") ? { Authorization: `Bearer ${token}` } : undefined;
+      await player.addToQueue([{ id: track.id, url, title: track.title, artist: track.artist ?? "Unknown", artwork: track.artwork.url ?? undefined, headers } as any]);
+      if (track.artwork.url) { try { await Image.prefetch(track.artwork.url); } catch {} }
+    } catch (e: any) {
+      console.warn("[Playback] addToQueue failed", e);
+      Toast.error(`Add to queue failed: ${e?.message || e}`);
+      setQueue((prev) => prev.filter((x) => x.id !== track.id));
+    }
+  }, [resolveUrl, api]);
 
   const playNext = useCallback(async (track: MusicTrack): Promise<boolean> => {
     if (!current) return false;
@@ -242,12 +335,25 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     const nextQueue = [...queue];
     nextQueue.splice(at, 0, track);
     setQueue(nextQueue);
-    // Native splice happens after local splice so indices line up
-    const url = await resolveUrl(track, newSessionId());
-    if (!url) { setQueue((p) => p.filter((x) => x.id !== track.id)); return false; }
-    await player.addToQueue([{ id: track.id, url, title: track.title, artist: track.artist ?? "Unknown", artwork: track.artwork.url ?? undefined }]);
-    return true;
-  }, [current, queue, resolveUrl]);
+    try {
+      await player.ensureInit();
+      const url = await resolveUrl(track, newSessionId());
+      if (!url || (Platform.OS === "ios" && url.startsWith("ph://"))) {
+        Toast.error("Cannot play next — no playable URL");
+        setQueue((p) => p.filter((x) => x.id !== track.id));
+        return false;
+      }
+      const token = (api as any)?.token as string | null | undefined;
+      const headers = token && url.startsWith("http") ? { Authorization: `Bearer ${token}` } : undefined;
+      await player.addToQueue([{ id: track.id, url, title: track.title, artist: track.artist ?? "Unknown", artwork: track.artwork.url ?? undefined, headers } as any]);
+      return true;
+    } catch (e: any) {
+      console.warn("[Playback] playNext failed", e);
+      Toast.error(`Play next failed: ${e?.message || e}`);
+      setQueue((p) => p.filter((x) => x.id !== track.id));
+      return false;
+    }
+  }, [current, queue, resolveUrl, api]);
 
   const removeFromQueue = useCallback(async (trackId: string) => {
     const idx = queue.findIndex((x) => x.id === trackId);
@@ -257,32 +363,32 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     setQueue(nextQueue);
     if (wasPlaying) {
       if (!nextQueue.length) {
-        await player.reset();
+        try { await player.ensureInit(); await player.reset(); } catch {}
         setCurrent(null);
         setShowPlayer(false);
         return;
       }
       const nextTrack = nextQueue[Math.min(idx, nextQueue.length - 1)];
       setCurrent(nextTrack);
-      try { await player.removeTrack(idx); } catch {}
+      try { await player.ensureInit(); await player.removeTrack(idx); } catch {}
       const nextIdx = nextQueue.findIndex((x) => x.id === nextTrack.id);
       if (nextIdx >= 0) {
-        try { await player.skipToIndex(nextIdx); await player.play(); } catch {}
+        try { await player.ensureInit(); await player.skipToIndex(nextIdx); await player.play(); } catch (e) { console.warn("[Playback] remove skip failed", e); }
       }
       return;
     }
-    try { await player.removeTrack(idx); } catch {}
+    try { await player.ensureInit(); await player.removeTrack(idx); } catch {}
   }, [queue, current]);
 
   const clearQueue = useCallback(async () => {
-    await player.reset();
+    try { await player.ensureInit(); await player.reset(); } catch {}
     setQueue([]);
     setCurrent(null);
     setShowPlayer(false);
   }, []);
 
   const close = useCallback(async () => {
-    await player.reset();
+    try { await player.ensureInit(); await player.reset(); } catch {}
     setCurrent(null);
     setShowPlayer(false);
   }, []);
