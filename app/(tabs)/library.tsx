@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Linking, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, font, radius, spacing } from "@/ui/theme";
@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import type { MusicTrack } from "@/library/types";
 
 type Tab = "all" | "nexora" | "device" | "offline" | "favorites" | "recent";
+type SortBy = "default" | "az" | "za" | "duration" | "newest";
 
 function filterForTab(tracks: MusicTrack[], tab: Tab): MusicTrack[] {
   switch (tab) {
@@ -46,6 +47,7 @@ export default function LibraryScreen() {
   const downloads = useDownloads();
   const { isLandscape } = useLayout();
   const [tab, setTab] = useState<Tab>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("default");
 
   const list = useMemo(() => {
     let base = lib.tracks;
@@ -55,7 +57,18 @@ export default function LibraryScreen() {
     return filterForTab(base, tab);
   }, [lib.tracks, lib.bySource, tab]);
 
-  const onPlay = useCallback((t: MusicTrack) => { void playback.play(t, list); }, [playback, list]);
+  const sortedList = useMemo(() => {
+    if (sortBy === "default") return list;
+    const copy = [...list];
+    switch (sortBy) {
+      case "az": return copy.sort((a, b) => a.title.localeCompare(b.title));
+      case "za": return copy.sort((a, b) => b.title.localeCompare(a.title));
+      case "duration": return copy.sort((a, b) => (b.metadata.durationSec ?? 0) - (a.metadata.durationSec ?? 0));
+      case "newest": return copy.sort((a, b) => Date.parse(b.modifiedAt || "0") - Date.parse(a.modifiedAt || "0"));
+    }
+  }, [list, sortBy]);
+
+  const onPlay = useCallback((t: MusicTrack) => { void playback.play(t, sortedList); }, [playback, sortedList]);
 
   const onRequestDevice = async () => {
     Haptics.tapLight();
@@ -98,7 +111,7 @@ export default function LibraryScreen() {
               t.value === "nexora" ? lib.counts.nexora :
               t.value === "device" ? lib.counts.device :
               t.value === "offline" ? lib.counts.offline :
-              t.value === "favorites" ? 0 :
+              t.value === "favorites" ? lib.tracks.filter((x) => x.favorite).length :
               Math.min(100, lib.tracks.length);
             return (
               <Pressable
@@ -115,6 +128,19 @@ export default function LibraryScreen() {
             );
           })}
         </ScrollView>
+      </View>
+
+      {/* Sort Options */}
+      <View style={{ flexDirection: "row", paddingHorizontal: spacing.lg, gap: 6, paddingBottom: 6 }}>
+        {(["default", "az", "za", "duration", "newest"] as const).map((s) => {
+          const labels: Record<string, string> = { default: "Default", az: "A → Z", za: "Z → A", duration: "Duration", newest: "Newest" };
+          const active = sortBy === s;
+          return (
+            <Pressable key={s} onPress={() => { Haptics.selection(); setSortBy(s); }} style={[styles.chip, active && styles.chipOn, { paddingHorizontal: 10, paddingVertical: 5 }]}>
+              <Text style={[styles.chipLabel, active && styles.chipLabelOn, { fontSize: 11 }]}>{labels[s]}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {devicePermNeeded ? (
@@ -152,7 +178,7 @@ export default function LibraryScreen() {
 
       <View style={{ flex: 1 }}>
         <FlashList
-          data={list}
+          data={sortedList}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={lib.loading} onRefresh={() => void lib.refresh()} tintColor={colors.text} />}
           renderItem={({ item }) => {
@@ -211,9 +237,6 @@ export default function LibraryScreen() {
     </Container>
   );
 }
-
-// ScrollView with horizontal prop without using react-native-scrollview is fine in RN 0.81
-import { ScrollView } from "react-native";
 
 const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.card, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.hairline },

@@ -15,6 +15,7 @@ import { WaveformSeekBar } from "@/ui/Waveform";
 import { TechnicalBadge } from "@/ui/QualityBadge";
 import { SpectrumBars } from "@/ui/Spectrum";
 import QueueOverlay from "@/ui/QueueOverlay";
+import { SleepTimerModal } from "@/ui/SleepTimer";
 import { Haptics } from "@/lib/haptics";
 
 function fmtTime(sec: number): string {
@@ -33,6 +34,7 @@ export default function NowPlayingScreen() {
 
   const [showSpectrum, setShowSpectrum] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showSleep, setShowSleep] = useState(false);
   const dragY = useSharedValue(0);
   const dragOpacity = useSharedValue(1);
 
@@ -136,7 +138,16 @@ export default function NowPlayingScreen() {
             <View style={{ gap: 4 }}>
               <View style={styles.titleRow}>
                 <Text numberOfLines={2} style={styles.title}>{track.title}</Text>
-                <Ionicons name={track.favorite ? "heart" : "heart-outline"} size={20} color={track.favorite ? "#F87171" : "rgba(255,255,255,0.85)"} />
+                <Pressable
+                  onPress={() => {
+                    Haptics.tapLight();
+                    void lib.toggleFavorite(track);
+                  }}
+                  hitSlop={10}
+                  accessibilityLabel={track.favorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Ionicons name={track.favorite ? "heart" : "heart-outline"} size={22} color={track.favorite ? "#F87171" : "rgba(255,255,255,0.85)"} />
+                </Pressable>
               </View>
               <Text numberOfLines={1} style={styles.artist}>{track.artist || "Unknown artist"}</Text>
               {track.album ? <Text numberOfLines={1} style={styles.album}>{track.album}</Text> : null}
@@ -194,19 +205,34 @@ export default function NowPlayingScreen() {
               </Pressable>
             </View>
 
+            {/* Volume indicator */}
+            <View style={styles.volumeRow}>
+              <Ionicons name="volume-low" size={16} color="rgba(255,255,255,0.5)" />
+              <View style={{ flex: 1 }}>
+                <View style={styles.volumeTrack}>
+                  <View style={[styles.volumeFill, { width: "100%" }]} />
+                </View>
+              </View>
+              <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.5)" />
+            </View>
+
             {/* Bottom actions */}
             <View style={styles.bottomRow}>
               <Pressable onPress={() => router.push("/dsp" as any)} style={styles.bottomAction}>
-                <Ionicons name="options-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.bottomLabel}>Studio DSP</Text>
+                <Ionicons name="options-outline" size={16} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.bottomLabel}>DSP</Text>
               </Pressable>
-              <Pressable onPress={() => router.push("/info/[id]" as any)} style={styles.bottomAction}>
-                <Ionicons name="information-circle-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.bottomLabel}>Audio Info</Text>
+              <Pressable onPress={() => router.push({ pathname: "/lyrics/[id]" as any, params: { id: encodeURIComponent(track.id) } })} style={styles.bottomAction}>
+                <Ionicons name="text-outline" size={16} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.bottomLabel}>Lyrics</Text>
+              </Pressable>
+              <Pressable onPress={() => { Haptics.tapLight(); setShowSleep(true); }} style={styles.bottomAction}>
+                <Ionicons name="moon-outline" size={16} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.bottomLabel}>Sleep</Text>
               </Pressable>
               <Pressable onPress={() => { Haptics.tapLight(); setShowQueue(true); }} style={styles.bottomAction}>
-                <Ionicons name="list-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.bottomLabel}>Queue · {playback.queue.length}</Text>
+                <Ionicons name="list-outline" size={16} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.bottomLabel}>Queue</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -214,6 +240,7 @@ export default function NowPlayingScreen() {
       </GestureDetector>
 
       <QueueOverlay visible={showQueue} onClose={() => setShowQueue(false)} />
+      <SleepTimerModal visible={showSleep} onClose={() => setShowSleep(false)} />
     </View>
   );
 }
@@ -249,4 +276,7 @@ const styles = StyleSheet.create({
   bottomRow: { flexDirection: "row", gap: 10, justifyContent: "space-between", paddingTop: 4 },
   bottomAction: { flex: 1, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.07)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)", height: 40, borderRadius: 12 },
   bottomLabel: { color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "700", fontFamily: font.sansSemibold },
+  volumeRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 4, paddingVertical: 4 },
+  volumeTrack: { height: 4, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 2, overflow: "hidden" },
+  volumeFill: { height: 4, backgroundColor: colors.accent, borderRadius: 2 },
 });

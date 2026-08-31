@@ -55,6 +55,8 @@ export default function PlaylistsScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
 
   const onCreate = async () => {
     const trimmed = name.trim();
@@ -64,6 +66,19 @@ export default function PlaylistsScreen() {
       Toast.success(`Playlist “${trimmed}” created`);
       setName(""); setDesc(""); setShowCreate(false);
     } catch (e: any) { Toast.error(e?.message || "Could not create playlist"); }
+  };
+
+  const onRename = async () => {
+    const trimmed = renameName.trim();
+    if (!renameId || !trimmed) return;
+    try {
+      await pl.rename(renameId, trimmed);
+      Toast.success(`Playlist renamed to “${trimmed}”`);
+      setRenameId(null);
+      setRenameName("");
+    } catch (e: any) {
+      Toast.error(e?.message || "Could not rename playlist");
+    }
   };
 
   return (
@@ -122,7 +137,7 @@ export default function PlaylistsScreen() {
               onMore={() => {
                 Alert.alert(item.name, undefined, [
                   { text: "Cancel", style: "cancel" },
-                  { text: "Rename", onPress: () => { Alert.prompt?.("Rename", undefined, (newName) => { if (newName) void pl.rename(item.id, newName); }, "plain-text", item.name); } },
+                  { text: "Rename", onPress: () => { setRenameId(item.id); setRenameName(item.name); } },
                   { text: "Delete", style: "destructive", onPress: () => {
                     Alert.alert("Delete playlist?", `“${item.name}” will be removed on the server.`, [
                       { text: "Cancel", style: "cancel" },
@@ -161,6 +176,24 @@ export default function PlaylistsScreen() {
               </Pressable>
               <Pressable onPress={() => void onCreate()} style={[styles.modalBtn, { backgroundColor: colors.accent }]}>
                 <Text style={[styles.modalBtnLabel, { color: "#fff" }]}>Create</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={!!renameId} transparent animationType="fade" onRequestClose={() => setRenameId(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setRenameId(null)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: insets.bottom + 16 }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Rename playlist</Text>
+            <Text style={styles.modalLabel}>Name</Text>
+            <TextInput value={renameName} onChangeText={setRenameName} placeholder="Playlist name" placeholderTextColor={colors.textMuted} style={styles.input} autoFocus />
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+              <Pressable onPress={() => setRenameId(null)} style={[styles.modalBtn, styles.modalGhost]}>
+                <Text style={[styles.modalBtnLabel, { color: colors.text }]}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={() => void onRename()} style={[styles.modalBtn, { backgroundColor: colors.accent }]}>
+                <Text style={[styles.modalBtnLabel, { color: "#fff" }]}>Save</Text>
               </Pressable>
             </View>
           </Pressable>

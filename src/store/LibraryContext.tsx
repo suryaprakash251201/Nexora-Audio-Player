@@ -40,6 +40,7 @@ type LibraryState = {
   /** Permission status for the On Device tab (so UI can prompt). */
   devicePermission: "unknown" | "granted" | "denied" | "blocked" | "undetermined";
   refreshDevicePermission: () => Promise<void>;
+  toggleFavorite: (track: MusicTrack) => Promise<void>;
 };
 
 const LibraryContext = createContext<LibraryState | null>(null);
@@ -79,16 +80,19 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const [nx, dev, off] = await Promise.all([
+      const [nx, dev, off, favs] = await Promise.all([
         api ? fetchNexoraTracks(api, { limit: 4000, signal: ac.signal }).catch((e) => { if ((e as any)?.name === "AbortError") throw e; return [] as MusicTrack[]; }) : Promise.resolve([] as MusicTrack[]),
         fetchDeviceTracks({ limit: 4000, signal: ac.signal }).catch((e) => { if ((e as any)?.name === "AbortError") throw e; return [] as MusicTrack[]; }),
         fetchOfflineTracks().catch(() => [] as MusicTrack[]),
+        api ? api.listFavorites().catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
       ]);
       if (ac.signal.aborted) return;
-      setNexora(nx);
+      const favPaths = new Set(favs.items.map((f: any) => `${f.root_id}:${f.path}`));
+      const markedNx = nx.map((t) => (t.serverId && favPaths.has(`${t.serverId.rootId}:${t.serverId.path}`) ? { ...t, favorite: true } : t));
+      setNexora(markedNx);
       setDevice(dev);
       setOffline(off);
-      const { tracks: deduped } = dedupeTracks([...nx, ...dev, ...off]);
+      const { tracks: deduped } = dedupeTracks([...markedNx, ...dev, ...off]);
       setUnified(deduped);
       // keep permission in sync after a device scan
       void refreshDevicePermission();
@@ -99,6 +103,25 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       if (!ac.signal.aborted) setLoading(false);
     }
   }, [api, refreshDevicePermission]);
+
+  const toggleFavorite = useCallback(async (track: MusicTrack) => {
+    const nextFav = !track.favorite;
+    setUnified((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: nextFav } : t)));
+    setNexora((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: nextFav } : t)));
+    if (api && track.serverId) {
+      try {
+        if (nextFav) {
+          await api.addFavorite(track.serverId.rootId, track.serverId.path);
+        } else {
+          await api.removeFavorite(track.serverId.rootId, track.serverId.path);
+        }
+      } catch {
+        // Revert on network failure
+        setUnified((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: !nextFav } : t)));
+        setNexora((prev) => prev.map((t) => (t.id === track.id ? { ...t, favorite: !nextFav } : t)));
+      }
+    }
+  }, [api]);
 
   // Auto-refresh when the session becomes available (login) or on mount.
   const apiRef = useRef(api);
@@ -140,7 +163,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     refresh,
     devicePermission,
     refreshDevicePermission,
-  }), [filtered, nexora, device, offline, unified.length, loading, error, filter, setFilter, refresh, devicePermission, refreshDevicePermission]);
+    toggleFavorite,
+  }), [filtered, nexora, device, offline, unified.length, loading, error, filter, setFilter, refresh, devicePermission, refreshDevicePermission, toggleFavorite]);
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }

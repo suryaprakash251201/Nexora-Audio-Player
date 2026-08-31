@@ -77,6 +77,10 @@ export default function RootLayout() {
                               name="info/[id]"
                               options={{ presentation: "modal" }}
                             />
+                            <Stack.Screen
+                              name="lyrics/[id]"
+                              options={{ presentation: "modal" }}
+                            />
                           </Stack>
                           <MiniPlayerBar />
                           <ToastHost />

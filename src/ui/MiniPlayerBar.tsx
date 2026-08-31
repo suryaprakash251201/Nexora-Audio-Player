@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { colors, font, glass, tierColor } from "@/ui/theme";
 import { GlassSurface } from "@/ui/Glass";
 import { usePlayback } from "@/store/PlaybackContext";
@@ -19,6 +21,7 @@ import QueueOverlay from "@/ui/QueueOverlay";
  * - frosted BlurView backdrop (single floating bar, so real blur is cheap here;
  *   recycled list rows use GlassPanel's faux glass instead)
  * - accent left edge + rounded progress at bottom
+ * - horizontal swipe gesture: swipe left = next track, swipe right = previous track
  * - haptics, tier chip, download pill, long-press → QueueOverlay
  */
 export default function MiniPlayerBar() {
@@ -26,6 +29,8 @@ export default function MiniPlayerBar() {
   const downloads = useDownloads();
   const insets = useSafeAreaInsets();
   const [queueOpen, setQueueOpen] = useState(false);
+  const translateX = useSharedValue(0);
+
   const cur = p.current;
   if (!cur) return null;
 
@@ -51,12 +56,43 @@ export default function MiniPlayerBar() {
     void p.close();
   };
 
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-15, 15])
+    .onUpdate((e) => {
+      translateX.value = e.translationX * 0.4;
+    })
+    .onEnd((e) => {
+      if (e.translationX < -70 && e.velocityX < -200) {
+        translateX.value = withTiming(-350, { duration: 160 });
+        Haptics.selection();
+        setTimeout(() => {
+          void p.next();
+          translateX.value = 0;
+        }, 120);
+      } else if (e.translationX > 70 && e.velocityX > 200) {
+        translateX.value = withTiming(350, { duration: 160 });
+        Haptics.selection();
+        setTimeout(() => {
+          void p.prev();
+          translateX.value = 0;
+        }, 120);
+      } else {
+        translateX.value = withSpring(0, { damping: 22, stiffness: 280 });
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   const bottomOffset = 70 + Math.max(insets.bottom - 10, 0) + 8;
 
   return (
     <>
       <View pointerEvents="box-none" style={[s.wrap, { bottom: bottomOffset }]}>
-        <Pressable onPress={onExpand} onLongPress={() => setQueueOpen(true)} style={s.root}>
+        <GestureDetector gesture={swipe}>
+          <Animated.View style={animatedStyle}>
+            <Pressable onPress={onExpand} onLongPress={() => setQueueOpen(true)} style={s.root}>
           {/* Real frosted glass. The mini player is a single floating bar,
               so real blur is cheap here; rows use faux glass instead. */}
           <GlassSurface variant="bar" radius={20} style={StyleSheet.absoluteFill} />
@@ -104,9 +140,11 @@ export default function MiniPlayerBar() {
             <Ionicons name="close" size={14} color={colors.textMuted} />
           </Pressable>
         </Pressable>
-      </View>
-      <QueueOverlay visible={queueOpen} onClose={() => setQueueOpen(false)} />
-    </>
+      </Animated.View>
+    </GestureDetector>
+  </View>
+  <QueueOverlay visible={queueOpen} onClose={() => setQueueOpen(false)} />
+</>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { colors, font, spacing, tierColor } from "@/ui/theme";
@@ -18,6 +18,15 @@ import { PageHeader } from "@/ui/PageHeader";
 import { Container } from "@/ui/Container";
 import { Toast } from "@/ui/Toast";
 import type { MusicTrack } from "@/library/types";
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Good night";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Good night";
+}
 
 export default function HomeScreen() {
   const { tracks, bySource, counts, loading, refresh } = useLibrary();
@@ -54,7 +63,7 @@ export default function HomeScreen() {
     <Container padded={false}>
       <PageHeader
         kicker="Welcome"
-        title={user ? `Good evening, ${user.username}` : "Good evening"}
+        title={user ? `${getGreeting()}, ${user.username}` : getGreeting()}
         subtitle={`${counts.unified.toLocaleString()} tracks across Nexora, device and offline`}
         right={
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -210,16 +219,25 @@ export default function HomeScreen() {
 
 function Tile({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
   return (
-    <View style={{ flex: 1 }}>
-      <View
-        // eslint-disable-next-line react-native/no-inline-styles
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: colors.hairline, gap: 4 }}
-        onTouchEnd={onPress}
-      >
-        <Ionicons name={icon} size={16} color={colors.text} />
-        <Text style={{ color: colors.text, fontSize: 11, fontFamily: font.sansSemibold }}>{label}</Text>
-      </View>
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: pressed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+        borderWidth: 1,
+        borderColor: colors.hairline,
+        gap: 4,
+      })}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={16} color={colors.text} />
+      <Text style={{ color: colors.text, fontSize: 11, fontFamily: font.sansSemibold }}>{label}</Text>
+    </Pressable>
   );
 }
 

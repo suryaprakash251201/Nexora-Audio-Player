@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/ui/theme";
 import type { MusicTrack } from "@/library/types";
 import { QualityBadge } from "./QualityBadge";
+import { PlayingIndicator } from "./PlayingIndicator";
 
 function sourceDot(track: MusicTrack): string {
   switch (track.source) {
@@ -67,6 +68,11 @@ function TrackRowInner({
           </View>
         )}
         <View style={[styles.dot, { backgroundColor: sourceDot(track) }]} />
+        {active ? (
+          <View style={styles.playingOverlay}>
+            <PlayingIndicator playing={true} color="#fff" size={16} />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.texts}>
@@ -173,4 +179,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rootChipText: { color: "#38BDF8", fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
+  playingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(139,92,246,0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
 });

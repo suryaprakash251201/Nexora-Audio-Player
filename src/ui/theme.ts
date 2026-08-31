@@ -22,6 +22,16 @@ export const font = {
   monoBold: "JetBrainsMono_700Bold",
 };
 
+export const textSize = {
+  xs: 10,
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  "2xl": 24,
+  "3xl": 32,
+};
+
 /* ------------------------------------------------------------------ */
 /* Color                                                              */
 /* ------------------------------------------------------------------ */
@@ -87,6 +97,10 @@ export const colors = {
   bgRaised: surface.raised,
   bgGlass: surface.glass,
   bgGlassStrong: surface.glassStrong,
+  // Semantic aliases (M20).
+  interactive: accent.primary,
+  disabled: "rgba(255,255,255,0.12)",
+  placeholder: text.muted,
 };
 
 /* ------------------------------------------------------------------ */
@@ -146,9 +160,47 @@ export const motion = {
   slow: 380,
   spring: { damping: 22, stiffness: 220, mass: 0.9 },
   springTight: { damping: 24, stiffness: 320, mass: 0.7 },
+  springSnappy: { damping: 28, stiffness: 400, mass: 0.6 },
+  springBouncy: { damping: 12, stiffness: 180, mass: 1.0 },
+  springGentle: { damping: 20, stiffness: 120, mass: 1.2 },
 };
 
 export const shadow = {
+  sm: {
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  md: {
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  lg: {
+    shadowColor: "#000",
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 14,
+  },
+  xl: {
+    shadowColor: "#000",
+    shadowOpacity: 0.65,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 20,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  }),
   card: {
     shadowColor: "#000",
     shadowOpacity: 0.55,
