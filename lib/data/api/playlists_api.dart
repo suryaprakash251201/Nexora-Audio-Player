@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../../domain/entities/playlist.dart';
 import '../../domain/entities/song.dart';
 import '../dto/file_dto.dart';
 
 final playlistsApiProvider = Provider<PlaylistsApi>((ref) {
   final c = ref.watch(apiClientProvider);
-  return PlaylistsApi(c);
+  final s = ref.watch(secureStorageProvider);
+  return PlaylistsApi(c, s);
 });
 
 /// Real Nexora playlists:
@@ -19,9 +21,10 @@ final playlistsApiProvider = Provider<PlaylistsApi>((ref) {
 /// PUT  /playlists/{id}/items/order {item_ids:[...]}
 class PlaylistsApi {
   final ApiClient _client;
-  PlaylistsApi(this._client);
+  final SecureStorageService _storage;
+  PlaylistsApi(this._client, this._storage);
 
-  Song _itemToSong(Map<String, dynamic> raw) {
+  Future<Song> _itemToSong(Map<String, dynamic> raw) async {
     final rootId = (raw['root_id'] ?? '').toString();
     final path = (raw['path'] ?? '').toString();
     final name = (raw['name'] ?? '').toString();
@@ -37,7 +40,15 @@ class PlaylistsApi {
           (raw['extension'] ?? (name.contains('.') ? name.split('.').last : ''))
               .toString(),
     );
-    return NexoraFiles.toSong(f, itemRef: (raw['id'] ?? '').toString());
+    final songId = NexoraFiles.songId(f);
+    final base = _client.dio.options.baseUrl;
+    final token = await _storage.getToken() ?? '';
+    return NexoraFiles.toSong(
+      f,
+      artworkUrl: NexoraFiles.thumbnailUrl(base, rootId, path, token, size: 512),
+      streamUrl: NexoraFiles.rawUrl(base, rootId, path, token),
+      itemRef: (raw['id'] ?? '').toString(),
+    );
   }
 
   Future<List<Playlist>> getPlaylists() async {
@@ -51,7 +62,9 @@ class PlaylistsApi {
       final tracks = <Song>[];
       final rawItems = (raw['items'] as List?) ?? [];
       for (final it in rawItems) {
-        if (it is Map<String, dynamic>) tracks.add(_itemToSong(it));
+        if (it is Map<String, dynamic>) {
+          tracks.add(await _itemToSong(it));
+        }
       }
       out.add(
         Playlist(
@@ -97,7 +110,7 @@ class PlaylistsApi {
     if (raw is Map<String, dynamic>) {
       final tracks = <Song>[];
       for (final it in (raw['items'] as List?) ?? []) {
-        if (it is Map<String, dynamic>) tracks.add(_itemToSong(it));
+        if (it is Map<String, dynamic>) tracks.add(await _itemToSong(it));
       }
       return Playlist(
         id: (raw['id'] ?? '').toString(),

@@ -94,16 +94,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     color: AppColors.surfaceRaised,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: p.coverUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(p.coverUrl!, fit: BoxFit.cover),
-                        )
-                      : const Icon(
-                          Icons.queue_music,
-                          size: 40,
-                          color: AppColors.textMuted,
-                        ),
+                  child: _firstTrackArtwork(p),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -251,6 +242,31 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _firstTrackArtwork(Playlist p) {
+    // Server playlists don't carry coverUrl; use the first track's artwork.
+    final tracks = p.tracks ?? [];
+    if (tracks.isNotEmpty) {
+      final first = tracks.first;
+      return ArtworkImage(
+        url: first.coverUrl,
+        size: 100,
+        borderRadius: 12,
+      );
+    }
+    if (p.coverUrl != null) {
+      return ArtworkImage(url: p.coverUrl, size: 100, borderRadius: 12);
+    }
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Icon(Icons.queue_music, size: 40, color: AppColors.textMuted),
     );
   }
 

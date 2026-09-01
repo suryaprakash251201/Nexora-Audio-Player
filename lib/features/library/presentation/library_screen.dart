@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/songs_repository.dart';
-import '../../../data/api/albums_api.dart';
-import '../../../data/api/artists_api.dart';
+import '../../../data/api/files_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
+import 'folder_browser_screen.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -21,7 +21,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -36,15 +36,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           unselectedLabelColor: AppColors.textMuted,
           tabs: const [
             Tab(text: 'Songs'),
-            Tab(text: 'Albums'),
-            Tab(text: 'Artists'),
+            Tab(text: 'Folders'),
             Tab(text: 'Downloads'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tab,
-        children: [_SongsTab(), _AlbumsTab(), _ArtistsTab(), _DownloadsTab()],
+        children: [_SongsTab(), _FoldersTab(), _DownloadsTab()],
       ),
     );
   }
@@ -225,114 +224,118 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
   }
 }
 
-class _AlbumsTab extends ConsumerWidget {
+/// Apple Music style folder grid: each card shows the folder's cover
+/// (thumbnail of the first audio file inside, via the server FolderCover
+/// fallback) and the folder name. Tap opens the folder browser.
+class _FoldersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final albumsAsync = ref.watch(_albumsProvider);
-    return albumsAsync.when(
-      data: (list) => list.isEmpty
-          ? const EmptyView(title: 'No albums', icon: Icons.album_outlined)
-          : GridView.builder(
-              padding: const EdgeInsets.all(16).copyWith(bottom: 100),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.85,
+    final rootIdAsync = ref.watch(_musicRootProvider);
+    final foldersAsync = ref.watch(_foldersProvider);
+    return rootIdAsync.when(
+      loading: () => const LoadingView(),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(_musicRootProvider),
+      ),
+      data: (rootId) => rootId == null
+          ? const EmptyView(
+              title: 'No music root',
+              subtitle: 'No storage root found on the server',
+              icon: Icons.folder_off_outlined,
+            )
+          : foldersAsync.when(
+              loading: () => const LoadingView(),
+              error: (e, _) => ErrorView(
+                message: e.toString(),
+                onRetry: () => ref.invalidate(_foldersProvider),
               ),
-              itemCount: list.length,
-              itemBuilder: (c, i) {
-                final a = list[i];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: ArtworkImage(url: a.coverUrl, borderRadius: 12),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      a.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+              data: (folders) => folders.isEmpty
+                  ? const EmptyView(
+                      title: 'No folders',
+                      subtitle: 'The music root is empty',
+                      icon: Icons.folder_open,
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async => ref.invalidate(_foldersProvider),
+                      child: GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 190,
+                              mainAxisSpacing: 20,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.78,
+                            ),
+                        itemCount: folders.length,
+                        itemBuilder: (c, i) => _FolderCard(folder: folders[i]),
                       ),
                     ),
-                    Text(
-                      a.artist ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
-      loading: () => const LoadingView(),
-      error: (e, _) => ErrorView(message: e.toString()),
     );
   }
 }
 
-final _albumsProvider = FutureProvider(
-  (ref) async => ref.watch(albumsApiProvider).getAlbums(limit: 100),
-);
+final _musicRootProvider = FutureProvider<String?>((ref) async {
+  final api = ref.watch(filesApiProvider);
+  return api.musicRootId();
+});
 
-class _ArtistsTab extends ConsumerWidget {
+final _foldersProvider = FutureProvider.family<List<FolderEntry>, String>((
+  ref,
+  rootId,
+) async {
+  final api = ref.watch(filesApiProvider);
+  final items = await api.list(rootId, '', limit: 500);
+  return [
+    for (final f in items)
+      if (f.isDir)
+        FolderEntry(
+          rootId: rootId,
+          path: f.path.isEmpty ? f.name : f.path,
+          name: f.name,
+        ),
+  ];
+});
+
+class _FolderCard extends ConsumerWidget {
+  final FolderEntry folder;
+  const _FolderCard({required this.folder});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artistsAsync = ref.watch(_artistsProvider);
-    return artistsAsync.when(
-      data: (list) => list.isEmpty
-          ? const EmptyView(title: 'No artists', icon: Icons.person_outline)
-          : ListView.separated(
-              padding: const EdgeInsets.only(bottom: 100),
-              separatorBuilder: (_, __) =>
-                  const Divider(color: AppColors.border, height: 1),
-              itemCount: list.length,
-              itemBuilder: (c, i) {
-                final ar = list[i];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.surfaceRaised,
-                    backgroundImage: ar.artworkUrl != null
-                        ? NetworkImage(ar.artworkUrl!)
-                        : null,
-                    child: ar.artworkUrl == null
-                        ? const Icon(Icons.person, color: AppColors.textMuted)
-                        : null,
-                  ),
-                  title: Text(
-                    ar.name,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    '${ar.albumCount ?? 0} albums • ${ar.trackCount ?? 0} songs',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textDim,
-                  ),
-                );
-              },
+    final coverAsync = ref.watch(folderCoverProvider(folder.id));
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => context.push(
+        '/folder?root=${folder.rootId}&path=${Uri.encodeComponent(folder.path)}',
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: coverAsync.when(
+              data: (url) => ArtworkImage(url: url, borderRadius: 14),
+              loading: () => ArtworkImage(url: null, borderRadius: 14),
+              error: (_, __) => ArtworkImage(url: null, borderRadius: 14),
             ),
-      loading: () => const LoadingView(),
-      error: (e, _) => ErrorView(message: e.toString()),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            folder.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-
-final _artistsProvider = FutureProvider(
-  (ref) async => ref.watch(artistsApiProvider).getArtists(limit: 100),
-);
 
 class _DownloadsTab extends ConsumerWidget {
   @override

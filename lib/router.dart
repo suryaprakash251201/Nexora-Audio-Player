@@ -8,6 +8,7 @@ import 'features/library/presentation/library_screen.dart';
 import 'features/search/presentation/search_screen.dart';
 import 'features/playlists/presentation/playlists_screen.dart';
 import 'features/playlists/presentation/playlist_detail_screen.dart';
+import 'features/library/presentation/folder_browser_screen.dart';
 import 'features/player/presentation/full_player_screen.dart';
 import 'features/player/presentation/mini_player.dart';
 import 'features/settings/presentation/settings_screen.dart';
@@ -85,6 +86,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = s.pathParameters['id']!;
           final extra = s.extra as Playlist?;
           return PlaylistDetailScreen(playlistId: id, initial: extra);
+        },
+      ),
+      GoRoute(
+        path: '/folder',
+        builder: (c, s) {
+          final rootId =
+              s.uri.queryParameters['root'] ?? 'root_c617a9424d30516f12d802a3';
+          final path = s.uri.queryParameters['path'] ?? '';
+          return FolderBrowserScreen(rootId: rootId, path: path);
         },
       ),
       GoRoute(path: '/favorites', builder: (c, s) => const FavoritesScreen()),

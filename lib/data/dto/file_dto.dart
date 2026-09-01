@@ -74,6 +74,37 @@ class NexoraFiles {
   static String parsePath(String id) =>
       id.contains('|') ? id.split('|').skip(1).join('|') : id;
 
+  /// Absolute thumbnail URL for a file path. The `?token=` query fully
+  /// authenticates the request (verified against the live server), so plain
+  /// `Image.network` and `MediaItem.artUri` both work without headers.
+  static String thumbnailUrl(
+    String baseUrl,
+    String rootId,
+    String path,
+    String token, {
+    int size = 512,
+  }) {
+    final base =
+        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    return '$base/api/v1/files/thumbnail'
+        '?root=$rootId&path=${Uri.encodeComponent(path)}'
+        '&size=$size&token=$token';
+  }
+
+  /// Absolute stream URL for an audio file path.
+  static String rawUrl(
+    String baseUrl,
+    String rootId,
+    String path,
+    String token,
+  ) {
+    final base =
+        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    return '$base/api/v1/files/raw'
+        '?root=$rootId&path=${Uri.encodeComponent(path)}'
+        '&token=$token';
+  }
+
   /// "03 - usurey poguthu (from Ravaanan).flac" -> "usurey poguthu (from Ravaanan)"
   static String parseTitle(String fileName) {
     var t = fileName;
