@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/playlists_repository.dart';
@@ -62,140 +63,175 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   Widget build(BuildContext context) {
     if (_loading)
       return Scaffold(
-        appBar: AppBar(title: Text(_playlist?.name ?? 'Playlist')),
+        backgroundColor: Colors.black,
+        appBar: AppBar(backgroundColor: Colors.transparent, title: Text(_playlist?.name ?? 'Playlist')),
         body: const LoadingView(),
       );
     if (_error != null)
       return Scaffold(
-        appBar: AppBar(title: const Text('Playlist')),
+        backgroundColor: Colors.black,
+        appBar: AppBar(backgroundColor: Colors.transparent, title: const Text('Playlist')),
         body: ErrorView(message: _error!, onRetry: _load),
       );
     final p = _playlist!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(p.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: _showOptions,
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.black.withValues(alpha: 0.8),
+            flexibleSpace: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            pinned: true,
+            expandedHeight: 300,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _firstTrackArtwork(p, blur: true),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.8),
+                          Colors.black,
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: _firstTrackArtwork(p),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          p.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          p.description ?? 'Playlist • ${_tracks.length} songs',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.more_horiz),
+                onPressed: _showOptions,
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(12),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _tracks.isEmpty
+                          ? null
+                          : () => ref
+                                .read(playerProvider.notifier)
+                                .playSongs(_tracks, initialIndex: 0),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.play_arrow_rounded, size: 24),
+                          SizedBox(width: 8),
+                          Text('Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: _firstTrackArtwork(p),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surfaceRaised,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        p.description ?? '',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
-                        ),
+                      onPressed: _tracks.isEmpty ? null : () {},
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shuffle_rounded, size: 20),
+                          SizedBox(width: 8),
+                          Text('Shuffle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${_tracks.length} songs',
-                        style: const TextStyle(
-                          color: AppColors.textDim,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _tracks.isEmpty
-                        ? null
-                        : () => ref
-                              .read(playerProvider.notifier)
-                              .playSongs(_tracks, initialIndex: 0),
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Play all'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: _tracks.isEmpty ? null : () {},
-                  icon: const Icon(Icons.shuffle),
-                  label: const Text('Shuffle'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Divider(color: AppColors.border, height: 1),
-          Expanded(
-            child: _tracks.isEmpty
-                ? const EmptyView(
+          _tracks.isEmpty
+              ? const SliverFillRemaining(
+                  child: EmptyView(
                     title: 'Empty playlist',
                     subtitle: 'Add songs from library',
                     icon: Icons.queue_music_outlined,
-                  )
-                : ReorderableListView.builder(
-                    padding: const EdgeInsets.only(bottom: 100),
-                    itemCount: _tracks.length,
-                    onReorder: (oldIdx, newIdx) async {
-                      if (newIdx > oldIdx) newIdx -= 1;
-                      final item = _tracks.removeAt(oldIdx);
-                      _tracks.insert(newIdx, item);
-                      setState(() {});
-                      try {
-                        await ref
-                            .read(playlistsRepositoryProvider)
-                            .reorder(
-                              p.id,
-                              _tracks
-                                  .map((e) => (e.itemRef ?? e.id) as String)
-                                  .toList(),
-                            );
-                      } catch (e) {
-                        if (mounted)
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Reorder failed: $e')),
-                          );
-                      }
-                    },
-                    itemBuilder: (c, i) {
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (c, i) {
                       final s = _tracks[i];
                       return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                         key: ValueKey(s.id),
                         leading: ArtworkImage(
                           url: s.coverUrl,
-                          size: 48,
-                          borderRadius: 6,
+                          size: 52,
+                          borderRadius: 8,
                         ),
                         title: Text(
                           s.title,
@@ -203,14 +239,15 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         subtitle: Text(
                           '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
                           style: const TextStyle(
                             color: AppColors.textMuted,
-                            fontSize: 12,
+                            fontSize: 14,
                           ),
                         ),
                         trailing: Row(
@@ -218,18 +255,17 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(
-                                Icons.play_arrow,
+                                Icons.play_arrow_rounded,
                                 color: AppColors.textMuted,
-                                size: 20,
                               ),
                               onPressed: () => ref
                                   .read(playerProvider.notifier)
                                   .playSongs(_tracks, initialIndex: i),
                             ),
                             const Icon(
-                              Icons.drag_handle,
+                              Icons.drag_handle_rounded,
                               color: AppColors.textDim,
-                              size: 18,
+                              size: 20,
                             ),
                           ],
                         ),
@@ -238,34 +274,52 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             .playSongs(_tracks, initialIndex: i),
                       );
                     },
+                    childCount: _tracks.length,
                   ),
-          ),
+                ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
         ],
       ),
     );
   }
 
-  Widget _firstTrackArtwork(Playlist p) {
+  Widget _firstTrackArtwork(Playlist p, {bool blur = false}) {
     // Server playlists don't carry coverUrl; use the first track's artwork.
     final tracks = p.tracks ?? [];
+    String? url;
     if (tracks.isNotEmpty) {
-      final first = tracks.first;
-      return ArtworkImage(url: first.coverUrl, size: 100, borderRadius: 12);
+      url = tracks.first.coverUrl;
+    } else if (p.coverUrl != null) {
+      url = p.coverUrl;
     }
-    if (p.coverUrl != null) {
-      return ArtworkImage(url: p.coverUrl, size: 100, borderRadius: 12);
+    
+    if (url != null) {
+      if (blur) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ArtworkImage(url: url, size: double.infinity, borderRadius: 0),
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Container(color: Colors.black.withValues(alpha: 0.2)),
+            ),
+          ],
+        );
+      }
+      return ArtworkImage(url: url, size: 140, borderRadius: 12);
     }
+    
     return Container(
-      width: 100,
-      height: 100,
+      width: blur ? double.infinity : 140,
+      height: blur ? double.infinity : 140,
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
+        color: blur ? AppColors.background : AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(blur ? 0 : 12),
       ),
-      child: const Icon(
-        Icons.queue_music,
-        size: 40,
-        color: AppColors.textMuted,
+      child: Icon(
+        Icons.music_note,
+        size: blur ? 100 : 40,
+        color: blur ? AppColors.textDim.withValues(alpha: 0.2) : AppColors.textMuted,
       ),
     );
   }

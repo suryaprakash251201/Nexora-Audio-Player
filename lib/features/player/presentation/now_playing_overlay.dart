@@ -76,14 +76,16 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
       child: AnimatedBuilder(
         animation: _heightAnimation,
         builder: (context, child) {
+          final isFullScreen = _isExpanded;
+          
           return Container(
             height: _heightAnimation.value,
-            margin: _isExpanded
+            margin: isFullScreen
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               boxShadow: [
-                if (!_isExpanded)
+                if (!isFullScreen)
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.5),
                     blurRadius: 20,
@@ -92,15 +94,36 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
               ],
             ),
             child: ClipRRect(
-              borderRadius: _isExpanded
+              borderRadius: isFullScreen
                   ? BorderRadius.zero
                   : BorderRadius.circular(16),
-              child: GlassSurface(
-                opacity: _isExpanded ? 0.8 : 0.6,
-                blur: 30,
-                child: _isExpanded
-                    ? _buildFullScreenPlayer(state)
-                    : _buildMiniPlayer(state),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Dynamic Background for Full Screen
+                  if (isFullScreen && track.artUri != null) ...[
+                    ArtworkImage(
+                      url: track.artUri!.toString(),
+                      size: double.infinity,
+                      borderRadius: 0,
+                    ),
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                  // Mini player glass effect or Full Screen content
+                  if (!isFullScreen)
+                    GlassSurface(
+                      opacity: 0.6,
+                      blur: 30,
+                      child: _buildMiniPlayer(state),
+                    )
+                  else
+                    _buildFullScreenPlayer(state),
+                ],
               ),
             ),
           );
@@ -165,59 +188,99 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
         child: Column(
           children: [
             // Drag Handle
             Container(
               width: 40,
-              height: 4,
+              height: 5,
               decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2.5),
               ),
             ),
-            const SizedBox(height: 32),
-            // Expanded Cover Art
+            const SizedBox(height: 40),
+            // Expanded Cover Art with shadow
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: ArtworkImage(
-                  url: track.artUri?.toString(),
-                  borderRadius: 24,
-                  fit: BoxFit.cover,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 30,
+                          offset: const Offset(0, 20),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: ArtworkImage(
+                        url: track.artUri?.toString(),
+                        borderRadius: 12,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 60),
             // Track Info
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                track.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          track.artist ?? 'Unknown Artist',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.more_horiz, color: Colors.white, size: 28),
+                    onPressed: () {},
+                  ),
+                ],
               ),
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                track.artist ?? 'Unknown Artist',
-                style: const TextStyle(color: AppColors.primary, fontSize: 18),
-              ),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
             // Seek Slider
             SliderTheme(
               data: SliderThemeData(
                 trackHeight: 6,
-                activeTrackColor: AppColors.secondary,
-                inactiveTrackColor: AppColors.surfaceRaised,
+                activeTrackColor: Colors.white.withValues(alpha: 0.8),
+                inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
                 thumbColor: Colors.white,
-                overlayColor: AppColors.secondary.withValues(alpha: 0.2),
+                overlayColor: Colors.white.withValues(alpha: 0.1),
+                trackShape: const RoundedRectSliderTrackShape(),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               ),
               child: Slider(
                 value: dur.inMilliseconds == 0
@@ -229,60 +292,51 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
               ),
             ),
             // Time labels
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    formatDuration(pos),
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatDuration(pos),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                  Text(
-                    formatDuration(dur),
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                ),
+                Text(
+                  '-${formatDuration(dur - pos)}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 40),
             // Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
                   icon: const Icon(
-                    Icons.skip_previous,
+                    Icons.fast_rewind_rounded,
                     size: 40,
                     color: Colors.white,
                   ),
                   onPressed: () => notifier.previous(),
                 ),
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
+                IconButton(
+                  icon: Icon(
+                    state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    size: 60,
+                    color: Colors.white,
                   ),
-                  child: IconButton(
-                    icon: Icon(
-                      state.isPlaying ? Icons.pause : Icons.play_arrow,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => notifier.togglePlay(),
-                  ),
+                  onPressed: () => notifier.togglePlay(),
                 ),
                 IconButton(
                   icon: const Icon(
-                    Icons.skip_next,
+                    Icons.fast_forward_rounded,
                     size: 40,
                     color: Colors.white,
                   ),
@@ -290,7 +344,30 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
+            // Bottom Actions (Volume, Queue, etc)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.volume_up_rounded, color: Colors.white70),
+                  onPressed: () {},
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white70),
+                      onPressed: () {},
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.list_rounded, color: Colors.white70),
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

@@ -26,13 +26,13 @@ class GlassSurface extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceRaised.withValues(alpha: opacity),
+            color: const Color(0xFF1C1C1E).withValues(alpha: opacity), // Apple Music dark mode glass color
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             border:
                 border ??
                 Border.all(
-                  color: AppColors.border.withValues(alpha: 0.5),
-                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.05),
+                  width: 0.5,
                 ),
           ),
           child: child,
