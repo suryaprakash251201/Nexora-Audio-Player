@@ -17,16 +17,37 @@ class SongsRepository {
   final SongsLocalDataSource _local;
   SongsRepository(this._api, this._local);
 
-  /// Keeps the first occurrence of each canonical song id.
+  /// Keeps the first occurrence of each song.
+  /// Dedupes by canonical id, and as a fallback by normalized
+  /// title+artist+duration fingerprint to catch server duplicates where the
+  /// same file appears under different ids (e.g. overlapping paginated search).
   static List<Song> deduplicateById(Iterable<Song> songs) {
-    final seen = <String>{};
+    final seenIds = <String>{};
+    final seenFp = <String>{};
     final result = <Song>[];
     for (final song in songs) {
       final id = song.id.trim();
-      if (id.isEmpty || !seen.add(id)) continue;
+      final fp = _fingerprint(song);
+      final isIdDup = id.isNotEmpty && !seenIds.add(id);
+      final isFpDup = !seenFp.add(fp);
+      // If either the id or the content fingerprint was already seen, skip.
+      // id-empty entries fall back to fingerprint only.
+      if (id.isNotEmpty) {
+        if (isIdDup || isFpDup) continue;
+      } else {
+        if (isFpDup) continue;
+      }
       result.add(song);
     }
     return result;
+  }
+
+  static String _fingerprint(Song s) {
+    final t = s.title.trim().toLowerCase();
+    final a = (s.artist ?? '').trim().toLowerCase();
+    // duration tolerance: bucket to 2s to avoid tiny transcode differences
+    final d = s.duration ?? 0;
+    return '$t|$a|$d';
   }
 
   /// Library listing via search index (kind=audio). Falls back to cache offline.

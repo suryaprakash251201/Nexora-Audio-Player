@@ -845,16 +845,16 @@ class _SlideInAnimationState extends State<SlideInAnimation>
     Offset begin;
     switch (widget.direction) {
       case AxisDirection.up:
-        begin = const Offset(0, 30);
+        begin = const Offset(0, 16);
         break;
       case AxisDirection.down:
-        begin = const Offset(0, -30);
+        begin = const Offset(0, -16);
         break;
       case AxisDirection.left:
-        begin = const Offset(30, 0);
+        begin = const Offset(16, 0);
         break;
       case AxisDirection.right:
-        begin = const Offset(-30, 0);
+        begin = const Offset(-16, 0);
         break;
     }
 
@@ -881,11 +881,15 @@ class _SlideInAnimationState extends State<SlideInAnimation>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        final scale = 0.97 + 0.03 * _opacityAnimation.value;
         return Opacity(
           opacity: _opacityAnimation.value,
           child: Transform.translate(
             offset: _slideAnimation.value,
-            child: widget.child,
+            child: Transform.scale(
+              scale: scale,
+              child: widget.child,
+            ),
           ),
         );
       },

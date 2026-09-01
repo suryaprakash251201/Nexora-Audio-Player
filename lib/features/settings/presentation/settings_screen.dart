@@ -10,6 +10,7 @@ import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/premium_widgets.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../player/providers/sleep_timer_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -81,38 +82,54 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             SlideInAnimation(
               delay: const Duration(milliseconds: 100),
-              child: _settingsGroup('PLAYBACK', [
-                _SettingTile(
-                  icon: Icons.graphic_eq_rounded,
-                  iconBg: AppColors.secondary,
-                  title: 'Equalizer',
-                  subtitle: 'Audiophile 8-band EQ',
-                  trailing: Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textDim,
-                  ),
-                  onTap: () => context.push('/equalizer'),
-                ),
-                const _SettingTile(
-                  icon: Icons.timer_outlined,
-                  iconBg: AppColors.tertiary,
-                  title: 'Sleep timer',
-                  subtitle: 'Off',
-                  trailing: Switch(
-                    value: false,
-                    activeColor: AppColors.primary,
-                    activeTrackColor: AppColors.primary,
-                    onChanged: null,
-                  ),
-                ),
-                const _SettingTile(
-                  icon: Icons.high_quality_rounded,
-                  iconBg: AppColors.primary,
-                  title: 'Audio quality',
-                  subtitle: 'Original (server) • No transcoding',
-                  trailing: _StatusPill(text: 'Hi-Res'),
-                ),
-              ]),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final timer = ref.watch(sleepTimerProvider);
+                  return _settingsGroup('PLAYBACK', [
+                    _SettingTile(
+                      icon: Icons.graphic_eq_rounded,
+                      iconBg: AppColors.secondary,
+                      title: 'Equalizer',
+                      subtitle: 'Audiophile 8-band EQ',
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textDim,
+                      ),
+                      onTap: () => context.push('/equalizer'),
+                    ),
+                    _SettingTile(
+                      icon: Icons.timer_outlined,
+                      iconBg: AppColors.tertiary,
+                      title: 'Sleep timer',
+                      subtitle: timer.isActive ? timer.label : 'Off',
+                      trailing: Switch(
+                        value: timer.isActive,
+                        activeThumbColor: AppColors.primary,
+                        activeTrackColor: AppColors.primary.withValues(
+                          alpha: 0.35,
+                        ),
+                        inactiveThumbColor: AppColors.textDim,
+                        inactiveTrackColor: AppColors.surfaceHigh,
+                        onChanged: (v) {
+                          if (v) {
+                            _showSleepTimerSheet(context, ref);
+                          } else {
+                            ref.read(sleepTimerProvider.notifier).cancel();
+                          }
+                        },
+                      ),
+                      onTap: () => _showSleepTimerSheet(context, ref),
+                    ),
+                    const _SettingTile(
+                      icon: Icons.high_quality_rounded,
+                      iconBg: AppColors.primary,
+                      title: 'Audio quality',
+                      subtitle: 'Original (server) • No transcoding',
+                      trailing: _StatusPill(text: 'Hi-Res'),
+                    ),
+                  ]);
+                },
+              ),
             ),
             const SizedBox(height: 20),
             SlideInAnimation(
@@ -377,6 +394,14 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _showSleepTimerSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (c) => const _SettingsSleepTimerSheet(),
+    );
+  }
+
   IconData _themeIcon(AppThemePreference pref) {
     switch (pref) {
       case AppThemePreference.light:
@@ -535,6 +560,220 @@ class _StatusPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsSleepTimerSheet extends ConsumerWidget {
+  const _SettingsSleepTimerSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    return GlassBottomSheet(
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.tertiary.withValues(alpha: 0.22),
+                          AppColors.primary.withValues(alpha: 0.14),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.bedtime_rounded,
+                      color: AppColors.tertiary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sleep timer',
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          timer.isActive
+                              ? timer.label
+                              : 'Automatically pause playback',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (timer.isActive)
+                    GestureDetector(
+                      onTap: () =>
+                          ref.read(sleepTimerProvider.notifier).cancel(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.2),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              if (timer.isActive) ...[
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: timer.progress,
+                    minHeight: 4,
+                    backgroundColor: AppColors.textDim.withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation(AppColors.tertiary),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Text(
+                'DURATION',
+                style: TextStyle(
+                  color: AppColors.textDim,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final d in SleepTimerNotifier.presets)
+                    GestureDetector(
+                      onTap: () {
+                        ref.read(sleepTimerProvider.notifier).setTimer(d);
+                        Navigator.pop(context);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: timer.isActive && timer.total == d
+                              ? LinearGradient(
+                                  colors: [
+                                    AppColors.tertiary.withValues(alpha: 0.22),
+                                    AppColors.primary.withValues(alpha: 0.14),
+                                  ],
+                                )
+                              : LinearGradient(
+                                  colors: [
+                                    AppColors.surfaceRaised.withValues(
+                                      alpha: 0.9,
+                                    ),
+                                    AppColors.surfaceHigh.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ],
+                                ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: timer.isActive && timer.total == d
+                                ? AppColors.tertiary.withValues(alpha: 0.35)
+                                : AppColors.border,
+                            width: 0.6,
+                          ),
+                        ),
+                        child: Text(
+                          formatSleepDuration(d),
+                          style: TextStyle(
+                            color: timer.isActive && timer.total == d
+                                ? AppColors.tertiary
+                                : AppColors.text,
+                            fontWeight: timer.isActive && timer.total == d
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: () {
+                    if (timer.isActive) {
+                      ref.read(sleepTimerProvider.notifier).cancel();
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border, width: 0.6),
+                    ),
+                    child: Text(
+                      timer.isActive ? 'Turn off' : 'Off',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

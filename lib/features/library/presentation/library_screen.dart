@@ -171,8 +171,13 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           }
           final s = _songs[i];
           final isCurrent = ref.watch(playerProvider).currentTrack?.id == s.id;
+          // Staggered entrance — smoother, shorter stagger so fast scroll
+          // doesn't create a long cascade; first 12 items animate in order.
+          final stagger = (i.clamp(0, 14)) * 32;
           return SlideInAnimation(
-            delay: Duration(milliseconds: (i % 10) * 50),
+            key: ValueKey(s.id),
+            delay: Duration(milliseconds: stagger),
+            duration: const Duration(milliseconds: 420),
             child: GlassSongTile(
               artworkUrl: s.coverUrl,
               title: s.title,

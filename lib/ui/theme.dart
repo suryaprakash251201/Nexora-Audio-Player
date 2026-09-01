@@ -16,24 +16,24 @@ class AppColors {
   /// The active theme mode. Set by the app root before building.
   static AppThemeMode mode = AppThemeMode.dark;
 
-  // ── Backgrounds ──
-  static const Color _backgroundDark = Color(0xFF050508);
-  static const Color _backgroundLight = Color(0xFFF3F3F8);
+  // ── Backgrounds ── (refined: richer midnight for dark, warm paper for light)
+  static const Color _backgroundDark = Color(0xFF080810);
+  static const Color _backgroundLight = Color(0xFFF7F7FB);
   static Color get background =>
       mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
 
-  static const Color _surfaceDark = Color(0xFF0D0D14);
+  static const Color _surfaceDark = Color(0xFF12121E);
   static const Color _surfaceLight = Color(0xFFFFFFFF);
   static Color get surface =>
       mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
 
-  static const Color _surfaceRaisedDark = Color(0xFF16161F);
-  static const Color _surfaceRaisedLight = Color(0xFFECECF3);
+  static const Color _surfaceRaisedDark = Color(0xFF1A1A2E);
+  static const Color _surfaceRaisedLight = Color(0xFFEEF0F7);
   static Color get surfaceRaised =>
       mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
 
-  static const Color _surfaceHighDark = Color(0xFF1E1E2A);
-  static const Color _surfaceHighLight = Color(0xFFE2E2EC);
+  static const Color _surfaceHighDark = Color(0xFF24243E);
+  static const Color _surfaceHighLight = Color(0xFFE4E8F2);
   static Color get surfaceHigh =>
       mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
 
@@ -50,55 +50,55 @@ class AppColors {
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFFBBF24);
 
-  // ── Text ──
-  static const Color _textDark = Color(0xFFFFFFFF);
-  static const Color _textLight = Color(0xFF0B0B12);
+  // ── Text ── (improved contrast for light, softer muted for dark)
+  static const Color _textDark = Color(0xFFF8F8FF);
+  static const Color _textLight = Color(0xFF0F0F1A);
   static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
 
-  static const Color _textMutedDark = Color(0xFF9CA3AF);
-  static const Color _textMutedLight = Color(0xFF5C5C70);
+  static const Color _textMutedDark = Color(0xFFA1A1B5);
+  static const Color _textMutedLight = Color(0xFF5E5E78);
   static Color get textMuted =>
       mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
 
-  static const Color _textDimDark = Color(0xFF6B7280);
-  static const Color _textDimLight = Color(0xFF8B8BA2);
+  static const Color _textDimDark = Color(0xFF73738A);
+  static const Color _textDimLight = Color(0xFF8A8AA6);
   static Color get textDim =>
       mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
-  // ── Borders & Lines ──
-  static const Color _borderDark = Color(0xFF1F1F2E);
-  static const Color _borderLight = Color(0xFFE0E0EA);
+  // ── Borders & Lines ── (stronger light borders for definition)
+  static const Color _borderDark = Color(0xFF23233A);
+  static const Color _borderLight = Color(0xFFE3E6F0);
   static Color get border =>
       mode == AppThemeMode.dark ? _borderDark : _borderLight;
 
-  static const Color _hairlineDark = Color(0xFF2A2A3C);
-  static const Color _hairlineLight = Color(0xFFE9E9F1);
+  static const Color _hairlineDark = Color(0xFF2E2E4A);
+  static const Color _hairlineLight = Color(0xFFEAEAF2);
   static Color get hairline =>
       mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
 
-  static const Color _borderLightDark = Color(0xFF374151);
-  static const Color _borderLightLight = Color(0xFFBDBDD0);
+  static const Color _borderLightDark = Color(0xFF3A3A52);
+  static const Color _borderLightLight = Color(0xFFC2C6D6);
   static Color get borderLight =>
       mode == AppThemeMode.dark ? _borderLightDark : _borderLightLight;
 
-  // ── Glass ──
-  static const Color _glassBaseDark = Color(0xFF1A1A28);
-  static const Color _glassBaseLight = Color(0xFFF6F6FB);
+  // ── Glass ── (premium: slightly more opaque light glass for readability)
+  static const Color _glassBaseDark = Color(0xFF1C1C32);
+  static const Color _glassBaseLight = Color(0xFFFEFEFF);
   static Color get glassBase =>
       mode == AppThemeMode.dark ? _glassBaseDark : _glassBaseLight;
 
-  static const Color _glassHighlightDark = Color(0x0AFFFFFF);
-  static const Color _glassHighlightLight = Color(0x0A000000);
+  static const Color _glassHighlightDark = Color(0x0FFFFFFF);
+  static const Color _glassHighlightLight = Color(0x0F000000);
   static Color get glassHighlight =>
       mode == AppThemeMode.dark ? _glassHighlightDark : _glassHighlightLight;
 
-  static const Color _glassBorderDark = Color(0x15FFFFFF);
-  static const Color _glassBorderLight = Color(0x14000000);
+  static const Color _glassBorderDark = Color(0x18FFFFFF);
+  static const Color _glassBorderLight = Color(0x1A0F0F1A);
   static Color get glassBorder =>
       mode == AppThemeMode.dark ? _glassBorderDark : _glassBorderLight;
 
-  static const Color _glassBorderStrongDark = Color(0x25FFFFFF);
-  static const Color _glassBorderStrongLight = Color(0x26000000);
+  static const Color _glassBorderStrongDark = Color(0x28FFFFFF);
+  static const Color _glassBorderStrongLight = Color(0x2A0F0F1A);
   static Color get glassBorderStrong => mode == AppThemeMode.dark
       ? _glassBorderStrongDark
       : _glassBorderStrongLight;

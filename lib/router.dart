@@ -245,15 +245,17 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 /// Bottom overlay that cross-fades/repositions the mini player and the nav bar
-/// so they swap places as the user scrolls.
+/// so they swap places as the user scrolls. Both are centered and share the
+/// same horizontal constraints; the bar sits slightly lower near the edge.
 class _BottomDock extends StatelessWidget {
   final bool navVisible;
   final double bottomInset;
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  static const double _miniHeight = 78;
-  static const double _gap = 6;
+  // Mini player visual height (card + progress)
+  static const double _miniHeight = 72;
+  static const double _gap = 8;
 
   const _BottomDock({
     required this.navVisible,
@@ -265,35 +267,49 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
+    // Small extra inset so the dock breathes but stays low.
+    final double dockBottom = bottomInset > 0 ? bottomInset + 2 : 4;
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(
-        height: _miniHeight + navTotal + _gap + 8,
+        height: _miniHeight + navTotal + _gap,
         child: Stack(
+          alignment: Alignment.bottomCenter,
           children: [
-            // Mini player: sits above the nav when visible, drops into the
-            // nav's slot when the nav is hidden.
+            // Mini player: centered, same width logic as nav bar (14px margins
+            // inside the card). Sits above nav when visible, drops into nav's
+            // slot when nav is hidden.
             AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 360),
               curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
               bottom: navVisible ? navTotal + _gap : 0,
-              child: MiniPlayer(onTap: onOpenPlayer),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 650),
+                  child: MiniPlayer(onTap: onOpenPlayer),
+                ),
+              ),
             ),
-            // Nav bar: slides below the fold when hidden.
+            // Nav bar: centered, slides below the fold when hidden.
             AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 360),
               curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
-              bottom: navVisible ? 0 : -navTotal,
+              bottom: navVisible ? 0 : -navTotal - 12,
               child: IgnorePointer(
                 ignoring: !navVisible,
                 child: AnimatedOpacity(
                   opacity: navVisible ? 1 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: navBar,
+                  duration: const Duration(milliseconds: 220),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 650),
+                      child: navBar,
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -11,6 +11,7 @@ import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/premium_widgets.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../providers/player_provider.dart';
+import '../providers/sleep_timer_provider.dart';
 import 'cassette_player.dart';
 
 class FullPlayerScreen extends ConsumerStatefulWidget {
@@ -129,6 +130,11 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   ),
                   centerTitle: true,
                   actions: [
+                    // Sleep timer — shows countdown when active
+                    _SleepTimerAppBarButton(
+                      onTap: () => _showSleepTimerSheet(context, ref),
+                    ),
+                    const SizedBox(width: 4),
                     IconButton(
                       icon: Container(
                         padding: const EdgeInsets.all(8),
@@ -291,7 +297,12 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           onNext: () => notifier.next(),
                           onRepeat: () => notifier.cycleRepeat(),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
+                        // Inline sleep timer status (visible when active)
+                        _SleepTimerInlineBar(
+                          onTap: () => _showSleepTimerSheet(context, ref),
+                        ),
+                        const SizedBox(height: 10),
                         // Bottom actions
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -302,9 +313,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             ),
                             const SizedBox(width: 16),
                             _IconGlow(
-                              icon: Icons.favorite_rounded,
-                              color: AppColors.tertiary,
-                              onTap: () {},
+                              icon: Icons.bedtime_rounded,
+                              color: AppColors.secondary,
+                              onTap: () => _showSleepTimerSheet(context, ref),
                             ),
                             const SizedBox(width: 16),
                             _SpeedControl(
@@ -421,6 +432,15 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           },
         );
       },
+    );
+  }
+
+  void _showSleepTimerSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (c) => _SleepTimerSheet(),
     );
   }
 }
@@ -712,6 +732,410 @@ class _SpeedControl extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SLEEP TIMER — App bar badge + inline bar + bottom sheet
+// ═══════════════════════════════════════════════════════════════
+
+class _SleepTimerAppBarButton extends ConsumerWidget {
+  final VoidCallback onTap;
+  const _SleepTimerAppBarButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    final active = timer.isActive;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.secondary.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active
+                ? AppColors.secondary.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.14),
+            width: 0.6,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.bedtime_rounded,
+              size: 16,
+              color: active ? AppColors.secondary : AppColors.text,
+            ),
+            if (active) ...[
+              const SizedBox(width: 6),
+              Text(
+                timer.label.replaceAll(' left', ''),
+                style: TextStyle(
+                  color: AppColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SleepTimerInlineBar extends ConsumerWidget {
+  final VoidCallback onTap;
+  const _SleepTimerInlineBar({required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    if (!timer.isActive) return const SizedBox.shrink();
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.secondary.withValues(alpha: 0.14),
+              AppColors.primary.withValues(alpha: 0.08),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.secondary.withValues(alpha: 0.22),
+            width: 0.6,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.bedtime_rounded,
+                size: 16,
+                color: AppColors.secondary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sleep timer • ${timer.label}',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: timer.progress,
+                      minHeight: 4,
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      valueColor: AlwaysStoppedAnimation(AppColors.secondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () => ref.read(sleepTimerProvider.notifier).cancel(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.22),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SleepTimerSheet extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    return GlassBottomSheet(
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.secondary.withValues(alpha: 0.22),
+                          AppColors.primary.withValues(alpha: 0.14),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.bedtime_rounded,
+                      color: AppColors.secondary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sleep timer',
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          timer.isActive
+                              ? timer.label
+                              : 'Music stops automatically',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (timer.isActive)
+                    GestureDetector(
+                      onTap: () =>
+                          ref.read(sleepTimerProvider.notifier).cancel(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.2),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              if (timer.isActive) ...[
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: timer.progress,
+                    minHeight: 4,
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    valueColor: AlwaysStoppedAnimation(AppColors.secondary),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      formatSleepDuration(timer.total ?? Duration.zero) +
+                          ' total',
+                      style: TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(sleepTimerProvider.notifier)
+                          .extend(const Duration(minutes: 5)),
+                      child: Text(
+                        '+5 min',
+                        style: TextStyle(
+                          color: AppColors.secondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 18),
+              Text(
+                'Set timer',
+                style: TextStyle(
+                  color: AppColors.textDim,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final d in SleepTimerNotifier.presets)
+                    _PresetChip(
+                      duration: d,
+                      selected:
+                          timer.isActive && timer.total == d,
+                      onTap: () {
+                        ref.read(sleepTimerProvider.notifier).setTimer(d);
+                        Navigator.pop(context);
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: () {
+                    if (timer.isActive) {
+                      ref.read(sleepTimerProvider.notifier).cancel();
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.border,
+                        width: 0.6,
+                      ),
+                    ),
+                    child: Text(
+                      timer.isActive ? 'Turn off' : 'Off',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  final Duration duration;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PresetChip({
+    required this.duration,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: selected
+              ? LinearGradient(
+                  colors: [
+                    AppColors.secondary.withValues(alpha: 0.22),
+                    AppColors.primary.withValues(alpha: 0.14),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    AppColors.surfaceRaised.withValues(alpha: 0.9),
+                    AppColors.surfaceHigh.withValues(alpha: 0.6),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? AppColors.secondary.withValues(alpha: 0.35)
+                : AppColors.border,
+            width: 0.6,
+          ),
+        ),
+        child: Text(
+          formatSleepDuration(duration),
+          style: TextStyle(
+            color: selected ? AppColors.secondary : AppColors.text,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            fontSize: 13,
+          ),
         ),
       ),
     );

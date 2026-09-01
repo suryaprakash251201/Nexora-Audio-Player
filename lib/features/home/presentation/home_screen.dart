@@ -71,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _heroBanner(context, ref),
+                      _discoverBanner(context, ref),
                       const SizedBox(height: 32),
                       _quickActions(context),
                       const SizedBox(height: 36),
@@ -227,60 +227,82 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _heroBanner(BuildContext context, WidgetRef ref) {
-    final playerState = ref.watch(playerProvider);
-    final current = playerState.currentTrack;
-    final hasNowPlaying = current != null;
-    final isPlaying = playerState.isPlaying;
+  Widget _discoverBanner(BuildContext context, WidgetRef ref) {
+    final recentAsync = ref.watch(recentSongsProvider);
+    final historyAsync = ref.watch(recentlyPlayedProvider);
+    final albumsAsync = ref.watch(featuredAlbumsProvider);
+
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+
+    // Stats — fallback to 0 while loading
+    final songCount = recentAsync.value?.length ?? 0;
+    final albumCount = albumsAsync.value?.length ?? 0;
+    final playedCount = historyAsync.value?.length ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: ScaleBounce(
         child: EnhancedGlassSurface(
-          opacity: 0.35,
-          blur: 40,
-          borderRadius: BorderRadius.circular(32),
+          opacity: 0.32,
+          blur: 36,
+          borderRadius: BorderRadius.circular(28),
           showShimmer: true,
           showInnerGlow: true,
-          glowColor: hasNowPlaying ? AppColors.secondary : AppColors.primary,
-          glowRadius: 50,
+          glowColor: AppColors.primary,
+          glowRadius: 48,
           child: Container(
-            height: 210,
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
+              borderRadius: BorderRadius.circular(28),
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: hasNowPlaying
-                    ? [
-                        AppColors.secondary.withValues(alpha: 0.35),
-                        AppColors.primary.withValues(alpha: 0.18),
-                        AppColors.tertiary.withValues(alpha: 0.1),
-                      ]
-                    : [
-                        AppColors.primary.withValues(alpha: 0.35),
-                        AppColors.secondary.withValues(alpha: 0.15),
-                        AppColors.tertiary.withValues(alpha: 0.1),
-                      ],
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.30),
+                  AppColors.secondary.withValues(alpha: 0.18),
+                  AppColors.tertiary.withValues(alpha: 0.10),
+                ],
                 stops: const [0.0, 0.55, 1.0],
               ),
             ),
             child: Stack(
               children: [
-                // Decorative glowing orb
+                // Decorative orb — top right
                 Positioned(
-                  right: -40,
-                  top: -50,
+                  right: -30,
+                  top: -36,
                   child: Container(
-                    width: 180,
-                    height: 180,
+                    width: 150,
+                    height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          Colors.white.withValues(alpha: 0.12),
+                          Colors.white.withValues(alpha: 0.10),
                           Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Soft bottom glow
+                Positioned(
+                  left: -20,
+                  bottom: -40,
+                  child: Container(
+                    width: 160,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(40),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.secondary.withValues(alpha: 0.14),
+                          Colors.transparent,
                         ],
                       ),
                     ),
@@ -288,109 +310,147 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Row(
                       children: [
                         GlassChip(
-                          color: hasNowPlaying
-                              ? AppColors.secondary
-                              : AppColors.primary,
+                          color: AppColors.primary,
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              GlowDot(
-                                size: 6,
-                                color: hasNowPlaying
-                                    ? AppColors.secondaryLight
-                                    : AppColors.primaryLight,
-                              ),
+                              GlowDot(size: 6, color: AppColors.primaryLight),
                               const SizedBox(width: 6),
                               Text(
-                                hasNowPlaying
-                                    ? 'NOW PLAYING'
-                                    : 'CONTINUE LISTENING',
+                                greeting.toUpperCase(),
                                 style: TextStyle(
                                   color: AppColors.text,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.2,
+                                  letterSpacing: 1.1,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        if (hasNowPlaying && isPlaying) ...[
-                          const SizedBox(width: 10),
-                          const NowPlayingIndicator(
-                            height: 12,
-                            width: 12,
-                            color: AppColors.secondaryLight,
+                        const SizedBox(width: 8),
+                        GlassChip(
+                          color: AppColors.secondary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 12,
+                                color: AppColors.secondaryLight,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'FOR YOU',
+                                style: TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    if (hasNowPlaying) ...[
-                      Text(
-                        current.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                        ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Discover your\nnext favourite',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        height: 1.05,
+                        letterSpacing: -0.6,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        current.artist ?? 'Unknown Artist',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.secondaryLight,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(height: 10),
+                    // Live stats row
+                    Row(
+                      children: [
+                        _StatPill(
+                          icon: Icons.music_note_rounded,
+                          label: '$songCount songs',
+                          color: AppColors.primary,
                         ),
-                      ),
-                    ] else ...[
-                      Text(
-                        'Your audiophile\ncollection awaits',
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          height: 1.1,
-                          letterSpacing: -0.5,
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          icon: Icons.album_rounded,
+                          label: '$albumCount albums',
+                          color: AppColors.secondary,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          icon: Icons.history_rounded,
+                          label: '$playedCount played',
+                          color: AppColors.tertiary,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
                         _HeroButton(
-                          label: hasNowPlaying
-                              ? (isPlaying ? 'Pause' : 'Resume')
-                              : 'Browse Library',
-                          icon: hasNowPlaying
-                              ? (isPlaying
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded)
-                              : Icons.library_music_rounded,
-                          onTap: hasNowPlaying
-                              ? () => ref
-                                    .read(playerProvider.notifier)
-                                    .togglePlay()
-                              : () => context.push('/library'),
+                          label: 'Shuffle all',
+                          icon: Icons.shuffle_rounded,
+                          onTap: () {
+                            final songs = recentAsync.value;
+                            if (songs != null && songs.isNotEmpty) {
+                              final shuffled = [...songs]..shuffle();
+                              ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs(shuffled);
+                            } else {
+                              context.push('/library');
+                            }
+                          },
                         ),
-                        if (hasNowPlaying) ...[
-                          const SizedBox(width: 12),
-                          _HeroGhostButton(
-                            label: 'Open Player',
-                            icon: Icons.expand_less_rounded,
-                            onTap: () => context.push('/player'),
+                        const SizedBox(width: 10),
+                        _HeroGhostButton(
+                          label: 'Surprise me',
+                          icon: Icons.casino_rounded,
+                          onTap: () {
+                            final songs = recentAsync.value;
+                            if (songs != null && songs.isNotEmpty) {
+                              final pick =
+                                  ([...songs]..shuffle()).first;
+                              ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs([pick]);
+                            } else {
+                              context.push('/search');
+                            }
+                          },
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => context.push('/equalizer'),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 0.6,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.equalizer_rounded,
+                              color: AppColors.text,
+                              size: 20,
+                            ),
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
@@ -749,6 +809,47 @@ class _HeroGhostButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAT PILL (discover banner)
+
+class _StatPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _StatPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.22), width: 0.6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

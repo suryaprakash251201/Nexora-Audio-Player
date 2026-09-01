@@ -494,10 +494,12 @@ class GlassMiniPlayer extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        // Same horizontal margin as nav bar (14) and centered — no extra cap/padding.
+        margin: const EdgeInsets.symmetric(horizontal: 14),
         child: GlassCard(
-          borderRadius: 22,
-          padding: const EdgeInsets.all(4),
+          // Unified dock radius — matches nav bar visual weight.
+          borderRadius: 28,
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -585,17 +587,15 @@ class GlassMiniPlayer extends StatelessWidget {
                   ],
                 ),
               ),
-              // Progress indicator
+              // Thin progress — no rounded cap, blends into card bottom.
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(18),
-                ),
+                borderRadius: BorderRadius.circular(2),
                 child: LinearProgressIndicator(
                   value: progress,
-                  minHeight: 2,
-                  backgroundColor: Colors.transparent,
+                  minHeight: 2.5,
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
                   valueColor: AlwaysStoppedAnimation(
-                    AppColors.primary.withValues(alpha: 0.6),
+                    AppColors.primary.withValues(alpha: 0.85),
                   ),
                 ),
               ),
@@ -665,8 +665,9 @@ class EnhancedGlassNavBar extends StatelessWidget {
 
   /// Total space the bar occupies (bar height + bottom margin). The scroll
   /// dock uses this to position the mini player above it.
-  static const double height = 68;
-  static const double bottomMargin = 12;
+  /// Bottom margin reduced so the bar sits a little lower, near the edge.
+  static const double height = 64;
+  static const double bottomMargin = 6;
   static const double totalHeight = height + bottomMargin;
 
   /// Each destination: outline icon, filled icon, label and its bright tone.
@@ -706,9 +707,10 @@ class EnhancedGlassNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // Centered dock — same 14px horizontal as mini player, lowered to edge.
       margin: const EdgeInsets.fromLTRB(14, 0, 14, bottomMargin),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
@@ -718,7 +720,7 @@ class EnhancedGlassNavBar extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: Container(
@@ -738,7 +740,7 @@ class EnhancedGlassNavBar extends StatelessWidget {
             ),
             child: Container(
               height: height,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(_destinations.length, (i) {
