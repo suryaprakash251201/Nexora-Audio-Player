@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/audio/audio_handler.dart';
+import '../../../core/audio/equalizer_bridge.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
@@ -84,7 +86,7 @@ class _Preset {
   const _Preset(this.name, this.icon, this.tone, this.gains);
 }
 
-const List<_Preset> kPresets = [
+final List<_Preset> _kPresets = [
   _Preset('Flat', Icons.horizontal_rule_rounded, BrightIconTone.sky, [
     0,
     0,
@@ -224,19 +226,20 @@ double _gainAt(List<double> gains, double freq) {
   return gains.last;
 }
 
-class EqualizerScreen extends StatefulWidget {
+class EqualizerScreen extends ConsumerStatefulWidget {
   const EqualizerScreen({super.key});
   @override
-  State<EqualizerScreen> createState() => _EqualizerScreenState();
+  ConsumerState<EqualizerScreen> createState() => _EqualizerScreenState();
 }
 
-class _EqualizerScreenState extends State<EqualizerScreen> {
+class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   late final List<_BandSpec> _specs;
   late List<double> _bands;
   double _preamp = 0;
   bool _enabled = true;
   String? _presetName;
   bool _loading = true;
+  StreamSubscription<int?>? _sessionSub;
 
   static const String _keyEnabled = 'eq_enabled';
   static const String _keyPreamp = 'eq_preamp';
@@ -247,6 +250,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
     super.initState();
     _specs = _bandsForPlatform(defaultTargetPlatform);
     _bands = List.filled(_specs.length, 0);
+    final player = ref.read(audioHandlerProvider).player;
+    _sessionSub = player.androidAudioSessionIdStream.listen((_) {
+      unawaited(_applyNative());
+    });
     _loadSaved();
   }
 
@@ -268,17 +275,39 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
       // Preferences unavailable — fall back to a flat curve.
     }
     if (mounted) setState(() => _loading = false);
+    await _applyNative();
+  }
+
+  Future<void> _applyNative() {
+    final player = ref.read(audioHandlerProvider).player;
+    return EqualizerBridge.apply(
+      enabled: _enabled,
+      preamp: _preamp,
+      frequencies: _specs.map((spec) => spec.freq).toList(),
+      gains: _bands,
+      audioSessionId: player.androidAudioSessionId,
+    );
   }
 
   Future<void> _persist() async {
+    await _applyNative();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyBands, _bands.map((b) => b.toStringAsFixed(1)).join(','));
+      await prefs.setString(
+        _keyBands,
+        _bands.map((b) => b.toStringAsFixed(1)).join(','),
+      );
       await prefs.setDouble(_keyPreamp, _preamp);
       await prefs.setBool(_keyEnabled, _enabled);
     } catch (_) {
       // Ignore persistence failures; the curve still applies for this session.
     }
+  }
+
+  @override
+  void dispose() {
+    _sessionSub?.cancel();
+    super.dispose();
   }
 
   void _applyPreset(_Preset preset) {
@@ -405,7 +434,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                   value: _enabled,
                   onChanged: (v) {
                     setState(() => _enabled = v);
-                    _persist();
+                    unawaited(_persist());
                   },
                 ),
               ],
@@ -527,9 +556,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
               inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
               thumbColor: Colors.white,
               overlayColor: AppColors.primary.withValues(alpha: 0.18),
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 7,
-              ),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
             ),
             child: Slider(
               value: _preamp,
@@ -540,6 +567,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                   _preamp = v;
                   _presetName = null;
                 });
+                unawaited(_applyNative());
               },
               onChangeEnd: (_) => _persist(),
             ),
@@ -584,10 +612,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            itemCount: kPresets.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemCount: _kPresets.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (c, i) {
-              final p = kPresets[i];
+              final p = _kPresets[i];
               final selected = _presetName == p.name;
               return _PresetCard(
                 preset: p,
@@ -605,7 +633,9 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
 
   Widget _bandsSection() {
     // 3 per row on phones keeps the vertical sliders comfortably thumb-sized.
-    final crossAxisCount = _specs.length <= 5 ? 5 : (_specs.length <= 8 ? 4 : 5);
+    final crossAxisCount = _specs.length <= 5
+        ? 5
+        : (_specs.length <= 8 ? 4 : 5);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -648,6 +678,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                 _bands[i] = v;
                 _presetName = null;
               });
+              unawaited(_applyNative());
             },
             onChangeEnd: (_) => _persist(),
           ),
@@ -702,10 +733,11 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'This curve is stored and applied by Nexora. Driving the '
-              'platform DSP directly (Android AudioEffect / iOS AVAudioUnitEQ) '
-              'needs a small native bridge, which is not wired up yet — until '
-              'then the sliders shape Nexora\'s own curve.',
+              'This curve is stored by Nexora and sent to the platform bridge. '
+              'Android applies it to just_audio\'s audio session when available. '
+              'iOS configures AVAudioUnitEQ, but just_audio owns a separate '
+              'graph here, so iOS does not claim to DSP playback yet. Desktop '
+              'and web keep the settings as an unsupported fallback.',
               style: TextStyle(
                 color: AppColors.textDim,
                 fontSize: 12,
@@ -838,9 +870,7 @@ class _BandCard extends StatelessWidget {
           ],
         ),
         border: Border.all(
-          color: active
-              ? accent.withValues(alpha: 0.4)
-              : AppColors.glassBorder,
+          color: active ? accent.withValues(alpha: 0.4) : AppColors.glassBorder,
           width: 0.6,
         ),
       ),
@@ -957,8 +987,14 @@ class _CurvePainter extends CustomPainter {
       final p1 = pts[i];
       final p2 = pts[i + 1];
       final p3 = pts[(i + 2).clamp(0, pts.length - 1)];
-      final c1 = Offset(p1.dx + (p2.dx - p0.dx) / 6, p1.dy + (p2.dy - p0.dy) / 6);
-      final c2 = Offset(p2.dx - (p3.dx - p1.dx) / 6, p2.dy - (p3.dy - p1.dy) / 6);
+      final c1 = Offset(
+        p1.dx + (p2.dx - p0.dx) / 6,
+        p1.dy + (p2.dy - p0.dy) / 6,
+      );
+      final c2 = Offset(
+        p2.dx - (p3.dx - p1.dx) / 6,
+        p2.dy - (p3.dy - p1.dy) / 6,
+      );
       path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p2.dx, p2.dy);
     }
 
