@@ -24,7 +24,7 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
 
 class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   Playlist? _playlist;
-  List<dynamic> _tracks = [];
+  List<Song> _tracks = [];
   bool _loading = true;
   String? _error;
 
@@ -141,7 +141,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         ? null
                         : () => ref
                               .read(playerProvider.notifier)
-                              .playSongs(_tracks.cast(), initialIndex: 0),
+                              .playSongs(_tracks, initialIndex: 0),
                     icon: const Icon(Icons.play_arrow),
                     label: const Text('Play all'),
                   ),
@@ -224,7 +224,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               ),
                               onPressed: () => ref
                                   .read(playerProvider.notifier)
-                                  .playSongs(_tracks.cast(), initialIndex: i),
+                                  .playSongs(_tracks, initialIndex: i),
                             ),
                             const Icon(
                               Icons.drag_handle,
@@ -235,7 +235,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         ),
                         onTap: () => ref
                             .read(playerProvider.notifier)
-                            .playSongs(_tracks.cast(), initialIndex: i),
+                            .playSongs(_tracks, initialIndex: i),
                       );
                     },
                   ),
