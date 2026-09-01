@@ -41,9 +41,10 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -151,7 +152,7 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 60),
     );
     if (widget.isPlaying) _controller.repeat();
   }
@@ -160,9 +161,12 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
   void didUpdateWidget(covariant RotatingAlbumArt oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying) {
-      _controller.repeat();
+      if (!_controller.isAnimating) _controller.repeat();
     } else {
       _controller.stop();
+    }
+    if (oldWidget.size != widget.size) {
+      // No-op, controller duration is independent of size.
     }
   }
 
@@ -174,6 +178,7 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return Container(
       width: widget.size,
       height: widget.size,
@@ -181,49 +186,44 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 60,
-            spreadRadius: 10,
-            offset: const Offset(0, 20),
+            color: isLight
+                ? Colors.black.withValues(alpha: 0.14)
+                : AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: isLight ? 32 : 48,
+            spreadRadius: isLight ? 0 : 6,
+            offset: const Offset(0, 16),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 50,
-            offset: const Offset(0, 30),
+            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.38),
+            blurRadius: isLight ? 22 : 40,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Outer glow ring
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return Container(
-                width: widget.size + 8,
-                height: widget.size + 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.3),
-                      AppColors.secondary.withValues(alpha: 0.3),
-                      AppColors.tertiary.withValues(alpha: 0.3),
-                      AppColors.primary.withValues(alpha: 0.3),
-                    ],
-                    transform: GradientRotation(_controller.value * 2 * math.pi),
-                  ),
-                ),
-              );
-            },
+          // No animated sweep — static hairline rim for modern calm
+          Container(
+            width: widget.size + 2,
+            height: widget.size + 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.glassBorderStrong.withValues(alpha: 0.6),
+                width: 0.7,
+              ),
+            ),
           ),
-          // Rotating album art
+          // Artwork — subtle slow drift only when playing (60s per rev)
           AnimatedBuilder(
             animation: _controller,
             builder: (context, _) {
+              final angle = widget.isPlaying
+                  ? _controller.value * 2 * math.pi
+                  : 0.0;
               return Transform.rotate(
-                angle: _controller.value * 2 * math.pi,
+                angle: angle,
                 child: Container(
                   width: widget.size,
                   height: widget.size,
@@ -257,21 +257,21 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
               );
             },
           ),
-          // Center hole (vinyl style)
+          // Center hole (vinyl style) — smaller, matte
           Container(
-            width: widget.size * 0.15,
-            height: widget.size * 0.15,
+            width: widget.size * 0.13,
+            height: widget.size * 0.13,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.background,
               border: Border.all(
                 color: AppColors.glassBorderStrong,
-                width: 2,
+                width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 10,
+                  color: Colors.black.withValues(alpha: 0.28),
+                  blurRadius: 8,
                 ),
               ],
             ),
@@ -283,7 +283,7 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ENHANCED SEEK BAR — Glassmorphism slider
+// ENHANCED SEEK BAR — Modern thin audiophile slider
 // ═══════════════════════════════════════════════════════════════
 
 class EnhancedSeekBar extends StatelessWidget {
@@ -312,20 +312,21 @@ class EnhancedSeekBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return Column(
       children: [
         SliderTheme(
           data: SliderThemeData(
-            trackHeight: 6,
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-            thumbColor: Colors.white,
-            overlayColor: AppColors.primary.withValues(alpha: 0.2),
+            trackHeight: 3,
+            activeTrackColor: isLight ? AppColors.text : Colors.white,
+            inactiveTrackColor: AppColors.textDim.withValues(alpha: 0.14),
+            thumbColor: isLight ? AppColors.text : Colors.white,
+            overlayColor: AppColors.primary.withValues(alpha: 0.10),
             thumbShape: const RoundSliderThumbShape(
-              enabledThumbRadius: 8,
-              elevation: 4,
+              enabledThumbRadius: 7,
+              elevation: 2,
             ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             trackShape: const RoundedRectSliderTrackShape(),
           ),
           child: Slider(
@@ -336,24 +337,26 @@ class EnhancedSeekBar extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 _formatDuration(position),
                 style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDim,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               Text(
                 _formatDuration(duration),
                 style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDim,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -639,11 +642,7 @@ class _GlassIconButton extends StatelessWidget {
             width: 0.5,
           ),
         ),
-        child: Icon(
-          icon,
-          color: color ?? AppColors.text,
-          size: 22,
-        ),
+        child: Icon(icon, color: color ?? AppColors.text, size: 22),
       ),
     );
   }
@@ -672,12 +671,7 @@ class EnhancedGlassNavBar extends StatelessWidget {
 
   /// Each destination: outline icon, filled icon, label and its bright tone.
   static const _destinations = [
-    (
-      Icons.home_outlined,
-      Icons.home_rounded,
-      'Home',
-      BrightIconTone.violet,
-    ),
+    (Icons.home_outlined, Icons.home_rounded, 'Home', BrightIconTone.violet),
     (
       Icons.search_outlined,
       Icons.search_rounded,
@@ -804,7 +798,10 @@ class _NavItem extends StatelessWidget {
               : null,
           borderRadius: BorderRadius.circular(22),
           border: selected
-              ? Border.all(color: colors.first.withValues(alpha: 0.35), width: 0.6)
+              ? Border.all(
+                  color: colors.first.withValues(alpha: 0.35),
+                  width: 0.6,
+                )
               : null,
         ),
         child: Column(
@@ -965,7 +962,8 @@ class GlassSongTile extends StatelessWidget {
                       ),
                     )
                   : null,
-              trailing: trailing ??
+              trailing:
+                  trailing ??
                   (onMore != null
                       ? IconButton(
                           icon: Icon(
@@ -1021,7 +1019,11 @@ class _MiniVisualizerState extends State<_MiniVisualizer>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(3, (i) {
-            final h = 4 + 8 * ((math.sin(_controller.value * math.pi * 2 + i * 1.5) + 1) / 2);
+            final h =
+                4 +
+                8 *
+                    ((math.sin(_controller.value * math.pi * 2 + i * 1.5) + 1) /
+                        2);
             return Container(
               width: 3,
               height: h,

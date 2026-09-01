@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 
@@ -79,25 +80,24 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.background.withValues(alpha: 0.15),
-                    AppColors.background.withValues(alpha: 0.8),
-                    AppColors.background,
+                    AppColors.background.withValues(alpha: 0.10),
+                    AppColors.background.withValues(alpha: 0.72),
+                    AppColors.background.withValues(alpha: 0.94),
                   ],
-                  stops: const [0.0, 0.35, 1.0],
+                  stops: const [0.0, 0.38, 1.0],
                 ),
               ),
             ),
           ),
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
               child: Container(
-                color: AppColors.background.withValues(alpha: 0.5),
+                color: AppColors.background.withValues(alpha: 0.72),
               ),
             ),
           ),
-          // Floating particles
-          const FloatingParticles(particleCount: 20, maxSize: 3),
+          // (wave particles removed — calm modern stage)
           SafeArea(
             child: Column(
               children: [
@@ -165,174 +165,137 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   ],
                 ),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        _showCassette
-                            ? CassettePlayer(
-                                isPlaying: isPlaying,
-                                artworkUrl: track.artUri?.toString(),
-                              )
-                            : Expanded(
-                                child: Center(
-                                  child: BreathingGlow(
-                                    color: AppColors.primary,
-                                    maxBlur: 40,
-                                    child: RotatingAlbumArt(
-                                      imageUrl: track.artUri?.toString(),
-                                      isPlaying: isPlaying,
-                                      size: 260,
-                                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = MediaQuery.of(context).size.width;
+                      final artworkSize = (w * 0.72)
+                          .clamp(220.0, 320.0)
+                          .toDouble();
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 440),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 8),
+                                  // ── Artwork stage — modern minimal ──
+                                  _ArtworkStage(
+                                    showCassette: _showCassette,
+                                    isPlaying: isPlaying,
+                                    artworkUrl: track.artUri?.toString(),
+                                    size: artworkSize,
+                                    onToggle: () {
+                                      HapticFeedback.selectionClick();
+                                      setState(
+                                        () => _showCassette = !_showCassette,
+                                      );
+                                    },
                                   ),
-                                ),
+                                  const SizedBox(height: 22),
+                                  // ── Identity stack — editorial ──
+                                  _TrackIdentity(
+                                    title: track.title,
+                                    artist: track.artist,
+                                    album: track.album,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Single calm quality line (max 2 pills)
+                                  _QualityLine(track: track),
+                                  const SizedBox(height: 14),
+                                  // Sleep timer inline (above seek, calm)
+                                  _SleepTimerInlineBar(
+                                    onTap: () =>
+                                        _showSleepTimerSheet(context, ref),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // ── Thin seek — precise ──
+                                  EnhancedSeekBar(
+                                    progress: dur.inMilliseconds == 0
+                                        ? 0
+                                        : (seekMs / dur.inMilliseconds).clamp(
+                                            0.0,
+                                            1.0,
+                                          ),
+                                    position: Duration(
+                                      milliseconds: seekMs.round(),
+                                    ),
+                                    duration: dur,
+                                    onChangeStart: (_) => setState(
+                                      () => _dragValue = dur.inMilliseconds == 0
+                                          ? 0
+                                          : (pos.inMilliseconds /
+                                                    dur.inMilliseconds)
+                                                .clamp(0.0, 1.0),
+                                    ),
+                                    onChanged: (v) =>
+                                        setState(() => _dragValue = v),
+                                    onChangeEnd: (v) {
+                                      notifier.seek(
+                                        Duration(
+                                          milliseconds: (v * dur.inMilliseconds)
+                                              .round(),
+                                        ),
+                                      );
+                                      setState(() => _dragValue = null);
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+                                  // ── Quiet transport deck ──
+                                  _TransportConsole(
+                                    isPlaying: isPlaying,
+                                    isBuffering:
+                                        state.processingState ==
+                                        ProcessingState.buffering,
+                                    shuffle: state.shuffleEnabled,
+                                    repeatMode: state.repeatMode,
+                                    onShuffle: () => notifier.toggleShuffle(),
+                                    onPrevious: () => notifier.previous(),
+                                    onPlayPause: () => notifier.togglePlay(),
+                                    onNext: () => notifier.next(),
+                                    onRepeat: () => notifier.cycleRepeat(),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  // ── Micro actions — ghost pills ──
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _IconGlow(
+                                        icon: Icons.queue_music_rounded,
+                                        onTap: () => _showQueue(context),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _IconGlow(
+                                        icon: Icons.bedtime_rounded,
+                                        color: AppColors.secondary,
+                                        onTap: () =>
+                                            _showSleepTimerSheet(context, ref),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _SpeedControl(
+                                        speed: state.playbackSpeed,
+                                        onChanged: (s) => notifier.setSpeed(s),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _IconGlow(
+                                        icon: Icons.more_horiz_rounded,
+                                        color: AppColors.textMuted,
+                                        onTap: () {},
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
                               ),
-                        const SizedBox(height: 32),
-                        // Track info
-                        Text(
-                          track.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          track.artist ?? 'Unknown Artist',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.primaryLight,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (track.album != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            track.album!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 14,
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 16),
-                        // Visualizer
-                        VisualizerBars(
-                          isPlaying: isPlaying,
-                          barCount: 24,
-                          color: AppColors.primary,
-                          height: 30,
                         ),
-                        const SizedBox(height: 16),
-                        // Quality badges
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          children: [
-                            if (track.extras?['codec'] != null)
-                              GradientBadge(
-                                text: (track.extras!['codec'] as String)
-                                    .toUpperCase(),
-                              ),
-                            if (track.extras?['lossless'] == true)
-                              const GradientBadge(
-                                text: 'LOSSLESS',
-                                color: AppColors.secondary,
-                              ),
-                            if (track.extras?['sampleRate'] != null &&
-                                (track.extras!['sampleRate'] as int) >= 48000)
-                              const GradientBadge(
-                                text: 'HI-RES',
-                                color: AppColors.tertiary,
-                              ),
-                            if (track.extras?['bitrate'] != null)
-                              GradientBadge(
-                                text: '${track.extras!['bitrate']} kbps',
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        // Seek slider
-                        EnhancedSeekBar(
-                          progress: dur.inMilliseconds == 0
-                              ? 0
-                              : (seekMs / dur.inMilliseconds).clamp(0.0, 1.0),
-                          position: Duration(milliseconds: seekMs.round()),
-                          duration: dur,
-                          onChangeStart: (_) => setState(
-                            () => _dragValue = dur.inMilliseconds == 0
-                                ? 0
-                                : (pos.inMilliseconds / dur.inMilliseconds)
-                                    .clamp(0.0, 1.0),
-                          ),
-                          onChanged: (v) => setState(() => _dragValue = v),
-                          onChangeEnd: (v) {
-                            notifier.seek(
-                              Duration(
-                                milliseconds: (v * dur.inMilliseconds).round(),
-                              ),
-                            );
-                            setState(() => _dragValue = null);
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        // Transport console — audiophile glass control deck
-                        _TransportConsole(
-                          isPlaying: isPlaying,
-                          isBuffering:
-                              state.processingState == ProcessingState.buffering,
-                          shuffle: state.shuffleEnabled,
-                          repeatMode: state.repeatMode,
-                          onShuffle: () => notifier.toggleShuffle(),
-                          onPrevious: () => notifier.previous(),
-                          onPlayPause: () => notifier.togglePlay(),
-                          onNext: () => notifier.next(),
-                          onRepeat: () => notifier.cycleRepeat(),
-                        ),
-                        const SizedBox(height: 20),
-                        // Inline sleep timer status (visible when active)
-                        _SleepTimerInlineBar(
-                          onTap: () => _showSleepTimerSheet(context, ref),
-                        ),
-                        const SizedBox(height: 10),
-                        // Bottom actions
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _IconGlow(
-                              icon: Icons.queue_music_rounded,
-                              onTap: () => _showQueue(context),
-                            ),
-                            const SizedBox(width: 16),
-                            _IconGlow(
-                              icon: Icons.bedtime_rounded,
-                              color: AppColors.secondary,
-                              onTap: () => _showSleepTimerSheet(context, ref),
-                            ),
-                            const SizedBox(width: 16),
-                            _SpeedControl(
-                              speed: state.playbackSpeed,
-                              onChanged: (s) => notifier.setSpeed(s),
-                            ),
-                            const SizedBox(width: 16),
-                            _IconGlow(
-                              icon: Icons.more_horiz_rounded,
-                              color: AppColors.textMuted,
-                              onTap: () {},
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -446,10 +409,163 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ARTWORK STAGE — Modern minimal with AnimatedSwitcher
+// ═══════════════════════════════════════════════════════════════
+
+class _ArtworkStage extends StatelessWidget {
+  final bool showCassette;
+  final bool isPlaying;
+  final String? artworkUrl;
+  final double size;
+  final VoidCallback onToggle;
+
+  const _ArtworkStage({
+    required this.showCassette,
+    required this.isPlaying,
+    required this.artworkUrl,
+    required this.size,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeOutCubic,
+        transitionBuilder: (child, anim) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+              child: child,
+            ),
+          );
+        },
+        child: showCassette
+            ? CassettePlayer(
+                key: const ValueKey('cassette'),
+                isPlaying: isPlaying,
+                artworkUrl: artworkUrl,
+              )
+            : Center(
+                key: const ValueKey('artwork'),
+                child: BreathingGlow(
+                  color: AppColors.primary,
+                  maxBlur: 18,
+                  child: RotatingAlbumArt(
+                    imageUrl: artworkUrl,
+                    isPlaying: isPlaying,
+                    size: size,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _TrackIdentity extends StatelessWidget {
+  final String title;
+  final String? artist;
+  final String? album;
+  const _TrackIdentity({required this.title, this.artist, this.album});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: AppColors.text,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          artist ?? 'Unknown Artist',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.primaryLight,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
+          ),
+        ),
+        if (album != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            album!,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QualityLine extends StatelessWidget {
+  final dynamic track;
+  const _QualityLine({required this.track});
+
+  @override
+  Widget build(BuildContext context) {
+    final codec = track.extras?['codec'] as String?;
+    final lossless = track.extras?['lossless'] == true;
+    final hiRes =
+        track.extras?['sampleRate'] != null &&
+        (track.extras!['sampleRate'] as int) >= 48000;
+    final bitrate = track.extras?['bitrate'];
+
+    final pills = <Widget>[];
+    if (lossless) {
+      pills.add(
+        const GradientBadge(text: 'LOSSLESS', color: AppColors.secondary),
+      );
+    } else if (codec != null) {
+      pills.add(GradientBadge(text: codec.toUpperCase()));
+    }
+    if (hiRes) {
+      pills.add(const GradientBadge(text: 'HI-RES', color: AppColors.tertiary));
+    } else if (lossless && codec != null && bitrate != null) {
+      // Show bitrate only when not hi-res to keep max 2
+      pills.add(GradientBadge(text: '$bitrate kbps'));
+    }
+
+    if (pills.isEmpty) return const SizedBox(height: 4);
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      children: pills.take(2).toList(),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // CONTROL BUTTON
 // ═══════════════════════════════════════════════════════════════
 
-/// The floating glass deck that houses the transport controls.
+/// Quiet modern capsule that houses transport controls.
 class _TransportConsole extends StatelessWidget {
   final bool isPlaying;
   final bool isBuffering;
@@ -475,31 +591,30 @@ class _TransportConsole extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: AppColors.glassBorderStrong, width: 0.6),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.glassBase.withValues(alpha: 0.55),
-            AppColors.glassBase.withValues(alpha: 0.26),
-          ],
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isLight ? AppColors.hairline : AppColors.glassBorderStrong,
+          width: 0.6,
         ),
+        color: isLight
+            ? Colors.white.withValues(alpha: 0.88)
+            : AppColors.glassBase.withValues(alpha: 0.62),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.32),
-            blurRadius: 34,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.24),
+            blurRadius: isLight ? 18 : 28,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(36),
+        borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.max,
@@ -512,8 +627,8 @@ class _TransportConsole extends StatelessWidget {
               ),
               _ControlButton(
                 icon: Icons.skip_previous_rounded,
-                size: 32,
-                discSize: 56,
+                size: 28,
+                discSize: 48,
                 tone: BrightIconTone.violet,
                 alwaysBright: true,
                 onPressed: onPrevious,
@@ -523,29 +638,30 @@ class _TransportConsole extends StatelessWidget {
                 children: [
                   if (isBuffering)
                     SizedBox(
-                      width: 94,
-                      height: 94,
+                      width: 84,
+                      height: 84,
                       child: CircularProgressIndicator(
-                        strokeWidth: 3,
+                        strokeWidth: 2.5,
                         valueColor: const AlwaysStoppedAnimation(
                           AppColors.primary,
                         ),
                         backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.15,
+                          alpha: 0.12,
                         ),
                       ),
                     ),
                   EnhancedPlayButton(
                     isPlaying: isPlaying,
-                    size: 84,
+                    size: 76,
+                    showGlow: isPlaying,
                     onPressed: onPlayPause,
                   ),
                 ],
               ),
               _ControlButton(
                 icon: Icons.skip_next_rounded,
-                size: 32,
-                discSize: 56,
+                size: 28,
+                discSize: 48,
                 tone: BrightIconTone.violet,
                 alwaysBright: true,
                 onPressed: onNext,
@@ -589,6 +705,7 @@ class _ControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = tone.stops;
+    final isLight = AppColors.mode == AppThemeMode.light;
     return GestureDetector(
       onTap: onPressed,
       behavior: HitTestBehavior.opaque,
@@ -604,28 +721,44 @@ class _ControlButton extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    colors.first.withValues(alpha: 0.32),
-                    colors.last.withValues(alpha: 0.10),
+                    colors.first.withValues(alpha: isLight ? 0.18 : 0.28),
+                    colors.last.withValues(alpha: isLight ? 0.08 : 0.10),
                   ],
                 )
               : LinearGradient(
                   colors: [
-                    AppColors.glassBase.withValues(alpha: 0.38),
-                    AppColors.glassBase.withValues(alpha: 0.14),
+                    isLight
+                        ? Colors.white.withValues(alpha: 0.92)
+                        : AppColors.glassBase.withValues(alpha: 0.32),
+                    isLight
+                        ? Colors.white.withValues(alpha: 0.72)
+                        : AppColors.glassBase.withValues(alpha: 0.14),
                   ],
                 ),
           border: Border.all(
             color: isActive
-                ? colors.first.withValues(alpha: 0.45)
+                ? colors.first.withValues(alpha: isLight ? 0.28 : 0.42)
+                : isLight
+                ? AppColors.hairline
                 : AppColors.glassBorder,
             width: 0.7,
           ),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: colors.first.withValues(alpha: 0.38),
-                    blurRadius: 24,
+                    color: colors.first.withValues(
+                      alpha: isLight ? 0.18 : 0.28,
+                    ),
+                    blurRadius: isLight ? 16 : 22,
                     spreadRadius: -6,
+                  ),
+                ]
+              : isLight
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ]
               : null,
@@ -657,18 +790,31 @@ class _IconGlow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? AppColors.textMuted;
+    final isLight = AppColors.mode == AppThemeMode.light;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [c.withValues(alpha: 0.12), c.withValues(alpha: 0.05)],
-          ),
+          color: isLight
+              ? Colors.white.withValues(alpha: 0.86)
+              : c.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: c.withValues(alpha: 0.18), width: 0.5),
+          border: Border.all(
+            color: isLight ? AppColors.hairline : c.withValues(alpha: 0.14),
+            width: 0.6,
+          ),
+          boxShadow: isLight
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
-        child: Icon(icon, color: c, size: 24),
+        child: Icon(icon, color: c, size: 20),
       ),
     );
   }
@@ -1003,10 +1149,7 @@ class _SleepTimerSheet extends ConsumerWidget {
                     Text(
                       formatSleepDuration(timer.total ?? Duration.zero) +
                           ' total',
-                      style: TextStyle(
-                        color: AppColors.textDim,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: AppColors.textDim, fontSize: 11),
                     ),
                     const Spacer(),
                     GestureDetector(
@@ -1043,8 +1186,7 @@ class _SleepTimerSheet extends ConsumerWidget {
                   for (final d in SleepTimerNotifier.presets)
                     _PresetChip(
                       duration: d,
-                      selected:
-                          timer.isActive && timer.total == d,
+                      selected: timer.isActive && timer.total == d,
                       onTap: () {
                         ref.read(sleepTimerProvider.notifier).setTimer(d);
                         Navigator.pop(context);
@@ -1066,10 +1208,7 @@ class _SleepTimerSheet extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.border,
-                        width: 0.6,
-                      ),
+                      border: Border.all(color: AppColors.border, width: 0.6),
                     ),
                     child: Text(
                       timer.isActive ? 'Turn off' : 'Off',
