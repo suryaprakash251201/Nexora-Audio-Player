@@ -321,7 +321,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
                   if (hasNowPlaying) ...[
                     Text(
-                      current!.title,
+                      current.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

@@ -54,16 +54,21 @@ class GlassSurface extends StatelessWidget {
                   ],
                 ),
             border:
-                border ?? Border.all(color: AppColors.glassBorder, width: 0.5),
+                border ??
+                Border.all(
+                  color: showInnerGlow
+                      ? (glowColor ?? AppColors.primary).withValues(alpha: 0.35)
+                      : AppColors.glassBorder,
+                  width: showInnerGlow ? 1.0 : 0.5,
+                ),
             boxShadow: [
               if (showInnerGlow)
                 BoxShadow(
                   color: (glowColor ?? AppColors.primary).withValues(
-                    alpha: 0.08,
+                    alpha: 0.15,
                   ),
                   blurRadius: glowRadius ?? 30,
-                  spreadRadius: -5,
-                  inset: true,
+                  spreadRadius: -8,
                 ),
             ],
           ),
