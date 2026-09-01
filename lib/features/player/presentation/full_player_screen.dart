@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode;
+
 import '../../../ui/theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../providers/player_provider.dart';

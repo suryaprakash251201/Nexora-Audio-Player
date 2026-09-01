@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
+
 import '../../core/database/database_service.dart';
 import '../../domain/entities/song.dart';
 
@@ -34,8 +35,11 @@ class SongsLocalDataSource {
       // Use INSERT OR IGNORE + UPDATE instead of REPLACE to avoid
       // triggering ON DELETE CASCADE which would silently remove
       // playlist_items referencing this track.
-      batch.insert('tracks', values,
-          conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert(
+        'tracks',
+        values,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
       batch.update(
         'tracks',
         values..remove('id'),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/server_config_screen.dart';
 import 'features/home/presentation/home_screen.dart';
@@ -90,14 +91,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/folder',
             builder: (c, s) {
               final rootId =
-                  s.uri.queryParameters['root'] ?? 'root_c617a9424d30516f12d802a3';
+                  s.uri.queryParameters['root'] ??
+                  'root_c617a9424d30516f12d802a3';
               final path = s.uri.queryParameters['path'] ?? '';
               return FolderBrowserScreen(rootId: rootId, path: path);
             },
           ),
-          GoRoute(path: '/favorites', builder: (c, s) => const FavoritesScreen()),
+          GoRoute(
+            path: '/favorites',
+            builder: (c, s) => const FavoritesScreen(),
+          ),
           GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
-          GoRoute(path: '/equalizer', builder: (c, s) => const EqualizerScreen()),
+          GoRoute(
+            path: '/equalizer',
+            builder: (c, s) => const EqualizerScreen(),
+          ),
         ],
       ),
       GoRoute(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../ui/theme.dart';
@@ -77,16 +78,14 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter server URL')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Enter server URL')));
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Server saved: $url')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Server saved: $url')));
     context.pop();
   }
 

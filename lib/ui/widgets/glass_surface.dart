@@ -1,5 +1,7 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import '../theme.dart';
 
 class GlassSurface extends StatelessWidget {
@@ -26,7 +28,9 @@ class GlassSurface extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E).withValues(alpha: opacity), // Apple Music dark mode glass color
+            color: const Color(
+              0xFF1C1C1E,
+            ).withValues(alpha: opacity), // Apple Music dark mode glass color
             borderRadius: borderRadius ?? BorderRadius.circular(16),
             border:
                 border ??

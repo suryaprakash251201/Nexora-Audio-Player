@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/search_result.dart';
 import '../api/search_api.dart';
 import '../../core/storage/prefs_service.dart';

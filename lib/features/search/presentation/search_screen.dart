@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
@@ -92,7 +93,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               TextButton(
                                 onPressed: () async {
                                   // Actually clear stored searches, then refresh
-                                  await ref.read(searchRepositoryProvider).clearRecent();
+                                  await ref
+                                      .read(searchRepositoryProvider)
+                                      .clearRecent();
                                   ref.invalidate(recentSearchesProvider);
                                 },
                                 child: const Text('Clear'),

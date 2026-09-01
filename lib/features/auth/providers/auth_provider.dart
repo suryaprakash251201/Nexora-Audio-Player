@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../domain/entities/user.dart';

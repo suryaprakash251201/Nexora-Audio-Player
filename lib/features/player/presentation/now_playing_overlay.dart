@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/glass_surface.dart';
@@ -77,7 +78,7 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
         animation: _heightAnimation,
         builder: (context, child) {
           final isFullScreen = _isExpanded;
-          
+
           return Container(
             height: _heightAnimation.value,
             margin: isFullScreen
@@ -151,7 +152,10 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
         track.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       subtitle: Text(
         track.artist ?? 'Unknown Artist',
@@ -264,7 +268,11 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.more_horiz, color: Colors.white, size: 28),
+                    icon: const Icon(
+                      Icons.more_horiz,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     onPressed: () {},
                   ),
                 ],
@@ -328,7 +336,9 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                 ),
                 IconButton(
                   icon: Icon(
-                    state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    state.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
                     size: 60,
                     color: Colors.white,
                   ),
@@ -350,17 +360,26 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.volume_up_rounded, color: Colors.white70),
+                  icon: const Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.white70,
+                  ),
                   onPressed: () {},
                 ),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: Colors.white70,
+                      ),
                       onPressed: () {},
                     ),
                     IconButton(
-                      icon: const Icon(Icons.list_rounded, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.list_rounded,
+                        color: Colors.white70,
+                      ),
                       onPressed: () {},
                     ),
                   ],

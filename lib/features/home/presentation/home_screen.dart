@@ -1,7 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/glass_surface.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -46,7 +48,11 @@ class HomeScreen extends ConsumerWidget {
                 onPressed: () => context.push('/search'),
               ),
               IconButton(
-                icon: const Icon(Icons.account_circle, size: 28, color: AppColors.primary),
+                icon: const Icon(
+                  Icons.account_circle,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
                 onPressed: () => context.push('/settings'),
               ),
               const SizedBox(width: 8),
@@ -79,16 +85,20 @@ class HomeScreen extends ConsumerWidget {
                       data: (songs) => songs.isEmpty
                           ? const EmptyView(
                               title: 'No songs',
-                              subtitle: 'Pull to refresh or check server connection',
+                              subtitle:
+                                  'Pull to refresh or check server connection',
                               icon: Icons.music_note_outlined,
                             )
                           : SizedBox(
                               height: 220,
                               child: ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 scrollDirection: Axis.horizontal,
                                 itemCount: songs.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 16),
                                 itemBuilder: (c, i) {
                                   final s = songs[i];
                                   return GestureDetector(
@@ -98,13 +108,15 @@ class HomeScreen extends ConsumerWidget {
                                     child: SizedBox(
                                       width: 140,
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Container(
                                             decoration: BoxDecoration(
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.3),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.3),
                                                   blurRadius: 10,
                                                   offset: const Offset(0, 4),
                                                 ),
@@ -144,7 +156,8 @@ class HomeScreen extends ConsumerWidget {
                                 },
                               ),
                             ),
-                      loading: () => const SizedBox(height: 220, child: LoadingView()),
+                      loading: () =>
+                          const SizedBox(height: 220, child: LoadingView()),
                       error: (e, _) => ErrorView(
                         message: e.toString(),
                         onRetry: () => ref.invalidate(recentSongsProvider),
@@ -163,17 +176,21 @@ class HomeScreen extends ConsumerWidget {
                           : SizedBox(
                               height: 180,
                               child: ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 scrollDirection: Axis.horizontal,
                                 itemCount: items.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 16),
                                 itemBuilder: (c, i) {
                                   final h = items[i];
                                   final song = h.song;
                                   return SizedBox(
                                     width: 120,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         ArtworkImage(
                                           url: song?.coverUrl,
@@ -197,7 +214,8 @@ class HomeScreen extends ConsumerWidget {
                                 },
                               ),
                             ),
-                      loading: () => const SizedBox(height: 180, child: LoadingView()),
+                      loading: () =>
+                          const SizedBox(height: 180, child: LoadingView()),
                       error: (e, _) => ErrorView(
                         message: e.toString(),
                         onRetry: () => ref.invalidate(recentlyPlayedProvider),
@@ -218,22 +236,28 @@ class HomeScreen extends ConsumerWidget {
                           : SizedBox(
                               height: 240,
                               child: ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 scrollDirection: Axis.horizontal,
                                 itemCount: list.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 16),
                                 itemBuilder: (c, i) {
                                   final a = list[i];
                                   return SizedBox(
                                     width: 160,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           decoration: BoxDecoration(
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.4),
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.4,
+                                                ),
                                                 blurRadius: 12,
                                                 offset: const Offset(0, 6),
                                               ),
@@ -272,7 +296,8 @@ class HomeScreen extends ConsumerWidget {
                                 },
                               ),
                             ),
-                      loading: () => const SizedBox(height: 240, child: LoadingView()),
+                      loading: () =>
+                          const SizedBox(height: 240, child: LoadingView()),
                       error: (e, _) => ErrorView(
                         message: e.toString(),
                         onRetry: () => ref.invalidate(featuredAlbumsProvider),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/api/files_api.dart';
 import '../../../data/dto/file_dto.dart';
@@ -104,9 +105,8 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Created "$name"')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Created "$name"')));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

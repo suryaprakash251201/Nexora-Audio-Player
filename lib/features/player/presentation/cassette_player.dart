@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../../ui/theme.dart';
 
 class CassettePlayer extends StatefulWidget {

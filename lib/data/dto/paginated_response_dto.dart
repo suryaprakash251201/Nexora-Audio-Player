@@ -95,26 +95,25 @@ class PaginatedResponseDto<T> {
           page = rawPage is int
               ? rawPage
               : int.tryParse((rawPage ?? '$fallbackPage').toString()) ??
-                  fallbackPage;
+                    fallbackPage;
 
           final rawLimit = pagination['limit'];
           limit = rawLimit is int
               ? rawLimit
               : int.tryParse((rawLimit ?? '$fallbackLimit').toString()) ??
-                  fallbackLimit;
+                    fallbackLimit;
 
           final rawTotal = pagination['total'];
           total = rawTotal is int
               ? rawTotal
               : int.tryParse((rawTotal ?? '${items.length}').toString()) ??
-                  items.length;
+                    items.length;
 
-          final rawTotalPages =
-              pagination['totalPages'] ?? pagination['pages'];
+          final rawTotalPages = pagination['totalPages'] ?? pagination['pages'];
           totalPages = rawTotalPages is int
               ? rawTotalPages
               : int.tryParse((rawTotalPages ?? '1').toString()) ??
-                  (limit > 0 ? (total / limit).ceil() : 1);
+                    (limit > 0 ? (total / limit).ceil() : 1);
 
           hasNext = pagination['hasNext'] as bool? ?? (page < totalPages);
           hasPrev = pagination['hasPrev'] as bool? ?? (page > 1);

@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+
 import '../../../core/audio/audio_handler.dart';
 import '../../../core/audio/queue_manager.dart';
 import '../../../core/logging/app_logger.dart';
@@ -234,11 +236,13 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
           LoopMode.one: LoopMode.off,
         }[state.repeatMode] ??
         LoopMode.off;
-    final serviceMode = {
-      LoopMode.off: AudioServiceRepeatMode.none,
-      LoopMode.all: AudioServiceRepeatMode.all,
-      LoopMode.one: AudioServiceRepeatMode.one,
-    }[nextMode] ?? AudioServiceRepeatMode.none;
+    final serviceMode =
+        {
+          LoopMode.off: AudioServiceRepeatMode.none,
+          LoopMode.all: AudioServiceRepeatMode.all,
+          LoopMode.one: AudioServiceRepeatMode.one,
+        }[nextMode] ??
+        AudioServiceRepeatMode.none;
     await _handler.setRepeatMode(serviceMode);
   }
 

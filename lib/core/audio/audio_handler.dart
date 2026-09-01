@@ -55,11 +55,13 @@ class NexoraAudioHandler extends BaseAudioHandler
             ProcessingState.ready: AudioProcessingState.ready,
             ProcessingState.completed: AudioProcessingState.completed,
           }[_player.processingState]!,
-          repeatMode: const {
-            LoopMode.off: AudioServiceRepeatMode.none,
-            LoopMode.one: AudioServiceRepeatMode.one,
-            LoopMode.all: AudioServiceRepeatMode.all,
-          }[_player.loopMode] ?? AudioServiceRepeatMode.none,
+          repeatMode:
+              const {
+                LoopMode.off: AudioServiceRepeatMode.none,
+                LoopMode.one: AudioServiceRepeatMode.one,
+                LoopMode.all: AudioServiceRepeatMode.all,
+              }[_player.loopMode] ??
+              AudioServiceRepeatMode.none,
           shuffleMode: _player.shuffleModeEnabled
               ? AudioServiceShuffleMode.all
               : AudioServiceShuffleMode.none,

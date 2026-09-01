@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
@@ -65,13 +67,19 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     if (_loading)
       return Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.transparent, title: Text(_playlist?.name ?? 'Playlist')),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text(_playlist?.name ?? 'Playlist'),
+        ),
         body: const LoadingView(),
       );
     if (_error != null)
       return Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.transparent, title: const Text('Playlist')),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: const Text('Playlist'),
+        ),
         body: ErrorView(message: _error!, onRetry: _load),
       );
     final p = _playlist!;
@@ -177,7 +185,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         children: [
                           Icon(Icons.play_arrow_rounded, size: 24),
                           SizedBox(width: 8),
-                          Text('Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Play',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -199,7 +213,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         children: [
                           Icon(Icons.shuffle_rounded, size: 20),
                           SizedBox(width: 8),
-                          Text('Shuffle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Shuffle',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -217,60 +237,60 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   ),
                 )
               : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (c, i) {
-                      final s = _tracks[i];
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                        key: ValueKey(s.id),
-                        leading: ArtworkImage(
-                          url: s.coverUrl,
-                          size: 52,
-                          borderRadius: 8,
+                  delegate: SliverChildBuilderDelegate((c, i) {
+                    final s = _tracks[i];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 4,
+                      ),
+                      key: ValueKey(s.id),
+                      leading: ArtworkImage(
+                        url: s.coverUrl,
+                        size: 52,
+                        borderRadius: 8,
+                      ),
+                      title: Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        title: Text(
-                          s.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                      subtitle: Text(
+                        '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 14,
                         ),
-                        subtitle: Text(
-                          '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 14,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.play_arrow_rounded,
-                                color: AppColors.textMuted,
-                              ),
-                              onPressed: () => ref
-                                  .read(playerProvider.notifier)
-                                  .playSongs(_tracks, initialIndex: i),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.play_arrow_rounded,
+                              color: AppColors.textMuted,
                             ),
-                            const Icon(
-                              Icons.drag_handle_rounded,
-                              color: AppColors.textDim,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                        onTap: () => ref
-                            .read(playerProvider.notifier)
-                            .playSongs(_tracks, initialIndex: i),
-                      );
-                    },
-                    childCount: _tracks.length,
-                  ),
+                            onPressed: () => ref
+                                .read(playerProvider.notifier)
+                                .playSongs(_tracks, initialIndex: i),
+                          ),
+                          const Icon(
+                            Icons.drag_handle_rounded,
+                            color: AppColors.textDim,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                      onTap: () => ref
+                          .read(playerProvider.notifier)
+                          .playSongs(_tracks, initialIndex: i),
+                    );
+                  }, childCount: _tracks.length),
                 ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
         ],
@@ -287,7 +307,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     } else if (p.coverUrl != null) {
       url = p.coverUrl;
     }
-    
+
     if (url != null) {
       if (blur) {
         return Stack(
@@ -303,7 +323,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       }
       return ArtworkImage(url: url, size: 140, borderRadius: 12);
     }
-    
+
     return Container(
       width: blur ? double.infinity : 140,
       height: blur ? double.infinity : 140,
@@ -314,7 +334,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       child: Icon(
         Icons.music_note,
         size: blur ? 100 : 40,
-        color: blur ? AppColors.textDim.withValues(alpha: 0.2) : AppColors.textMuted,
+        color: blur
+            ? AppColors.textDim.withValues(alpha: 0.2)
+            : AppColors.textMuted,
       ),
     );
   }

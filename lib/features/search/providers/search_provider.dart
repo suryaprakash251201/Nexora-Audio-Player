@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../data/repositories/search_repository.dart';
 import '../../../domain/entities/search_result.dart';
 

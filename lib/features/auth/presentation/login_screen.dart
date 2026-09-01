@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/errors/failures.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/config/app_config.dart';
@@ -209,8 +210,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _serverController,
                       hint: 'http://192.168.1.5',
                       icon: Icons.dns_outlined,
-                      helper:
-                          'LAN: http://192.168.1.5  •  Leave empty to use saved',
+                      helper: 'LAN: http://192.168.1.5  •  Leave empty to use saved',
                     ),
                     const SizedBox(height: 8),
                     Row(
