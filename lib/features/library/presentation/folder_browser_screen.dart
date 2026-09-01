@@ -49,33 +49,37 @@ List<(String, String)> breadcrumbSegments(String path) {
 /// Loads a folder: sub-folders + audio songs (with stream + artwork attached).
 final folderContentProvider = FutureProvider.autoDispose
     .family<FolderContent, ({String rootId, String path})>((ref, args) async {
-  final api = ref.watch(filesApiProvider);
-  final items = await api.list(args.rootId, args.path, limit: 500);
+      final api = ref.watch(filesApiProvider);
+      final items = await api.list(args.rootId, args.path, limit: 500);
 
-  final folders = <FolderEntry>[];
-  final songs = <dynamic>[];
-  String? firstAudioPath;
+      final folders = <FolderEntry>[];
+      final songs = <dynamic>[];
+      String? firstAudioPath;
 
-  for (final f in items) {
-    if (f.isDir) {
-      final dirPath = f.path.isEmpty ? f.name : f.path;
-      folders.add(FolderEntry(rootId: args.rootId, path: dirPath, name: f.name));
-    } else if (NexoraFiles.isAudio(f)) {
-      firstAudioPath ??= f.path;
-      final song = NexoraFiles.toSong(
-        f,
-        streamUrl: await api.rawUrl(args.rootId, f.path),
-        artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
-      );
-      songs.add(song);
-    }
-  }
-  return FolderContent(folders: folders, songs: songs);
-});
+      for (final f in items) {
+        if (f.isDir) {
+          final dirPath = f.path.isEmpty ? f.name : f.path;
+          folders.add(
+            FolderEntry(rootId: args.rootId, path: dirPath, name: f.name),
+          );
+        } else if (NexoraFiles.isAudio(f)) {
+          firstAudioPath ??= f.path;
+          final song = NexoraFiles.toSong(
+            f,
+            streamUrl: await api.rawUrl(args.rootId, f.path),
+            artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
+          );
+          songs.add(song);
+        }
+      }
+      return FolderContent(folders: folders, songs: songs);
+    });
 
 /// Lazily resolves a folder cover (first audio file's thumbnail).
-final folderCoverProvider =
-    FutureProvider.autoDispose.family<String?, String>((ref, folderId) async {
+final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
+  ref,
+  folderId,
+) async {
   final api = ref.watch(filesApiProvider);
   final idx = folderId.indexOf('|');
   if (idx <= 0) return null;
@@ -163,9 +167,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                           child: Text(
                             label,
                             style: TextStyle(
-                              color: isLast
-                                  ? Colors.white
-                                  : AppColors.primary,
+                              color: isLast ? Colors.white : AppColors.primary,
                               fontSize: 13,
                               fontWeight: isLast
                                   ? FontWeight.bold
@@ -184,9 +186,9 @@ class FolderBrowserScreen extends ConsumerWidget {
                   child: Text(
                     'Folders',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 GridView.builder(
@@ -210,16 +212,20 @@ class FolderBrowserScreen extends ConsumerWidget {
                   child: Text(
                     'Songs',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 ...content.songs.asMap().entries.map((e) {
                   final i = e.key;
                   final s = e.value;
                   return ListTile(
-                    leading: ArtworkImage(url: s.coverUrl, size: 52, borderRadius: 8),
+                    leading: ArtworkImage(
+                      url: s.coverUrl,
+                      size: 52,
+                      borderRadius: 8,
+                    ),
                     title: Text(
                       s.title,
                       maxLines: 1,
@@ -263,7 +269,8 @@ class FolderBrowserScreen extends ConsumerWidget {
                             color: AppColors.textMuted,
                             size: 18,
                           ),
-                          onPressed: () => _showSongMenu(context, ref, s, content.songs, i),
+                          onPressed: () =>
+                              _showSongMenu(context, ref, s, content.songs, i),
                         ),
                       ],
                     ),
@@ -305,7 +312,10 @@ class FolderBrowserScreen extends ConsumerWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.play_arrow, color: Colors.white),
-              title: const Text('Play next', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Play next',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(c);
                 ref.read(playerProvider.notifier).playNext(song);
@@ -313,13 +323,16 @@ class FolderBrowserScreen extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.queue_music, color: Colors.white),
-              title: const Text('Add to queue', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Add to queue',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(c);
                 ref.read(playerProvider.notifier).addToQueue(song);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Added to queue')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Added to queue')));
               },
             ),
           ],

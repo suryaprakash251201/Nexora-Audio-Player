@@ -28,7 +28,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
         actions: [
           IconButton(
             tooltip: _grid ? 'List view' : 'Grid view',
-            icon: Icon(_grid ? Icons.view_list_outlined : Icons.grid_view_outlined),
+            icon: Icon(
+              _grid ? Icons.view_list_outlined : Icons.grid_view_outlined,
+            ),
             onPressed: () => setState(() => _grid = !_grid),
           ),
         ],
@@ -47,10 +49,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
               )
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(_playlistsProvider),
-                child: _grid ? _PlaylistGrid(list: list) : _PlaylistList(list: list),
+                child: _grid
+                    ? _PlaylistGrid(list: list)
+                    : _PlaylistList(list: list),
               ),
         loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: e.toString(), onRetry: () => ref.invalidate(_playlistsProvider)),
+        error: (e, _) => ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(_playlistsProvider),
+        ),
       ),
     );
   }
@@ -61,7 +68,10 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('New Playlist', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'New Playlist',
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -71,12 +81,21 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
             hintStyle: const TextStyle(color: AppColors.textDim),
             filled: true,
             fillColor: AppColors.surfaceRaised,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(c, controller.text.trim()), child: const Text('Create')),
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, controller.text.trim()),
+            child: const Text('Create'),
+          ),
         ],
       ),
     );
@@ -84,10 +103,18 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     try {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Created "$name"')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Created "$name"')));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     }
   }
@@ -99,7 +126,10 @@ final _playlistsProvider = FutureProvider(
 
 /// Cover for a playlist = first track's thumbnail (server extracts the
 /// embedded cover; falls back to a cover image stored next to the track).
-final _playlistCoverProvider = FutureProvider.family<String?, Playlist>((ref, pl) async {
+final _playlistCoverProvider = FutureProvider.family<String?, Playlist>((
+  ref,
+  pl,
+) async {
   final tracks = pl.tracks ?? [];
   Song? first;
   for (final s in tracks) {
@@ -148,7 +178,11 @@ class _PlaylistTile extends ConsumerWidget {
             playlist.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
           Text(
             '${playlist.trackCount ?? 0} songs',
@@ -189,17 +223,24 @@ class _PlaylistList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 120),
       itemCount: list.length,
-      separatorBuilder: (_, __) => const Divider(color: AppColors.border, height: 1, indent: 84),
+      separatorBuilder: (_, __) =>
+          const Divider(color: AppColors.border, height: 1, indent: 84),
       itemBuilder: (c, i) {
         final p = list[i];
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 4,
+          ),
           leading: _PlaylistCoverBadge(playlist: p),
           title: Text(
             p.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           subtitle: Text(
             '${p.trackCount ?? 0} songs${p.description != null && p.description!.isNotEmpty ? ' • ${p.description}' : ''}',

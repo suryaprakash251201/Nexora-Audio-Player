@@ -84,8 +84,9 @@ class NexoraFiles {
     String token, {
     int size = 512,
   }) {
-    final base =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
     return '$base/api/v1/files/thumbnail'
         '?root=$rootId&path=${Uri.encodeComponent(path)}'
         '&size=$size&token=$token';
@@ -98,8 +99,9 @@ class NexoraFiles {
     String path,
     String token,
   ) {
-    final base =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
     return '$base/api/v1/files/raw'
         '?root=$rootId&path=${Uri.encodeComponent(path)}'
         '&token=$token';

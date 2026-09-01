@@ -84,11 +84,13 @@ class SongsApi {
       if (raw is! Map<String, dynamic>) continue;
       final f = FileItemDto.fromJson(raw);
       if (!NexoraFiles.isAudio(f)) continue;
-      songs.add(NexoraFiles.toSong(
-        f,
-        streamUrl: await streamUrl(NexoraFiles.songId(f)),
-        artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
-      ));
+      songs.add(
+        NexoraFiles.toSong(
+          f,
+          streamUrl: await streamUrl(NexoraFiles.songId(f)),
+          artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
+        ),
+      );
     }
     return PaginatedSongs(
       songs: songs,
@@ -127,11 +129,13 @@ class SongsApi {
         final dirPath = f.path.isEmpty ? f.name : f.path;
         dirs.add((id: '$rootId|$dirPath', name: f.name));
       } else if (NexoraFiles.isAudio(f)) {
-        songs.add(NexoraFiles.toSong(
-          f,
-          streamUrl: await streamUrl(NexoraFiles.songId(f)),
-          artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
-        ));
+        songs.add(
+          NexoraFiles.toSong(
+            f,
+            streamUrl: await streamUrl(NexoraFiles.songId(f)),
+            artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
+          ),
+        );
       }
     }
     return (songs, dirs);

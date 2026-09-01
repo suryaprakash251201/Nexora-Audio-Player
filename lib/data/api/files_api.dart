@@ -31,7 +31,11 @@ class FilesApi {
 
   /// Thumbnail URL for any audio file path. Works for plain Image.network
   /// because the `?token=` query authenticates the request.
-  Future<String> thumbnailUrl(String rootId, String path, {int size = 512}) async {
+  Future<String> thumbnailUrl(
+    String rootId,
+    String path, {
+    int size = 512,
+  }) async {
     final token = await _token();
     return '${_base()}${ApiConstants.filesThumbnail}'
         '?root=$rootId&path=${Uri.encodeComponent(path)}'

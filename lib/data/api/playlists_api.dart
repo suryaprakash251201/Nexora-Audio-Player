@@ -45,7 +45,13 @@ class PlaylistsApi {
     final token = await _storage.getToken() ?? '';
     return NexoraFiles.toSong(
       f,
-      artworkUrl: NexoraFiles.thumbnailUrl(base, rootId, path, token, size: 512),
+      artworkUrl: NexoraFiles.thumbnailUrl(
+        base,
+        rootId,
+        path,
+        token,
+        size: 512,
+      ),
       streamUrl: NexoraFiles.rawUrl(base, rootId, path, token),
       itemRef: (raw['id'] ?? '').toString(),
     );

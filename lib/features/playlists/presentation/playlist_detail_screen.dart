@@ -250,11 +250,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final tracks = p.tracks ?? [];
     if (tracks.isNotEmpty) {
       final first = tracks.first;
-      return ArtworkImage(
-        url: first.coverUrl,
-        size: 100,
-        borderRadius: 12,
-      );
+      return ArtworkImage(url: first.coverUrl, size: 100, borderRadius: 12);
     }
     if (p.coverUrl != null) {
       return ArtworkImage(url: p.coverUrl, size: 100, borderRadius: 12);
@@ -266,7 +262,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(Icons.queue_music, size: 40, color: AppColors.textMuted),
+      child: const Icon(
+        Icons.queue_music,
+        size: 40,
+        color: AppColors.textMuted,
+      ),
     );
   }
 
