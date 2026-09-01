@@ -25,7 +25,12 @@ class FilesApi {
   final SecureStorageService _storage;
   FilesApi(this._client, this._storage);
 
-  String _base() => _client.dio.options.baseUrl;
+  /// Resolves the correct API base URL from secure storage (not Dio global).
+  Future<String> _base() async {
+    final serverUrl = await _storage.getServerUrl();
+    if (serverUrl != null && serverUrl.isNotEmpty) return serverUrl;
+    return _client.dio.options.baseUrl;
+  }
 
   Future<String> _token() async {
     final t = await _storage.getToken();
@@ -39,17 +44,19 @@ class FilesApi {
     String path, {
     int size = 512,
   }) async {
-    final token = await _token();
-    return '${_base()}${ApiConstants.filesThumbnail}'
-        '?root=$rootId&path=${Uri.encodeComponent(path)}'
+    final token = Uri.encodeComponent(await _token());
+    final base = await _base();
+    return '$base${ApiConstants.filesThumbnail}'
+        '?root=${Uri.encodeComponent(rootId)}&path=${Uri.encodeComponent(path)}'
         '&size=$size&token=$token';
   }
 
   /// Stream URL for an audio file path (works with plain URL, token in query).
   Future<String> rawUrl(String rootId, String path) async {
-    final token = await _token();
-    return '${_base()}${ApiConstants.filesRaw}'
-        '?root=$rootId&path=${Uri.encodeComponent(path)}'
+    final token = Uri.encodeComponent(await _token());
+    final base = await _base();
+    return '$base${ApiConstants.filesRaw}'
+        '?root=${Uri.encodeComponent(rootId)}&path=${Uri.encodeComponent(path)}'
         '&token=$token';
   }
 

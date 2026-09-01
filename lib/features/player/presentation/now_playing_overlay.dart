@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/glass_surface.dart';
+import '../../../core/utils/formatters.dart';
+import '../providers/player_provider.dart';
 
-class NowPlayingOverlay extends StatefulWidget {
+class NowPlayingOverlay extends ConsumerStatefulWidget {
   const NowPlayingOverlay({super.key});
 
   @override
-  State<NowPlayingOverlay> createState() => _NowPlayingOverlayState();
+  ConsumerState<NowPlayingOverlay> createState() => _NowPlayingOverlayState();
 }
 
-class _NowPlayingOverlayState extends State<NowPlayingOverlay>
+class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _controller;
@@ -54,6 +58,12 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(playerProvider);
+    final track = state.currentTrack;
+
+    // Don't show overlay if nothing is playing
+    if (track == null) return const SizedBox.shrink();
+
     return GestureDetector(
       onVerticalDragUpdate: (details) {
         // Simple drag to dismiss logic mapping RN's Gesture.Pan()
@@ -89,8 +99,8 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
                 opacity: _isExpanded ? 0.8 : 0.6,
                 blur: 30,
                 child: _isExpanded
-                    ? _buildFullScreenPlayer()
-                    : _buildMiniPlayer(),
+                    ? _buildFullScreenPlayer(state)
+                    : _buildMiniPlayer(state),
               ),
             ),
           );
@@ -99,43 +109,60 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
     );
   }
 
-  Widget _buildMiniPlayer() {
+  Widget _buildMiniPlayer(PlaybackStateData state) {
+    final track = state.currentTrack!;
+    final notifier = ref.read(playerProvider.notifier);
+
     return ListTile(
       onTap: _toggleExpand,
-      leading: Container(
+      leading: SizedBox(
         width: 48,
         height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(8),
+        child: ArtworkImage(
+          url: track.artUri?.toString(),
+          size: 48,
+          borderRadius: 8,
         ),
-        child: const Icon(Icons.music_note, color: Colors.white),
       ),
-      title: const Text(
-        'Time',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      title: Text(
+        track.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
-      subtitle: const Text(
-        'Pink Floyd',
-        style: TextStyle(color: AppColors.textMuted),
+      subtitle: Text(
+        track.artist ?? 'Unknown Artist',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: AppColors.textMuted),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.play_arrow, color: Colors.white),
-            onPressed: () {},
+            icon: Icon(
+              state.isPlaying ? Icons.pause : Icons.play_arrow,
+              color: Colors.white,
+            ),
+            onPressed: () => notifier.togglePlay(),
           ),
           IconButton(
             icon: const Icon(Icons.skip_next, color: Colors.white),
-            onPressed: () {},
+            onPressed: () => notifier.next(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFullScreenPlayer() {
+  Widget _buildFullScreenPlayer(PlaybackStateData state) {
+    final track = state.currentTrack!;
+    final notifier = ref.read(playerProvider.notifier);
+    final pos = state.position;
+    final dur = state.duration.inMilliseconds == 0
+        ? (track.duration ?? Duration.zero)
+        : state.duration;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -153,42 +180,37 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
             const SizedBox(height: 32),
             // Expanded Cover Art
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.music_note,
-                    size: 120,
-                    color: AppColors.textMuted,
-                  ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: ArtworkImage(
+                  url: track.artUri?.toString(),
+                  borderRadius: 24,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
             const SizedBox(height: 48),
             // Track Info
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Time',
-                style: TextStyle(
+                track.title,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Pink Floyd',
-                style: TextStyle(color: AppColors.primary, fontSize: 18),
+                track.artist ?? 'Unknown Artist',
+                style: const TextStyle(color: AppColors.primary, fontSize: 18),
               ),
             ),
             const SizedBox(height: 32),
-            // Continuous Slider Placeholder (Maps to Reanimated pan gesture)
+            // Seek Slider
             SliderTheme(
               data: SliderThemeData(
                 trackHeight: 6,
@@ -197,7 +219,37 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
                 thumbColor: Colors.white,
                 overlayColor: AppColors.secondary.withValues(alpha: 0.2),
               ),
-              child: Slider(value: 0.3, onChanged: (val) {}),
+              child: Slider(
+                value: dur.inMilliseconds == 0
+                    ? 0.0
+                    : (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0),
+                onChanged: (val) => notifier.seek(
+                  Duration(milliseconds: (val * dur.inMilliseconds).round()),
+                ),
+              ),
+            ),
+            // Time labels
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formatDuration(pos),
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    formatDuration(dur),
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             // Controls
@@ -210,7 +262,7 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
                     size: 40,
                     color: Colors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: () => notifier.previous(),
                 ),
                 Container(
                   width: 80,
@@ -220,12 +272,12 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(
-                      Icons.pause,
+                    icon: Icon(
+                      state.isPlaying ? Icons.pause : Icons.play_arrow,
                       size: 40,
                       color: Colors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: () => notifier.togglePlay(),
                   ),
                 ),
                 IconButton(
@@ -234,7 +286,7 @@ class _NowPlayingOverlayState extends State<NowPlayingOverlay>
                     size: 40,
                     color: Colors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: () => notifier.next(),
                 ),
               ],
             ),

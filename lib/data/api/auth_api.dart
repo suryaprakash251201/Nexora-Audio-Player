@@ -111,9 +111,7 @@ class AuthApi {
     try {
       await _client.post(ApiConstants.logout);
     } catch (_) {
-      try {
-        await _client.post('/auth/logout');
-      } catch (_) {}
+      // Logout is best-effort; token will be cleared locally regardless
     }
   }
 

@@ -22,32 +22,39 @@ class SongsApi {
   static const audioExt =
       'mp3,flac,wav,m4a,aac,ogg,opus,wma,alac,aiff,ape,dsf,wv,mka';
 
+  /// Resolves the correct API base URL from secure storage (not Dio global).
+  Future<String> _resolvedBaseUrl() async {
+    final serverUrl = await _storage.getServerUrl();
+    if (serverUrl != null && serverUrl.isNotEmpty) return serverUrl;
+    return _client.dio.options.baseUrl;
+  }
+
   /// Stream URL for a song: /files/raw?root=&path=&token=
   /// Token as query param bypasses CSRF; the audio player also sends the
   /// Authorization header (see queue_manager). Both are accepted by Nexora.
   Future<String> streamUrl(String songId) async {
-    final root = NexoraFiles.parseRootId(songId);
+    final root = Uri.encodeComponent(NexoraFiles.parseRootId(songId));
     final path = Uri.encodeComponent(NexoraFiles.parsePath(songId));
-    final token = await _storage.getToken() ?? '';
-    final base = _client.dio.options.baseUrl;
+    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesRaw}?root=$root&path=$path&token=$token';
   }
 
   /// Artwork (embedded cover fallback chain on the server).
   Future<String> artworkUrl(String songId, {int size = 512}) async {
-    final root = NexoraFiles.parseRootId(songId);
+    final root = Uri.encodeComponent(NexoraFiles.parseRootId(songId));
     final path = Uri.encodeComponent(NexoraFiles.parsePath(songId));
-    final token = await _storage.getToken() ?? '';
-    final base = _client.dio.options.baseUrl;
+    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesThumbnail}?root=$root&path=$path&size=$size&token=$token';
   }
 
   /// Download URL for offline.
   Future<String> downloadUrl(String songId) async {
-    final root = NexoraFiles.parseRootId(songId);
+    final root = Uri.encodeComponent(NexoraFiles.parseRootId(songId));
     final path = Uri.encodeComponent(NexoraFiles.parsePath(songId));
-    final token = await _storage.getToken() ?? '';
-    final base = _client.dio.options.baseUrl;
+    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesDownload}?root=$root&path=$path&token=$token';
   }
 

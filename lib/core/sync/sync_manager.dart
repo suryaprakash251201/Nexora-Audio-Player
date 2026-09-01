@@ -32,7 +32,10 @@ class SyncManager {
       'retryCount': 0,
     });
     AppLogger.sync('Enqueued $type');
-    processSyncQueue();
+    // Fire-and-forget with error handling to prevent unhandled async exceptions
+    processSyncQueue().catchError((e) {
+      AppLogger.sync('processSyncQueue error: $e');
+    });
   }
 
   Future<void> processSyncQueue() async {

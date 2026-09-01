@@ -24,8 +24,14 @@ class FileItemDto {
   });
 
   factory FileItemDto.fromJson(Map<String, dynamic> j) {
+    final name = (j['name'] ?? '').toString();
+    // Fallback: extract extension from filename if server doesn't provide it
+    final rawExt = (j['extension'] ?? '').toString();
+    final ext = rawExt.isNotEmpty
+        ? rawExt
+        : (name.contains('.') ? name.split('.').last : '');
     return FileItemDto(
-      name: (j['name'] ?? '').toString(),
+      name: name,
       path: (j['path'] ?? '').toString(),
       size: (j['size'] is int)
           ? j['size'] as int
@@ -34,7 +40,7 @@ class FileItemDto {
       modified: (j['modified'] ?? '').toString(),
       mime: (j['mime'] ?? '').toString(),
       rootId: (j['root_id'] ?? '').toString(),
-      extension: (j['extension'] ?? '').toString(),
+      extension: ext,
     );
   }
 }
@@ -84,12 +90,14 @@ class NexoraFiles {
     String token, {
     int size = 512,
   }) {
-    final base = baseUrl.endsWith('/')
-        ? baseUrl.substring(0, baseUrl.length - 1)
-        : baseUrl;
+    // Strip /api/v1 suffix to get the origin, then append the full API path
+    final origin = baseUrl.split('/api').first;
+    final base = origin.endsWith('/')
+        ? origin.substring(0, origin.length - 1)
+        : origin;
     return '$base/api/v1/files/thumbnail'
-        '?root=$rootId&path=${Uri.encodeComponent(path)}'
-        '&size=$size&token=$token';
+        '?root=${Uri.encodeComponent(rootId)}&path=${Uri.encodeComponent(path)}'
+        '&size=$size&token=${Uri.encodeComponent(token)}';
   }
 
   /// Absolute stream URL for an audio file path.
@@ -99,12 +107,14 @@ class NexoraFiles {
     String path,
     String token,
   ) {
-    final base = baseUrl.endsWith('/')
-        ? baseUrl.substring(0, baseUrl.length - 1)
-        : baseUrl;
+    // Strip /api/v1 suffix to get the origin, then append the full API path
+    final origin = baseUrl.split('/api').first;
+    final base = origin.endsWith('/')
+        ? origin.substring(0, origin.length - 1)
+        : origin;
     return '$base/api/v1/files/raw'
-        '?root=$rootId&path=${Uri.encodeComponent(path)}'
-        '&token=$token';
+        '?root=${Uri.encodeComponent(rootId)}&path=${Uri.encodeComponent(path)}'
+        '&token=${Uri.encodeComponent(token)}';
   }
 
   /// "03 - usurey poguthu (from Ravaanan).flac" -> "usurey poguthu (from Ravaanan)"

@@ -29,10 +29,22 @@ class ArtworkImage extends ConsumerWidget {
     if (!hasUrl) return _fallback();
 
     final tokenAsync = ref.watch(authTokenProvider);
+
+    return tokenAsync.when(
+      loading: () => _fallback(isLoading: true),
+      error: (_, __) => _buildImage(null),
+      data: (token) => _buildImage(token),
+    );
+  }
+
+  Widget _buildImage(String? token) {
     final headers = <String, String>{};
-    tokenAsync.whenData((t) {
-      if (t != null && t.isNotEmpty) headers['Authorization'] = 'Bearer $t';
-    });
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    // Include token in key so NetworkImage cache is invalidated when token changes
+    final imageKey = token != null ? '$url?_auth=${token.hashCode}' : url!;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -42,6 +54,7 @@ class ArtworkImage extends ConsumerWidget {
         color: AppColors.surfaceRaised,
         child: Image.network(
           url!,
+          key: ValueKey(imageKey),
           fit: fit,
           headers: headers,
           errorBuilder: (c, e, s) => _fallback(),
@@ -56,6 +69,8 @@ class ArtworkImage extends ConsumerWidget {
 
   Widget _fallback({bool isLoading = false}) {
     return Container(
+      width: size,
+      height: size,
       color: AppColors.surfaceRaised,
       child: Center(
         child: isLoading

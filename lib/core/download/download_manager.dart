@@ -61,6 +61,15 @@ class DownloadManager {
     } catch (e) {
       AppLogger.download('✗ Download failed $trackId: $e');
       _progress.remove(trackId);
+      // Clean up partially downloaded file to prevent storage leaks
+      try {
+        final dir = await getApplicationDocumentsDirectory();
+        final partialFile = File('${dir.path}/tracks/$trackId.mp3');
+        if (await partialFile.exists()) {
+          await partialFile.delete();
+          AppLogger.download('Cleaned up partial file for $trackId');
+        }
+      } catch (_) {}
       return null;
     }
   }

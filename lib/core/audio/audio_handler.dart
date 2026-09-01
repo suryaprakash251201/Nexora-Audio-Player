@@ -55,6 +55,14 @@ class NexoraAudioHandler extends BaseAudioHandler
             ProcessingState.ready: AudioProcessingState.ready,
             ProcessingState.completed: AudioProcessingState.completed,
           }[_player.processingState]!,
+          repeatMode: const {
+            LoopMode.off: AudioServiceRepeatMode.none,
+            LoopMode.one: AudioServiceRepeatMode.one,
+            LoopMode.all: AudioServiceRepeatMode.all,
+          }[_player.loopMode] ?? AudioServiceRepeatMode.none,
+          shuffleMode: _player.shuffleModeEnabled
+              ? AudioServiceShuffleMode.all
+              : AudioServiceShuffleMode.none,
           playing: playing,
           updatePosition: _player.position,
           bufferedPosition: _player.bufferedPosition,
@@ -68,11 +76,12 @@ class NexoraAudioHandler extends BaseAudioHandler
   void _listenForDurationChanges() {
     _player.durationStream.listen((duration) {
       final index = _player.currentIndex;
-      final newQueue = queue.value;
-      if (index == null || newQueue.isEmpty) return;
-      if (index >= newQueue.length) return;
-      final oldMediaItem = newQueue[index];
+      final currentQueue = queue.value;
+      if (index == null || currentQueue.isEmpty) return;
+      if (index >= currentQueue.length) return;
+      final oldMediaItem = currentQueue[index];
       final newMediaItem = oldMediaItem.copyWith(duration: duration);
+      final newQueue = List<MediaItem>.of(currentQueue);
       newQueue[index] = newMediaItem;
       queue.add(newQueue);
       mediaItem.add(newMediaItem);
@@ -105,7 +114,7 @@ class NexoraAudioHandler extends BaseAudioHandler
     if (items.isEmpty) return;
     final audioSources = items.map((item) {
       final localPath = item.extras?['localPath'] as String?;
-      final headers = item.extras?['headers'] as Map<String, String>?;
+      final headers = (item.extras?['headers'] as Map?)?.cast<String, String>();
       if (localPath != null && localPath.isNotEmpty) {
         return AudioSource.uri(Uri.file(localPath), tag: item);
       }
@@ -125,7 +134,7 @@ class NexoraAudioHandler extends BaseAudioHandler
     final newQueue = [...currentQueue, ...items];
     final sources = items.map((item) {
       final localPath = item.extras?['localPath'] as String?;
-      final headers = item.extras?['headers'] as Map<String, String>?;
+      final headers = (item.extras?['headers'] as Map?)?.cast<String, String>();
       if (localPath != null && localPath.isNotEmpty) {
         return AudioSource.uri(Uri.file(localPath), tag: item);
       }
@@ -151,7 +160,7 @@ class NexoraAudioHandler extends BaseAudioHandler
     final newQueue = [...currentQueue]..insert(insertIndex, item);
 
     final localPath = item.extras?['localPath'] as String?;
-    final headers = item.extras?['headers'] as Map<String, String>?;
+    final headers = (item.extras?['headers'] as Map?)?.cast<String, String>();
     final source = localPath != null && localPath.isNotEmpty
         ? AudioSource.uri(Uri.file(localPath), tag: item)
         : AudioSource.uri(Uri.parse(item.id), tag: item, headers: headers);

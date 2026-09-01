@@ -83,31 +83,42 @@ class PaginatedResponseDto<T> {
             .whereType<Map<String, dynamic>>()
             .map(mapper)
             .toList();
-        final page =
-            (pagination?['page'] ?? pagination?['currentPage'] ?? 1) is int
-            ? pagination!['page'] as int
-            : int.tryParse((pagination?['page'] ?? '1').toString()) ?? 1;
-        final limit = (pagination?['limit'] ?? fallbackLimit) is int
-            ? pagination!['limit'] as int
-            : int.tryParse(
-                    (pagination?['limit'] ?? '$fallbackLimit').toString(),
-                  ) ??
+        int page = fallbackPage;
+        int limit = fallbackLimit;
+        int total = items.length;
+        int totalPages = 1;
+        bool hasNext = false;
+        bool hasPrev = false;
+
+        if (pagination != null) {
+          final rawPage = pagination['page'] ?? pagination['currentPage'];
+          page = rawPage is int
+              ? rawPage
+              : int.tryParse((rawPage ?? '$fallbackPage').toString()) ??
+                  fallbackPage;
+
+          final rawLimit = pagination['limit'];
+          limit = rawLimit is int
+              ? rawLimit
+              : int.tryParse((rawLimit ?? '$fallbackLimit').toString()) ??
                   fallbackLimit;
-        final total = (pagination?['total'] ?? items.length) is int
-            ? pagination!['total'] as int
-            : int.tryParse(
-                    (pagination?['total'] ?? '${items.length}').toString(),
-                  ) ??
+
+          final rawTotal = pagination['total'];
+          total = rawTotal is int
+              ? rawTotal
+              : int.tryParse((rawTotal ?? '${items.length}').toString()) ??
                   items.length;
-        final totalPages =
-            (pagination?['totalPages'] ??
-                    pagination?['pages'] ??
-                    (total / limit).ceil())
-                is int
-            ? pagination!['totalPages'] as int
-            : int.tryParse((pagination?['totalPages'] ?? '1').toString()) ?? 1;
-        final hasNext = pagination?['hasNext'] as bool? ?? (page < totalPages);
-        final hasPrev = pagination?['hasPrev'] as bool? ?? (page > 1);
+
+          final rawTotalPages =
+              pagination['totalPages'] ?? pagination['pages'];
+          totalPages = rawTotalPages is int
+              ? rawTotalPages
+              : int.tryParse((rawTotalPages ?? '1').toString()) ??
+                  (limit > 0 ? (total / limit).ceil() : 1);
+
+          hasNext = pagination['hasNext'] as bool? ?? (page < totalPages);
+          hasPrev = pagination['hasPrev'] as bool? ?? (page > 1);
+        }
 
         // Also handle offset/limit style: hasNext via total > offset+limit
         return PaginatedResponseDto<U>(

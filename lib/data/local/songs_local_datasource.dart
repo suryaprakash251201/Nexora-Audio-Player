@@ -16,7 +16,7 @@ class SongsLocalDataSource {
     final db = await _dbService.database;
     final batch = db.batch();
     for (final s in songs) {
-      batch.insert('tracks', {
+      final values = {
         'id': s.id,
         'title': s.title,
         'artist': s.artist,
@@ -30,7 +30,18 @@ class SongsLocalDataSource {
         'isDownloaded': s.isDownloaded ? 1 : 0,
         'localPath': s.localPath,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      };
+      // Use INSERT OR IGNORE + UPDATE instead of REPLACE to avoid
+      // triggering ON DELETE CASCADE which would silently remove
+      // playlist_items referencing this track.
+      batch.insert('tracks', values,
+          conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.update(
+        'tracks',
+        values..remove('id'),
+        where: 'id = ?',
+        whereArgs: [s.id],
+      );
     }
     await batch.commit(noResult: true);
   }

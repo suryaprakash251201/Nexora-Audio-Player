@@ -78,28 +78,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (c, s) =>
                 const NoTransitionPage(child: SettingsScreen()),
           ),
+          GoRoute(
+            path: '/playlists/:id',
+            builder: (c, s) {
+              final id = s.pathParameters['id']!;
+              final extra = s.extra as Playlist?;
+              return PlaylistDetailScreen(playlistId: id, initial: extra);
+            },
+          ),
+          GoRoute(
+            path: '/folder',
+            builder: (c, s) {
+              final rootId =
+                  s.uri.queryParameters['root'] ?? 'root_c617a9424d30516f12d802a3';
+              final path = s.uri.queryParameters['path'] ?? '';
+              return FolderBrowserScreen(rootId: rootId, path: path);
+            },
+          ),
+          GoRoute(path: '/favorites', builder: (c, s) => const FavoritesScreen()),
+          GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
+          GoRoute(path: '/equalizer', builder: (c, s) => const EqualizerScreen()),
         ],
       ),
-      GoRoute(
-        path: '/playlists/:id',
-        builder: (c, s) {
-          final id = s.pathParameters['id']!;
-          final extra = s.extra as Playlist?;
-          return PlaylistDetailScreen(playlistId: id, initial: extra);
-        },
-      ),
-      GoRoute(
-        path: '/folder',
-        builder: (c, s) {
-          final rootId =
-              s.uri.queryParameters['root'] ?? 'root_c617a9424d30516f12d802a3';
-          final path = s.uri.queryParameters['path'] ?? '';
-          return FolderBrowserScreen(rootId: rootId, path: path);
-        },
-      ),
-      GoRoute(path: '/favorites', builder: (c, s) => const FavoritesScreen()),
-      GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
-      GoRoute(path: '/equalizer', builder: (c, s) => const EqualizerScreen()),
       GoRoute(
         path: '/player',
         pageBuilder: (c, s) => CustomTransitionPage(

@@ -90,8 +90,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               const Spacer(),
                               TextButton(
                                 onPressed: () async {
-                                  // Clear recent via prefs service through repository invalidation
-                                  // For now just clear query
+                                  // Actually clear stored searches, then refresh
+                                  await ref.read(searchRepositoryProvider).clearRecent();
                                   ref.invalidate(recentSearchesProvider);
                                 },
                                 child: const Text('Clear'),

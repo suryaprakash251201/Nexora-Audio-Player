@@ -234,7 +234,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
           LoopMode.one: LoopMode.off,
         }[state.repeatMode] ??
         LoopMode.off;
-    await _handler.player.setLoopMode(nextMode);
+    final serviceMode = {
+      LoopMode.off: AudioServiceRepeatMode.none,
+      LoopMode.all: AudioServiceRepeatMode.all,
+      LoopMode.one: AudioServiceRepeatMode.one,
+    }[nextMode] ?? AudioServiceRepeatMode.none;
+    await _handler.setRepeatMode(serviceMode);
   }
 
   Future<void> setVolume(double v) async {
