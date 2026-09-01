@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +18,7 @@ import 'features/favorites/presentation/favorites_screen.dart';
 import 'features/equalizer/presentation/equalizer_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'domain/entities/playlist.dart';
-import 'ui/theme.dart';
+import 'ui/widgets/enhanced_player_widgets.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authStateProvider);
@@ -170,7 +168,7 @@ class AppShell extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _GlassNavBar(
+      bottomNavigationBar: EnhancedGlassNavBar(
         selectedIndex: idx,
         onSelect: (i) {
           switch (i) {
@@ -191,138 +189,6 @@ class AppShell extends ConsumerWidget {
               break;
           }
         },
-      ),
-    );
-  }
-}
-
-/// Frosted-glass floating navigation bar with gradient selected indicators.
-class _GlassNavBar extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
-
-  const _GlassNavBar({required this.selectedIndex, required this.onSelect});
-
-  static const _destinations = [
-    (Icons.home_outlined, Icons.home_rounded, 'Home'),
-    (Icons.search_outlined, Icons.search_rounded, 'Search'),
-    (Icons.library_music_outlined, Icons.library_music_rounded, 'Library'),
-    (Icons.queue_music_outlined, Icons.queue_music_rounded, 'Playlists'),
-    (Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.background.withValues(alpha: 0.0),
-            AppColors.background.withValues(alpha: 0.85),
-            AppColors.background,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-      ),
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.glassBorder, width: 0.5),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Container(
-                height: 64,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(_destinations.length, (i) {
-                    final (icon, selIcon, label) = _destinations[i];
-                    final selected = i == selectedIndex;
-                    return _NavItem(
-                      icon: icon,
-                      selectedIcon: selIcon,
-                      label: label,
-                      selected: selected,
-                      onTap: () => onSelect(i),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData selectedIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.2),
-                    AppColors.primary.withValues(alpha: 0.05),
-                  ],
-                )
-              : null,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              width: 26,
-              height: 26,
-              child: Icon(
-                selected ? selectedIcon : icon,
-                color: selected ? AppColors.primary : AppColors.textDim,
-                size: 23,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppColors.primary : AppColors.textDim,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

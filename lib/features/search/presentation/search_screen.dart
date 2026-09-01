@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
-import '../../../ui/widgets/premium_widgets.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/enhanced_player_widgets.dart';
+import '../../../ui/animations/app_animations.dart';
 import '../providers/search_provider.dart';
 import '../../../data/repositories/search_repository.dart';
 import '../../player/providers/player_provider.dart';
@@ -32,269 +34,344 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Search'),
-        backgroundColor: Colors.transparent,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _controller,
-              style: TextStyle(color: AppColors.text),
-              decoration: InputDecoration(
-                hintText: 'Songs, albums, artists, playlists',
-                hintStyle: TextStyle(color: AppColors.textDim),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.primary,
-                ),
-                suffixIcon: query.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: AppColors.textMuted,
+      body: AuroraBackground(
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: EnhancedGlassSurface(
+                        opacity: 0.5,
+                        blur: 25,
+                        borderRadius: BorderRadius.circular(18),
+                        showShimmer: true,
+                        child: TextField(
+                          controller: _controller,
+                          style: TextStyle(color: AppColors.text),
+                          decoration: InputDecoration(
+                            hintText: 'Songs, albums, artists, playlists',
+                            hintStyle: TextStyle(color: AppColors.textDim),
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              color: AppColors.primary,
+                            ),
+                            suffixIcon: query.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    onPressed: () {
+                                      _controller.clear();
+                                      ref.read(searchQueryProvider.notifier).state = '';
+                                    },
+                                  )
+                                : null,
+                            filled: false,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                          ),
+                          onChanged: (v) =>
+                              ref.read(searchQueryProvider.notifier).state = v,
                         ),
-                        onPressed: () {
-                          _controller.clear();
-                          ref.read(searchQueryProvider.notifier).state = '';
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppColors.surface,
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 1.5,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: AppColors.border, width: 0.5),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              onChanged: (v) =>
-                  ref.read(searchQueryProvider.notifier).state = v,
             ),
-          ),
-          if (query.isEmpty)
-            Expanded(
-              child: recent.when(
-                data: (list) => list.isEmpty
-                    ? const EmptyView(
-                        title: 'Search Nexora',
-                        subtitle: 'Type to search across your library',
-                        icon: Icons.search_rounded,
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.primary.withValues(alpha: 0.12),
-                                      AppColors.secondary.withValues(
-                                        alpha: 0.08,
+            if (query.isEmpty)
+              Expanded(
+                child: recent.when(
+                  data: (list) => list.isEmpty
+                      ? const EmptyView(
+                          title: 'Search Nexora',
+                          subtitle: 'Type to search across your library',
+                          icon: Icons.search_rounded,
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.primary.withValues(alpha: 0.15),
+                                        AppColors.secondary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(alpha: 0.2),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.history_rounded,
+                                    size: 20,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Recent searches',
+                                  style: TextStyle(
+                                    color: AppColors.text,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: () async {
+                                    await ref
+                                        .read(searchRepositoryProvider)
+                                        .clearRecent();
+                                    ref.invalidate(recentSearchesProvider);
+                                  },
+                                  child: const Text('Clear'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            ...list.map(
+                              (q) => SlideInAnimation(
+                                child: GlassCard(
+                                  borderRadius: 16,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  onTap: () {
+                                    _controller.text = q;
+                                    ref.read(searchQueryProvider.notifier).state = q;
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceRaised,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: AppColors.border,
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.history_rounded,
+                                          size: 18,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          q,
+                                          style: TextStyle(color: AppColors.text),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.north_west_rounded,
+                                        size: 16,
+                                        color: AppColors.textDim,
                                       ),
                                     ],
                                   ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.history_rounded,
-                                  size: 18,
-                                  color: AppColors.primary,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Recent searches',
-                                style: TextStyle(
-                                  color: AppColors.text,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
+                            ),
+                          ],
+                        ),
+                  loading: () => const LoadingView(),
+                  error: (e, _) => ErrorView(message: e.toString()),
+                ),
+              )
+            else
+              Expanded(
+                child: results.when(
+                  data: (res) {
+                    if (res == null || res.isEmpty)
+                      return const EmptyView(
+                        title: 'No results',
+                        subtitle: 'Try a different query',
+                        icon: Icons.search_off_rounded,
+                      );
+                    return ListView(
+                      padding: const EdgeInsets.only(bottom: 140),
+                      children: [
+                        if (res.songs.isNotEmpty) ...[
+                          _resultHeader('Songs', Icons.music_note_rounded),
+                          ...res.songs.map(
+                            (s) => SlideInAnimation(
+                              child: _SongResultTile(
+                                song: s,
+                                onTap: () => ref
+                                    .read(playerProvider.notifier)
+                                    .playSongs(
+                                      res.songs,
+                                      initialIndex: res.songs.indexOf(s),
+                                    ),
                               ),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: () async {
-                                  await ref
-                                      .read(searchRepositoryProvider)
-                                      .clearRecent();
-                                  ref.invalidate(recentSearchesProvider);
-                                },
-                                child: const Text('Clear'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ...list.map(
-                            (q) => ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceRaised,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: AppColors.border,
-                                    width: 0.5,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.history_rounded,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              title: Text(
-                                q,
-                                style: TextStyle(color: AppColors.text),
-                              ),
-                              trailing: Icon(
-                                Icons.north_west_rounded,
-                                size: 16,
-                                color: AppColors.textDim,
-                              ),
-                              onTap: () {
-                                _controller.text = q;
-                                ref.read(searchQueryProvider.notifier).state =
-                                    q;
-                              },
                             ),
                           ),
                         ],
-                      ),
-                loading: () => const LoadingView(),
-                error: (e, _) => ErrorView(message: e.toString()),
-              ),
-            )
-          else
-            Expanded(
-              child: results.when(
-                data: (res) {
-                  if (res == null || res.isEmpty)
-                    return const EmptyView(
-                      title: 'No results',
-                      subtitle: 'Try a different query',
-                      icon: Icons.search_off_rounded,
+                        if (res.albums.isNotEmpty) ...[
+                          _resultHeader('Albums', Icons.album_rounded),
+                          ...res.albums.map((a) => SlideInAnimation(
+                            child: _AlbumResultTile(album: a),
+                          )),
+                        ],
+                        if (res.artists.isNotEmpty) ...[
+                          _resultHeader('Artists', Icons.person_rounded),
+                          ...res.artists.map(
+                            (ar) => SlideInAnimation(
+                              child: GlassCard(
+                                borderRadius: 16,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppColors.primary.withValues(alpha: 0.15),
+                                            AppColors.secondary.withValues(alpha: 0.1),
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.border,
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person_rounded,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        ar.name,
+                                        style: TextStyle(color: AppColors.text),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (res.playlists.isNotEmpty) ...[
+                          _resultHeader('Playlists', Icons.queue_music_rounded),
+                          ...res.playlists.map(
+                            (p) => SlideInAnimation(
+                              child: GlassCard(
+                                borderRadius: 16,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppColors.primary.withValues(alpha: 0.15),
+                                            AppColors.secondary.withValues(alpha: 0.1),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.queue_music_rounded,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            p.name,
+                                            style: TextStyle(color: AppColors.text),
+                                          ),
+                                          Text(
+                                            '${p.trackCount ?? 0} tracks',
+                                            style: TextStyle(color: AppColors.textMuted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     );
-                  return ListView(
-                    padding: const EdgeInsets.only(bottom: 100),
-                    children: [
-                      if (res.songs.isNotEmpty) ...[
-                        _resultHeader('Songs', Icons.music_note_rounded),
-                        ...res.songs.map(
-                          (s) => _SongResultTile(
-                            song: s,
-                            onTap: () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(
-                                  res.songs,
-                                  initialIndex: res.songs.indexOf(s),
-                                ),
-                          ),
-                        ),
-                      ],
-                      if (res.albums.isNotEmpty) ...[
-                        _resultHeader('Albums', Icons.album_rounded),
-                        ...res.albums.map((a) => _AlbumResultTile(album: a)),
-                      ],
-                      if (res.artists.isNotEmpty) ...[
-                        _resultHeader('Artists', Icons.person_rounded),
-                        ...res.artists.map(
-                          (ar) => ListTile(
-                            leading: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.15),
-                                    AppColors.secondary.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                border: Border.all(
-                                  color: AppColors.border,
-                                  width: 0.5,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.person_rounded,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            title: Text(
-                              ar.name,
-                              style: TextStyle(color: AppColors.text),
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (res.playlists.isNotEmpty) ...[
-                        _resultHeader('Playlists', Icons.queue_music_rounded),
-                        ...res.playlists.map(
-                          (p) => ListTile(
-                            leading: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.15),
-                                    AppColors.secondary.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.queue_music_rounded,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            title: Text(
-                              p.name,
-                              style: TextStyle(color: AppColors.text),
-                            ),
-                            subtitle: Text(
-                              '${p.trackCount ?? 0} tracks',
-                              style: TextStyle(color: AppColors.textMuted),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                },
-                loading: () => const LoadingView(),
-                error: (e, st) => ErrorView(message: e.toString()),
+                  },
+                  loading: () => const LoadingView(),
+                  error: (e, st) => ErrorView(message: e.toString()),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _resultHeader(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.15),
+                  AppColors.secondary.withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
           Text(
             title,
             style: TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w700,
-              fontSize: 16,
+              fontSize: 17,
             ),
           ),
         ],
@@ -312,35 +389,12 @@ class _SongResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPlaying = ref.watch(playerProvider).currentTrack?.id == song.id;
-    return ListTile(
-      leading: Stack(
-        children: [
-          ArtworkImage(url: song.coverUrl, size: 48, borderRadius: 10),
-          if (isPlaying)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: NowPlayingIndicator(height: 14, width: 14),
-                ),
-              ),
-            ),
-        ],
-      ),
-      title: Text(
-        song.title,
-        style: TextStyle(
-          color: isPlaying ? AppColors.primaryLight : AppColors.text,
-          fontWeight: isPlaying ? FontWeight.w600 : FontWeight.w400,
-        ),
-      ),
-      subtitle: Text(
-        song.artist ?? '',
-        style: TextStyle(color: AppColors.textMuted),
-      ),
+    return GlassSongTile(
+      artworkUrl: song.coverUrl,
+      title: song.title,
+      subtitle: song.artist ?? '',
+      isCurrent: isPlaying,
+      isPlaying: isPlaying && ref.watch(playerProvider).isPlaying,
       onTap: onTap,
     );
   }
@@ -352,12 +406,30 @@ class _AlbumResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: ArtworkImage(url: album.coverUrl, size: 48, borderRadius: 10),
-      title: Text(album.title, style: TextStyle(color: AppColors.text)),
-      subtitle: Text(
-        album.artist ?? '',
-        style: TextStyle(color: AppColors.textMuted),
+    return GlassCard(
+      borderRadius: 16,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          ArtworkImage(url: album.coverUrl, size: 48, borderRadius: 10),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  album.title,
+                  style: TextStyle(color: AppColors.text),
+                ),
+                Text(
+                  album.artist ?? '',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

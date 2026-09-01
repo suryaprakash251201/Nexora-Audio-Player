@@ -7,7 +7,9 @@ import '../../../data/api/files_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
-import '../../../ui/widgets/premium_widgets.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/enhanced_player_widgets.dart';
+import '../../../ui/animations/app_animations.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 import 'folder_browser_screen.dart';
@@ -31,31 +33,48 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Library'),
-        backgroundColor: Colors.transparent,
-        bottom: TabBar(
-          controller: _tab,
-          indicatorColor: AppColors.primary,
-          indicatorSize: TabBarIndicatorSize.label,
-          labelColor: AppColors.text,
-          unselectedLabelColor: AppColors.textDim,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
+      body: AuroraBackground(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                backgroundColor: Colors.transparent,
+                pinned: true,
+                floating: true,
+                title: Text(
+                  'Library',
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                  ),
+                ),
+                bottom: TabBar(
+                  controller: _tab,
+                  indicatorColor: AppColors.primary,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelColor: AppColors.text,
+                  unselectedLabelColor: AppColors.textDim,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  dividerColor: AppColors.border,
+                  indicatorWeight: 3,
+                  tabs: const [
+                    Tab(text: 'Songs'),
+                    Tab(text: 'Folders'),
+                    Tab(text: 'Downloads'),
+                  ],
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
+            controller: _tab,
+            children: [_SongsTab(), _FoldersTab(), _DownloadsTab()],
           ),
-          dividerColor: AppColors.border,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Songs'),
-            Tab(text: 'Folders'),
-            Tab(text: 'Downloads'),
-          ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tab,
-        children: [_SongsTab(), _FoldersTab(), _DownloadsTab()],
       ),
     );
   }
@@ -119,10 +138,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
     return RefreshIndicator(
       onRefresh: () => _load(refresh: true),
       child: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 100),
+        padding: const EdgeInsets.only(bottom: 140),
         itemCount: _songs.length + (_hasMore ? 1 : 0),
-        separatorBuilder: (_, __) =>
-            Divider(color: AppColors.border, height: 1),
+        separatorBuilder: (_, __) => const SizedBox(height: 4),
         itemBuilder: (c, i) {
           if (i >= _songs.length) {
             if (!_loading) Future.microtask(() => _load());
@@ -133,84 +151,43 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           }
           final s = _songs[i];
           final isCurrent = ref.watch(playerProvider).currentTrack?.id == s.id;
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 2,
-            ),
-            leading: isCurrent
-                ? Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      ArtworkImage(url: s.coverUrl, size: 48, borderRadius: 10),
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(10),
+          return SlideInAnimation(
+            delay: Duration(milliseconds: (i % 10) * 50),
+            child: GlassSongTile(
+              artworkUrl: s.coverUrl,
+              title: s.title,
+              subtitle: '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
+              isCurrent: isCurrent,
+              isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
+              onTap: () => ref
+                  .read(playerProvider.notifier)
+                  .playSongs(_songs.cast(), initialIndex: i),
+              onMore: () => _showSongMenu(s),
+              trailing: s.codec != null
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          width: 0.5,
                         ),
-                        child: const Center(
-                          child: NowPlayingIndicator(height: 14, width: 14),
+                      ),
+                      child: Text(
+                        s.codec!.toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ],
-                  )
-                : ArtworkImage(url: s.coverUrl, size: 48, borderRadius: 10),
-            title: Text(
-              s.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isCurrent ? AppColors.primaryLight : AppColors.text,
-                fontSize: 14,
-                fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-              ),
+                    )
+                  : null,
             ),
-            subtitle: Text(
-              '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (s.codec != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      s.codec!.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: AppColors.textMuted,
-                    size: 18,
-                  ),
-                  onPressed: () => _showSongMenu(s),
-                ),
-              ],
-            ),
-            onTap: () => ref
-                .read(playerProvider.notifier)
-                .playSongs(_songs.cast(), initialIndex: i),
-            onLongPress: () => _showSongMenu(s),
           );
         },
       ),
@@ -220,54 +197,60 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
   void _showSongMenu(dynamic song) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.play_arrow, color: AppColors.text),
-              title: Text('Play next', style: TextStyle(color: AppColors.text)),
-              onTap: () {
-                Navigator.pop(c);
-                ref.read(playerProvider.notifier).playNext(song);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.queue_music, color: AppColors.text),
-              title: Text(
-                'Add to queue',
-                style: TextStyle(color: AppColors.text),
+      backgroundColor: Colors.transparent,
+      builder: (c) => GlassBottomSheet(
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.textDim.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
-              onTap: () {
-                Navigator.pop(c);
-                ref.read(playerProvider.notifier).addToQueue(song);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.playlist_add, color: AppColors.text),
-              title: Text(
-                'Add to playlist',
-                style: TextStyle(color: AppColors.text),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
+                title: Text('Play next', style: TextStyle(color: AppColors.text)),
+                onTap: () {
+                  Navigator.pop(c);
+                  ref.read(playerProvider.notifier).playNext(song);
+                },
               ),
-              onTap: () => Navigator.pop(c),
-            ),
-          ],
+              ListTile(
+                leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
+                title: Text(
+                  'Add to queue',
+                  style: TextStyle(color: AppColors.text),
+                ),
+                onTap: () {
+                  Navigator.pop(c);
+                  ref.read(playerProvider.notifier).addToQueue(song);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.playlist_add_rounded, color: AppColors.text),
+                title: Text(
+                  'Add to playlist',
+                  style: TextStyle(color: AppColors.text),
+                ),
+                onTap: () => Navigator.pop(c),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Apple Music style folder grid: each card shows the folder's cover
-/// (thumbnail of the first audio file inside, via the server FolderCover
-/// fallback) and the folder name. Tap opens the folder browser.
 class _FoldersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -311,7 +294,7 @@ class _FolderGrid extends ConsumerWidget {
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(_foldersProvider(rootId)),
               child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 190,
                   mainAxisSpacing: 20,
@@ -319,7 +302,10 @@ class _FolderGrid extends ConsumerWidget {
                   childAspectRatio: 0.78,
                 ),
                 itemCount: folders.length,
-                itemBuilder: (c, i) => _FolderCard(folder: folders[i]),
+                itemBuilder: (c, i) => SlideInAnimation(
+                  delay: Duration(milliseconds: i * 60),
+                  child: _FolderCard(folder: folders[i]),
+                ),
               ),
             ),
     );
@@ -355,8 +341,8 @@ class _FolderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coverAsync = ref.watch(folderCoverProvider(folder.id));
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
+    return GlassCard(
+      borderRadius: 18,
       onTap: () => context.push(
         '/folder?root=${folder.rootId}&path=${Uri.encodeComponent(folder.path)}',
       ),
@@ -365,20 +351,23 @@ class _FolderCard extends ConsumerWidget {
         children: [
           Expanded(
             child: coverAsync.when(
-              data: (url) => ArtworkImage(url: url, borderRadius: 14),
-              loading: () => ArtworkImage(url: null, borderRadius: 14),
-              error: (_, __) => ArtworkImage(url: null, borderRadius: 14),
+              data: (url) => ArtworkImage(url: url, borderRadius: 18),
+              loading: () => ArtworkImage(url: null, borderRadius: 18),
+              error: (_, __) => ArtworkImage(url: null, borderRadius: 18),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            folder.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              folder.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
