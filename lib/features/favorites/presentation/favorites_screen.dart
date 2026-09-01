@@ -5,6 +5,7 @@ import '../../../data/repositories/favorites_repository.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 import '../../player/providers/player_provider.dart';
 
 class FavoritesScreen extends ConsumerWidget {
@@ -14,13 +15,17 @@ class FavoritesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final favAsync = ref.watch(_favoritesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorites')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Favorites'),
+        backgroundColor: Colors.transparent,
+      ),
       body: favAsync.when(
         data: (songs) => songs.isEmpty
             ? const EmptyView(
                 title: 'No favorites yet',
                 subtitle: 'Tap the heart on any song',
-                icon: Icons.favorite_border,
+                icon: Icons.favorite_rounded,
               )
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(_favoritesProvider),
@@ -31,15 +36,53 @@ class FavoritesScreen extends ConsumerWidget {
                       const Divider(color: AppColors.border, height: 1),
                   itemBuilder: (c, i) {
                     final s = songs[i];
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
                     return ListTile(
-                      leading: ArtworkImage(
-                        url: s.coverUrl,
-                        size: 48,
-                        borderRadius: 8,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 2,
                       ),
+                      leading: isCurrent
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ArtworkImage(
+                                  url: s.coverUrl,
+                                  size: 48,
+                                  borderRadius: 10,
+                                ),
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Center(
+                                    child: NowPlayingIndicator(
+                                      height: 14,
+                                      width: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ArtworkImage(
+                              url: s.coverUrl,
+                              size: 48,
+                              borderRadius: 10,
+                            ),
                       title: Text(
                         s.title,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: isCurrent
+                              ? AppColors.primaryLight
+                              : Colors.white,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
                       ),
                       subtitle: Text(
                         s.artist ?? '',
@@ -47,7 +90,7 @@ class FavoritesScreen extends ConsumerWidget {
                       ),
                       trailing: IconButton(
                         icon: const Icon(
-                          Icons.favorite,
+                          Icons.favorite_rounded,
                           color: AppColors.error,
                         ),
                         onPressed: () async {

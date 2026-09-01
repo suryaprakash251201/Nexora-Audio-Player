@@ -7,6 +7,7 @@ import '../../../data/api/files_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 import 'folder_browser_screen.dart';
@@ -29,13 +30,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Library'),
+        backgroundColor: Colors.transparent,
         bottom: TabBar(
           controller: _tab,
           indicatorColor: AppColors.primary,
+          indicatorSize: TabBarIndicatorSize.label,
           labelColor: Colors.white,
-          unselectedLabelColor: AppColors.textMuted,
+          unselectedLabelColor: AppColors.textDim,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          dividerColor: AppColors.border,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Songs'),
             Tab(text: 'Folders'),
@@ -122,13 +132,40 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             );
           }
           final s = _songs[i];
+          final isCurrent = ref.watch(playerProvider).currentTrack?.id == s.id;
           return ListTile(
-            leading: ArtworkImage(url: s.coverUrl, size: 48, borderRadius: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 2,
+            ),
+            leading: isCurrent
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ArtworkImage(url: s.coverUrl, size: 48, borderRadius: 10),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: NowPlayingIndicator(height: 14, width: 14),
+                        ),
+                      ),
+                    ],
+                  )
+                : ArtworkImage(url: s.coverUrl, size: 48, borderRadius: 10),
             title: Text(
               s.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(
+                color: isCurrent ? AppColors.primaryLight : Colors.white,
+                fontSize: 14,
+                fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
             subtitle: Text(
               '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
@@ -140,18 +177,23 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
                 if (s.codec != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                      horizontal: 8,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        width: 0.5,
+                      ),
                     ),
                     child: Text(
                       s.codec!.toUpperCase(),
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 10,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),

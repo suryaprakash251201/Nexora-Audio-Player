@@ -145,7 +145,7 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
         child: ArtworkImage(
           url: track.artUri?.toString(),
           size: 48,
-          borderRadius: 8,
+          borderRadius: 10,
         ),
       ),
       title: Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart';
 import '../providers/player_provider.dart';
 
 class MiniPlayer extends ConsumerWidget {
@@ -24,88 +25,142 @@ class MiniPlayer extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        margin: const EdgeInsets.fromLTRB(10, 6, 10, 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.glassBase.withValues(alpha: 0.9),
+              AppColors.surface.withValues(alpha: 0.95),
+            ],
+          ),
+          border: Border.all(color: AppColors.glassBorderStrong, width: 0.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 16,
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 20,
               offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              blurRadius: 30,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  color: AppColors.primary,
-                  child: track.artUri != null
-                      ? Image.network(
-                          track.artUri.toString(),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.music_note, color: Colors.white),
-                        )
-                      : const Icon(Icons.music_note, color: Colors.white),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Top shimmer
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.4],
+                    ),
+                  ),
                 ),
               ),
-              title: Text(
-                track.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: Text(
-                track.artist ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                ),
-              ),
-              trailing: Row(
+              Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      state.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
+                  ListTile(
+                    leading: ArtworkImage(
+                      url: track.artUri?.toString(),
+                      size: 48,
+                      borderRadius: 10,
+                      showShadow: true,
                     ),
-                    onPressed: () =>
-                        ref.read(playerProvider.notifier).togglePlay(),
+                    title: Text(
+                      track.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      track.artist ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Play/pause with subtle glow when playing
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: state.isPlaying
+                                ? AppColors.primary.withValues(alpha: 0.15)
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: state.isPlaying
+                                  ? AppColors.primary.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              state.isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            onPressed: () =>
+                                ref.read(playerProvider.notifier).togglePlay(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.skip_next_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                          onPressed: () =>
+                              ref.read(playerProvider.notifier).next(),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.skip_next, color: Colors.white),
-                    onPressed: () => ref.read(playerProvider.notifier).next(),
+                  // Progress bar with gradient
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(20),
+                    ),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 2.5,
+                      backgroundColor: AppColors.surfaceRaised,
+                      valueColor: const AlwaysStoppedAnimation(
+                        AppColors.primary,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(16),
-              ),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 2,
-                backgroundColor: AppColors.surface,
-                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

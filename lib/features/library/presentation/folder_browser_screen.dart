@@ -7,6 +7,7 @@ import '../../../data/dto/file_dto.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 import '../../player/providers/player_provider.dart';
 
 /// A folder in the Nexora Music root, with a lazily resolved cover.
@@ -110,14 +111,31 @@ class FolderBrowserScreen extends ConsumerWidget {
     );
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(_folderName),
+        backgroundColor: Colors.transparent,
         actions: [
           contentAsync.maybeWhen(
             data: (c) => c.songs.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    icon: const Icon(Icons.play_circle_outline),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.15),
+                            AppColors.secondary.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_outline_rounded,
+                        color: AppColors.primary,
+                      ),
+                    ),
                     tooltip: 'Play all',
                     onPressed: () => ref
                         .read(playerProvider.notifier)
@@ -221,17 +239,56 @@ class FolderBrowserScreen extends ConsumerWidget {
                 ...content.songs.asMap().entries.map((e) {
                   final i = e.key;
                   final s = e.value;
+                  final isCurrent =
+                      ref.watch(playerProvider).currentTrack?.id == s.id;
                   return ListTile(
-                    leading: ArtworkImage(
-                      url: s.coverUrl,
-                      size: 52,
-                      borderRadius: 8,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 2,
                     ),
+                    leading: isCurrent
+                        ? Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              ArtworkImage(
+                                url: s.coverUrl,
+                                size: 48,
+                                borderRadius: 10,
+                              ),
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Center(
+                                  child: NowPlayingIndicator(
+                                    height: 14,
+                                    width: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ArtworkImage(
+                            url: s.coverUrl,
+                            size: 48,
+                            borderRadius: 10,
+                          ),
                     title: Text(
                       s.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      style: TextStyle(
+                        color: isCurrent
+                            ? AppColors.primaryLight
+                            : Colors.white,
+                        fontSize: 15,
+                        fontWeight: isCurrent
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
                     ),
                     subtitle: Text(
                       s.artist ?? s.album ?? '',
@@ -248,19 +305,23 @@ class FolderBrowserScreen extends ConsumerWidget {
                         if (s.codec != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: 7,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                width: 0.5,
+                              ),
                             ),
                             child: Text(
                               s.codec!.toUpperCase(),
                               style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),

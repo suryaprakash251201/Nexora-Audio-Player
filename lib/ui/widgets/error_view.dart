@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'glass_surface.dart';
 
 class ErrorView extends StatelessWidget {
   final String message;
@@ -11,31 +14,64 @@ class ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMuted),
+        padding: const EdgeInsets.all(32),
+        child: GlassSurface(
+          opacity: 0.4,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    size: 32,
+                    color: AppColors.error,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Something went wrong',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Try Again'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: const Text(
-                  'Retry',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -61,14 +97,28 @@ class EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: AppColors.textDim),
-            const SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.08),
+                    AppColors.secondary.withValues(alpha: 0.05),
+                  ],
+                ),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: Icon(icon, size: 36, color: AppColors.textDim),
+            ),
+            const SizedBox(height: 20),
             Text(
               title,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             if (subtitle != null) ...[
@@ -76,7 +126,11 @@ class EmptyView extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
             ],
           ],
@@ -87,11 +141,33 @@ class EmptyView extends StatelessWidget {
 }
 
 class LoadingView extends StatelessWidget {
-  const LoadingView({super.key});
+  final String? message;
+  const LoadingView({super.key, this.message});
+
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: AppColors.primary,
+              backgroundColor: AppColors.surfaceRaised,
+            ),
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              message!,
+              style: const TextStyle(color: AppColors.textDim, fontSize: 13),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -100,19 +176,41 @@ class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: AppColors.warning.withOpacity(0.15),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: const Row(
-        children: [
-          Icon(Icons.wifi_off, size: 16, color: AppColors.warning),
-          SizedBox(width: 8),
-          Text(
-            'Offline — showing cached content',
-            style: TextStyle(color: AppColors.warning, fontSize: 12),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: const ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.warning.withValues(alpha: 0.1),
+                AppColors.warning.withValues(alpha: 0.05),
+              ],
+            ),
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.warning.withValues(alpha: 0.15),
+                width: 0.5,
+              ),
+            ),
           ),
-        ],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: const Row(
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 16, color: AppColors.warning),
+              SizedBox(width: 10),
+              Text(
+                'Offline — showing cached content',
+                style: TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

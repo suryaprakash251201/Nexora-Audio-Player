@@ -9,6 +9,7 @@ import '../../../domain/entities/song.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 
@@ -116,27 +117,44 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 12),
+                                  ),
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    blurRadius: 40,
+                                    spreadRadius: -5,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: _firstTrackArtwork(p),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: _firstTrackArtwork(p),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         Text(
                           p.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -144,7 +162,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           p.description ?? 'Playlist • ${_tracks.length} songs',
                           style: const TextStyle(
                             color: AppColors.textMuted,
-                            fontSize: 15,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -155,7 +173,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.more_horiz),
+                icon: const Icon(Icons.more_horiz_rounded),
                 onPressed: _showOptions,
               ),
             ],
@@ -165,62 +183,98 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
+                  // Play button with gradient
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _tracks.isEmpty
-                          ? null
-                          : () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(_tracks, initialIndex: 0),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.play_arrow_rounded, size: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'Play',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
                         ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _tracks.isEmpty
+                              ? null
+                              : () => ref
+                                    .read(playerProvider.notifier)
+                                    .playSongs(_tracks, initialIndex: 0),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.play_arrow_rounded, size: 26),
+                              SizedBox(width: 8),
+                              Text(
+                                'Play',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
+                  // Shuffle button with glass
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.surfaceRaised,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.surfaceHigh,
+                            AppColors.surfaceRaised,
+                          ],
                         ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border, width: 0.5),
                       ),
-                      onPressed: _tracks.isEmpty ? null : () {},
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.shuffle_rounded, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Shuffle',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _tracks.isEmpty
+                              ? null
+                              : () => ref
+                                    .read(playerProvider.notifier)
+                                    .playSongs(
+                                      [..._tracks]..shuffle(),
+                                      initialIndex: 0,
+                                    ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.shuffle_rounded,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Shuffle',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -239,56 +293,90 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               : SliverList(
                   delegate: SliverChildBuilderDelegate((c, i) {
                     final s = _tracks[i];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 4,
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
                       ),
-                      key: ValueKey(s.id),
-                      leading: ArtworkImage(
-                        url: s.coverUrl,
-                        size: 52,
-                        borderRadius: 8,
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? AppColors.primary.withValues(alpha: 0.08)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      title: Text(
-                        s.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 2,
                         ),
-                      ),
-                      subtitle: Text(
-                        '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 14,
+                        leading: isCurrent
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  ArtworkImage(
+                                    url: s.coverUrl,
+                                    size: 48,
+                                    borderRadius: 10,
+                                  ),
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Center(
+                                      child: NowPlayingIndicator(
+                                        height: 14,
+                                        width: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ArtworkImage(
+                                url: s.coverUrl,
+                                size: 48,
+                                borderRadius: 10,
+                              ),
+                        title: Text(
+                          s.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isCurrent
+                                ? AppColors.primaryLight
+                                : Colors.white,
+                            fontSize: 15,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.play_arrow_rounded,
-                              color: AppColors.textMuted,
-                            ),
-                            onPressed: () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(_tracks, initialIndex: i),
+                        subtitle: Text(
+                          '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
                           ),
-                          const Icon(
-                            Icons.drag_handle_rounded,
-                            color: AppColors.textDim,
-                            size: 20,
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: AppColors.textMuted,
                           ),
-                        ],
+                          onPressed: () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs(_tracks, initialIndex: i),
+                        ),
+                        onTap: () => ref
+                            .read(playerProvider.notifier)
+                            .playSongs(_tracks, initialIndex: i),
                       ),
-                      onTap: () => ref
-                          .read(playerProvider.notifier)
-                          .playSongs(_tracks, initialIndex: i),
                     );
                   }, childCount: _tracks.length),
                 ),

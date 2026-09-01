@@ -25,6 +25,16 @@ class PlaylistsApi {
   final SecureStorageService _storage;
   PlaylistsApi(this._client, this._storage);
 
+  /// Resolves the correct API base URL from secure storage (not Dio global).
+  /// Mirrors FilesApi._base / SongsApi._resolvedBaseUrl so playlist tracks get
+  /// an absolute stream URL; otherwise `_client.dio.options.baseUrl` is
+  /// empty/stale (the interceptor only sets it per-request) and playback fails.
+  Future<String> _resolvedBaseUrl() async {
+    final serverUrl = await _storage.getServerUrl();
+    if (serverUrl != null && serverUrl.isNotEmpty) return serverUrl;
+    return _client.dio.options.baseUrl;
+  }
+
   Future<Song> _itemToSong(Map<String, dynamic> raw) async {
     final rootId = (raw['root_id'] ?? '').toString();
     final path = (raw['path'] ?? '').toString();
@@ -41,8 +51,7 @@ class PlaylistsApi {
           (raw['extension'] ?? (name.contains('.') ? name.split('.').last : ''))
               .toString(),
     );
-    final songId = NexoraFiles.songId(f);
-    final base = _client.dio.options.baseUrl;
+    final base = await _resolvedBaseUrl();
     final token = await _storage.getToken() ?? '';
     return NexoraFiles.toSong(
       f,

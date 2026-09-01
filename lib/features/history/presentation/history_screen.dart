@@ -5,6 +5,7 @@ import '../../../data/repositories/history_repository.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 import '../../player/providers/player_provider.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -13,10 +14,15 @@ class HistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(_historyProvider);
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('History'),
+        backgroundColor: Colors.transparent,
         actions: [
-          IconButton(icon: const Icon(Icons.delete_outline), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: () {},
+          ),
         ],
       ),
       body: historyAsync.when(
@@ -24,7 +30,7 @@ class HistoryScreen extends ConsumerWidget {
             ? const EmptyView(
                 title: 'No history',
                 subtitle: 'Played songs will appear here',
-                icon: Icons.history,
+                icon: Icons.history_rounded,
               )
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(_historyProvider),
@@ -36,15 +42,53 @@ class HistoryScreen extends ConsumerWidget {
                   itemBuilder: (c, i) {
                     final h = items[i];
                     final s = h.song;
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s?.id;
                     return ListTile(
-                      leading: ArtworkImage(
-                        url: s?.coverUrl,
-                        size: 48,
-                        borderRadius: 8,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 2,
                       ),
+                      leading: isCurrent
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ArtworkImage(
+                                  url: s?.coverUrl,
+                                  size: 48,
+                                  borderRadius: 10,
+                                ),
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Center(
+                                    child: NowPlayingIndicator(
+                                      height: 14,
+                                      width: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ArtworkImage(
+                              url: s?.coverUrl,
+                              size: 48,
+                              borderRadius: 10,
+                            ),
                       title: Text(
                         s?.title ?? h.songId,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: isCurrent
+                              ? AppColors.primaryLight
+                              : Colors.white,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
                       ),
                       subtitle: Text(
                         '${s?.artist ?? ''} • ${_timeAgo(h.playedAt)}',
@@ -53,9 +97,17 @@ class HistoryScreen extends ConsumerWidget {
                           fontSize: 12,
                         ),
                       ),
-                      trailing: const Icon(
-                        Icons.play_arrow,
-                        color: AppColors.textMuted,
+                      trailing: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
                       onTap: s != null
                           ? () =>

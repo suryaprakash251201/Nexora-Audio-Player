@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/glass_surface.dart';
+import '../../../ui/widgets/premium_widgets.dart';
 
 class ServerConfigScreen extends ConsumerStatefulWidget {
   const ServerConfigScreen({super.key});
@@ -78,145 +79,170 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter server URL')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter server URL')));
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Server saved: $url')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Server saved: $url')));
     context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Server Configuration')),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.background,
-              AppColors.surfaceRaised,
-              AppColors.background,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Server Configuration'),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Stack(
+        children: [
+          AnimatedGradientBg(
+            colors: const [
+              AppColors.primary,
+              AppColors.secondary,
+              AppColors.tertiary,
             ],
+            blur: 80,
+            child: const SizedBox.expand(),
           ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: GlassSurface(
-              opacity: 0.6,
-              borderRadius: BorderRadius.circular(24),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Icon(
-                      Icons.dns_rounded,
-                      size: 48,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Nexora Server',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Self-hosted or LAN server',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _controller,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText:
-                            'http://192.168.1.5  or  https://music.example.com',
-                        hintStyle: const TextStyle(
-                          color: AppColors.textDim,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.link,
-                          color: AppColors.textMuted,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_status != null)
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: GlassSurface(
+                opacity: 0.55,
+                blur: 40,
+                borderRadius: BorderRadius.circular(28),
+                showShimmer: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        width: 64,
+                        height: 64,
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color:
-                              (_status == 'success'
-                                      ? AppColors.success
-                                      : AppColors.error)
-                                  .withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _status == 'success'
-                                ? AppColors.success
-                                : AppColors.error,
-                          ),
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          _msg ?? '',
-                          style: TextStyle(
-                            color: _status == 'success'
-                                ? AppColors.success
-                                : AppColors.error,
-                            fontSize: 13,
+                        child: const Icon(
+                          Icons.dns_rounded,
+                          size: 32,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Nexora Server',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Self-hosted or LAN server',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _controller,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          hintText:
+                              'http://192.168.1.5  or  https://music.example.com',
+                          hintStyle: TextStyle(
+                            color: AppColors.textDim,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.link_rounded,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _testing ? null : _test,
-                      icon: _testing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.wifi_tethering),
-                      label: const Text('Test Connection'),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _save,
-                      child: const Text('Save & Connect'),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 11),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      if (_status != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color:
+                                (_status == 'success'
+                                        ? AppColors.success
+                                        : AppColors.error)
+                                    .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _status == 'success'
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                          child: Text(
+                            _msg ?? '',
+                            style: TextStyle(
+                              color: _status == 'success'
+                                  ? AppColors.success
+                                  : AppColors.error,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _testing ? null : _test,
+                        icon: _testing
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.wifi_tethering_rounded),
+                        label: const Text('Test Connection'),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _save,
+                        child: const Text('Save & Connect'),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
+                        style: TextStyle(
+                          color: AppColors.textDim,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -24,13 +24,29 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   Widget build(BuildContext context) {
     final playlistsAsync = ref.watch(_playlistsProvider);
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Playlists'),
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             tooltip: _grid ? 'List view' : 'Grid view',
-            icon: Icon(
-              _grid ? Icons.view_list_outlined : Icons.grid_view_outlined,
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.15),
+                    AppColors.secondary.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _grid ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
             onPressed: () => setState(() => _grid = !_grid),
           ),
@@ -39,14 +55,17 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _createPlaylist,
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add_rounded),
       ),
       body: playlistsAsync.when(
         data: (list) => list.isEmpty
             ? const EmptyView(
                 title: 'No playlists',
                 subtitle: 'Create your first playlist',
-                icon: Icons.queue_music,
+                icon: Icons.queue_music_rounded,
               )
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(_playlistsProvider),
@@ -77,15 +96,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           controller: controller,
           autofocus: true,
           style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: 'Playlist name',
-            hintStyle: const TextStyle(color: AppColors.textDim),
-            filled: true,
-            fillColor: AppColors.surfaceRaised,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
+            hintStyle: TextStyle(color: AppColors.textDim),
           ),
         ),
         actions: [
@@ -105,8 +118,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Created "$name"')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Created "$name"')));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

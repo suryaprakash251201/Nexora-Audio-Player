@@ -15,6 +15,8 @@ class ArtworkImage extends ConsumerWidget {
   final double? size;
   final double borderRadius;
   final BoxFit fit;
+  final bool showShadow;
+  final Color? shadowColor;
 
   const ArtworkImage({
     super.key,
@@ -22,6 +24,8 @@ class ArtworkImage extends ConsumerWidget {
     this.size,
     this.borderRadius = 12,
     this.fit = BoxFit.cover,
+    this.showShadow = false,
+    this.shadowColor,
   });
 
   @override
@@ -44,15 +48,20 @@ class ArtworkImage extends ConsumerWidget {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    // Include token in key so NetworkImage cache is invalidated when token changes
     final imageKey = token != null ? '$url?_auth=${token.hashCode}' : url!;
 
-    return ClipRRect(
+    final image = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: Container(
         width: size,
         height: size,
-        color: AppColors.surfaceRaised,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.surfaceRaised, AppColors.surfaceHigh],
+          ),
+        ),
         child: Image.network(
           url!,
           key: ValueKey(imageKey),
@@ -66,27 +75,50 @@ class ArtworkImage extends ConsumerWidget {
         ),
       ),
     );
+
+    if (!showShadow) return image;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: (shadowColor ?? Colors.black).withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: image,
+    );
   }
 
   Widget _fallback({bool isLoading = false}) {
     return Container(
       width: size,
       height: size,
-      color: AppColors.surfaceRaised,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.surfaceRaised, AppColors.surfaceHigh],
+        ),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
       child: Center(
         child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
+            ? SizedBox(
+                width: size != null && size! < 40 ? 16 : 22,
+                height: size != null && size! < 40 ? 16 : 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.textMuted,
+                  color: AppColors.textDim,
                 ),
               )
-            : const Icon(
-                Icons.music_note,
-                color: AppColors.textMuted,
-                size: 32,
+            : Icon(
+                Icons.music_note_rounded,
+                color: AppColors.textDim,
+                size: size != null && size! < 40 ? 20 : 32,
               ),
       ),
     );
