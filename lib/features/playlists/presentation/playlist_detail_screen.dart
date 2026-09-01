@@ -390,10 +390,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     // Server playlists don't carry coverUrl; use the first track's artwork.
     final tracks = p.tracks ?? [];
     String? url;
-    if (tracks.isNotEmpty) {
-      url = tracks.first.coverUrl;
-    } else if (p.coverUrl != null) {
-      url = p.coverUrl;
+    url = p.coverUrl;
+    for (final track in tracks) {
+      final trackUrl = track.coverUrl ?? track.artworkUrl;
+      if (trackUrl != null && trackUrl.isNotEmpty) {
+        url ??= trackUrl;
+        break;
+      }
     }
 
     if (url != null) {

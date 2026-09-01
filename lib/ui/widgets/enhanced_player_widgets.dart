@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'bright_icons.dart';
 import 'enhanced_glass.dart';
 
 // ═══════════════════════════════════════════════════════════════
@@ -662,66 +663,96 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
+  /// Total space the bar occupies (bar height + bottom margin). The scroll
+  /// dock uses this to position the mini player above it.
+  static const double height = 68;
+  static const double bottomMargin = 12;
+  static const double totalHeight = height + bottomMargin;
+
+  /// Each destination: outline icon, filled icon, label and its bright tone.
   static const _destinations = [
-    (Icons.home_outlined, Icons.home_rounded, 'Home'),
-    (Icons.search_outlined, Icons.search_rounded, 'Search'),
-    (Icons.library_music_outlined, Icons.library_music_rounded, 'Library'),
-    (Icons.queue_music_outlined, Icons.queue_music_rounded, 'Playlists'),
-    (Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
+    (
+      Icons.home_outlined,
+      Icons.home_rounded,
+      'Home',
+      BrightIconTone.violet,
+    ),
+    (
+      Icons.search_outlined,
+      Icons.search_rounded,
+      'Search',
+      BrightIconTone.cyan,
+    ),
+    (
+      Icons.library_music_outlined,
+      Icons.library_music_rounded,
+      'Library',
+      BrightIconTone.pink,
+    ),
+    (
+      Icons.queue_music_outlined,
+      Icons.queue_music_rounded,
+      'Playlists',
+      BrightIconTone.emerald,
+    ),
+    (
+      Icons.settings_outlined,
+      Icons.settings_rounded,
+      'Settings',
+      BrightIconTone.amber,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, bottomMargin),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(34),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 34,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(34),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.glassBase.withValues(alpha: 0.7),
-                  AppColors.glassBase.withValues(alpha: 0.5),
+                  AppColors.glassBase.withValues(alpha: 0.78),
+                  AppColors.glassBase.withValues(alpha: 0.52),
                 ],
               ),
               border: Border.all(
                 color: AppColors.glassBorderStrong,
-                width: 0.5,
+                width: 0.6,
               ),
             ),
-            child: SafeArea(
-              top: false,
-              child: Container(
-                height: 68,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(_destinations.length, (i) {
-                    final (icon, selIcon, label) = _destinations[i];
-                    final selected = i == selectedIndex;
-                    return _NavItem(
-                      icon: icon,
-                      selectedIcon: selIcon,
-                      label: label,
-                      selected: selected,
-                      onTap: () => onSelect(i),
-                    );
-                  }),
-                ),
+            child: Container(
+              height: height,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(_destinations.length, (i) {
+                  final (icon, selIcon, label, tone) = _destinations[i];
+                  final selected = i == selectedIndex;
+                  return _NavItem(
+                    icon: icon,
+                    selectedIcon: selIcon,
+                    label: label,
+                    tone: tone,
+                    selected: selected,
+                    onTap: () => onSelect(i),
+                  );
+                }),
               ),
             ),
           ),
@@ -735,6 +766,7 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
+  final BrightIconTone tone;
   final bool selected;
   final VoidCallback onTap;
 
@@ -742,50 +774,60 @@ class _NavItem extends StatelessWidget {
     required this.icon,
     required this.selectedIcon,
     required this.label,
+    required this.tone,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = tone.stops;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
           gradient: selected
               ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.2),
-                    AppColors.primary.withValues(alpha: 0.05),
+                    colors.first.withValues(alpha: 0.3),
+                    colors.last.withValues(alpha: 0.08),
                   ],
                 )
               : null,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(22),
+          border: selected
+              ? Border.all(color: colors.first.withValues(alpha: 0.35), width: 0.6)
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              child: Icon(
-                selected ? selectedIcon : icon,
-                color: selected ? AppColors.primary : AppColors.textDim,
-                size: 24,
+            AnimatedScale(
+              scale: selected ? 1.12 : 1.0,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutBack,
+              child: BrightIcon(
+                icon: selected ? selectedIcon : icon,
+                size: 23,
+                tone: tone,
+                active: selected,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
+            const SizedBox(height: 1),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 280),
               style: TextStyle(
-                color: selected ? AppColors.primary : AppColors.textDim,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? colors.first : AppColors.textDim,
+                fontSize: 9.5,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
               ),
+              child: Text(label),
             ),
           ],
         ),

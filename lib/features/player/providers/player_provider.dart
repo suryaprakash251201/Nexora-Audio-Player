@@ -9,7 +9,9 @@ import '../../../core/audio/queue_manager.dart';
 import '../../../core/logging/app_logger.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/repositories/history_repository.dart';
+import '../../../data/local/songs_local_datasource.dart';
 import '../../../domain/entities/song.dart';
+import '../../home/providers/home_provider.dart';
 
 class PlaybackStateData {
   final MediaItem? currentTrack;
@@ -71,15 +73,25 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlaybackStateData>(
     final queueManager = ref.watch(queueManagerProvider);
     final storage = ref.watch(secureStorageProvider);
     final history = ref.watch(historyRepositoryProvider);
-    return PlayerNotifier(handler, queueManager, storage, history);
+    final songsLocal = ref.watch(songsLocalDsProvider);
+    return PlayerNotifier(
+      ref,
+      handler,
+      queueManager,
+      storage,
+      history,
+      songsLocal,
+    );
   },
 );
 
 class PlayerNotifier extends StateNotifier<PlaybackStateData> {
+  final Ref _ref;
   final NexoraAudioHandler _handler;
   final QueueManager _queueManager;
   final SecureStorageService _storage;
   final HistoryRepository _history;
+  final SongsLocalDataSource _songsLocal;
   StreamSubscription? _posSub;
   StreamSubscription? _playbackSub;
   StreamSubscription? _queueSub;
@@ -87,10 +99,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   Timer? _historyTimer;
 
   PlayerNotifier(
+    this._ref,
     this._handler,
     this._queueManager,
     this._storage,
     this._history,
+    this._songsLocal,
   ) : super(const PlaybackStateData()) {
     _init();
   }
@@ -113,13 +127,13 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       );
       if (ps.processingState == ProcessingState.completed) {
         // Auto record completion
-        _recordHistory(completed: true);
+        unawaited(_recordHistory(completed: true));
       }
       if (ps.playing) {
         _historyTimer?.cancel();
         _historyTimer = Timer.periodic(
           const Duration(seconds: 10),
-          (_) => _recordHistory(),
+          (_) => unawaited(_recordHistory()),
         );
       } else {
         _historyTimer?.cancel();
@@ -139,7 +153,7 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       );
       if (item != null) {
         AppLogger.player('Now playing: ${item.title}');
-        _recordHistory();
+        unawaited(_recordHistory());
       }
     });
 
@@ -167,16 +181,34 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
     } catch (_) {}
   }
 
-  void _recordHistory({bool completed = false}) {
+  Future<void> _recordHistory({bool completed = false}) async {
     final item = state.currentTrack;
     if (item == null) return;
     final songId = (item.extras?['songId'] as String?) ?? item.id;
     if (songId.isEmpty) return;
-    _history.recordPlay(
-      songId,
-      duration: state.duration.inSeconds,
-      completed: completed,
-    );
+    try {
+      final cached = await _songsLocal.getSong(songId);
+      if (cached == null) {
+        await _songsLocal.cacheSongs([
+          Song(
+            id: songId,
+            title: item.title,
+            artist: item.artist,
+            album: item.album,
+            duration: state.duration.inSeconds,
+            coverUrl: item.artUri?.toString(),
+            streamUrl: item.id,
+          ),
+        ]);
+      }
+      await _history.recordPlay(
+        songId,
+        duration: state.duration.inSeconds,
+        completed: completed,
+      );
+    } finally {
+      _ref.invalidate(recentlyPlayedProvider);
+    }
   }
 
   // Public actions

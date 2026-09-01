@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/database/database_service.dart';
 import '../../domain/entities/paginated.dart';
 import '../../domain/entities/song.dart';
 import '../api/songs_api.dart';
@@ -18,6 +17,18 @@ class SongsRepository {
   final SongsLocalDataSource _local;
   SongsRepository(this._api, this._local);
 
+  /// Keeps the first occurrence of each canonical song id.
+  static List<Song> deduplicateById(Iterable<Song> songs) {
+    final seen = <String>{};
+    final result = <Song>[];
+    for (final song in songs) {
+      final id = song.id.trim();
+      if (id.isEmpty || !seen.add(id)) continue;
+      result.add(song);
+    }
+    return result;
+  }
+
   /// Library listing via search index (kind=audio). Falls back to cache offline.
   Future<Paginated<Song>> getSongs({
     int page = 1,
@@ -32,18 +43,19 @@ class SongsRepository {
         query: query ?? '',
         cancelToken: cancelToken,
       );
-      if (result.songs.isNotEmpty) {
+      final songs = deduplicateById(result.songs);
+      if (songs.isNotEmpty) {
         try {
-          await _local.cacheSongs(result.songs);
+          await _local.cacheSongs(songs);
         } catch (_) {}
       }
       return Paginated(
-        data: result.songs,
+        data: songs,
         page: page,
         limit: limit,
         total: result.hasMore
             ? page * limit + 1
-            : (page - 1) * limit + result.songs.length,
+            : (page - 1) * limit + songs.length,
         totalPages: result.hasMore ? page + 1 : page,
         hasNext: result.hasMore,
         hasPrev: page > 1,
@@ -56,7 +68,7 @@ class SongsRepository {
       );
       if (cached.isNotEmpty) {
         return Paginated(
-          data: cached,
+          data: deduplicateById(cached),
           page: page,
           limit: limit,
           total: cached.length,

@@ -14,7 +14,7 @@ import '../../../domain/entities/playback_history.dart';
 final recentSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repo = ref.watch(songsRepositoryProvider);
   final pag = await repo.getSongs(page: 1, limit: 10);
-  return pag.data;
+  return SongsRepository.deduplicateById(pag.data);
 });
 
 /// Server-tracked recents (auto-recorded when a track is streamed).

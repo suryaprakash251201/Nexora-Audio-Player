@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/repositories/songs_repository.dart';
+import '../../../domain/entities/song.dart';
 import '../../../data/api/files_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -87,8 +88,9 @@ class _SongsTab extends ConsumerStatefulWidget {
 
 class _SongsTabState extends ConsumerState<_SongsTab> {
   int _page = 1;
-  final _songs = <dynamic>[];
+  final _songs = <Song>[];
   bool _loading = true;
+  bool _loadingMore = false;
   bool _hasMore = true;
   String? _error;
 
@@ -103,6 +105,13 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
       _page = 1;
       _songs.clear();
       _hasMore = true;
+      _loadingMore = false;
+    } else {
+      // Guard against the pagination race: the "load more" sentinel can be
+      // built several times before the first request sets `_loading`, which
+      // previously fetched the same page twice and duplicated every song.
+      if (_loadingMore || !_hasMore) return;
+      _loadingMore = true;
     }
     setState(() {
       _loading = true;
@@ -111,16 +120,25 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
     try {
       final repo = ref.read(songsRepositoryProvider);
       final p = await repo.getSongs(page: _page, limit: 20);
+      if (!mounted) return;
+      // De-duplicate the accumulated pages by canonical id, preserving the
+      // first occurrence when server pages overlap.
+      final combined = SongsRepository.deduplicateById([..._songs, ...p.data]);
       setState(() {
-        _songs.addAll(p.data);
+        _songs
+          ..clear()
+          ..addAll(combined);
         _hasMore = p.hasNext;
         _page++;
         _loading = false;
+        _loadingMore = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
+        _loadingMore = false;
       });
     }
   }
@@ -143,7 +161,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
         separatorBuilder: (_, __) => const SizedBox(height: 4),
         itemBuilder: (c, i) {
           if (i >= _songs.length) {
-            if (!_loading) Future.microtask(() => _load());
+            if (!_loading && !_loadingMore && _hasMore) {
+              Future.microtask(() => _load());
+            }
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
@@ -156,12 +176,13 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             child: GlassSongTile(
               artworkUrl: s.coverUrl,
               title: s.title,
-              subtitle: '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
+              subtitle:
+                  '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
               isCurrent: isCurrent,
               isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
               onTap: () => ref
                   .read(playerProvider.notifier)
-                  .playSongs(_songs.cast(), initialIndex: i),
+                  .playSongs(_songs, initialIndex: i),
               onMore: () => _showSongMenu(s),
               trailing: s.codec != null
                   ? Container(
@@ -215,7 +236,10 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
               const SizedBox(height: 16),
               ListTile(
                 leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
-                title: Text('Play next', style: TextStyle(color: AppColors.text)),
+                title: Text(
+                  'Play next',
+                  style: TextStyle(color: AppColors.text),
+                ),
                 onTap: () {
                   Navigator.pop(c);
                   ref.read(playerProvider.notifier).playNext(song);
@@ -230,13 +254,16 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
                 onTap: () {
                   Navigator.pop(c);
                   ref.read(playerProvider.notifier).addToQueue(song);
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to queue')),
+                  );
                 },
               ),
               ListTile(
-                leading: Icon(Icons.playlist_add_rounded, color: AppColors.text),
+                leading: Icon(
+                  Icons.playlist_add_rounded,
+                  color: AppColors.text,
+                ),
                 title: Text(
                   'Add to playlist',
                   style: TextStyle(color: AppColors.text),

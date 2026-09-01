@@ -87,7 +87,12 @@ class PlaylistsApi {
           id: (raw['id'] ?? '').toString(),
           name: (raw['name'] ?? 'Untitled').toString(),
           description: raw['description']?.toString(),
-          coverUrl: null,
+          coverUrl: tracks
+              .map((track) => track.coverUrl ?? track.artworkUrl)
+              .firstWhere(
+                (url) => url != null && url.isNotEmpty,
+                orElse: () => null,
+              ),
           trackCount: tracks.length,
           isPublic: raw['is_public'] == true,
           tracks: tracks,

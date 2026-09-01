@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/enhanced_player_widgets.dart';
+import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/premium_widgets.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../providers/player_provider.dart';
@@ -277,56 +278,18 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           },
                         ),
                         const SizedBox(height: 16),
-                        // Transport controls
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _ControlButton(
-                              icon: Icons.shuffle_rounded,
-                              isActive: state.shuffleEnabled,
-                              onPressed: () => notifier.toggleShuffle(),
-                            ),
-                            _ControlButton(
-                              icon: Icons.skip_previous_rounded,
-                              size: 44,
-                              onPressed: () => notifier.previous(),
-                            ),
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                if (state.processingState ==
-                                    ProcessingState.buffering)
-                                  SizedBox(
-                                    width: 84,
-                                    height: 84,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation(
-                                        AppColors.primary,
-                                      ),
-                                      backgroundColor: AppColors.primary
-                                          .withValues(alpha: 0.15),
-                                    ),
-                                  ),
-                                EnhancedPlayButton(
-                                  isPlaying: isPlaying,
-                                  size: 84,
-                                  onPressed: () => notifier.togglePlay(),
-                                ),
-                              ],
-                            ),
-                            _ControlButton(
-                              icon: Icons.skip_next_rounded,
-                              size: 44,
-                              onPressed: () => notifier.next(),
-                            ),
-                            _ControlButton(
-                              icon: _repeatIcon(state.repeatMode),
-                              isActive: state.repeatMode != LoopMode.off,
-                              onPressed: () => notifier.cycleRepeat(),
-                            ),
-                          ],
+                        // Transport console — audiophile glass control deck
+                        _TransportConsole(
+                          isPlaying: isPlaying,
+                          isBuffering:
+                              state.processingState == ProcessingState.buffering,
+                          shuffle: state.shuffleEnabled,
+                          repeatMode: state.repeatMode,
+                          onShuffle: () => notifier.toggleShuffle(),
+                          onPrevious: () => notifier.previous(),
+                          onPlayPause: () => notifier.togglePlay(),
+                          onNext: () => notifier.next(),
+                          onRepeat: () => notifier.cycleRepeat(),
                         ),
                         const SizedBox(height: 24),
                         // Bottom actions
@@ -367,17 +330,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         ],
       ),
     );
-  }
-
-  IconData _repeatIcon(LoopMode mode) {
-    switch (mode) {
-      case LoopMode.one:
-        return Icons.repeat_one_rounded;
-      case LoopMode.all:
-        return Icons.repeat_rounded;
-      case LoopMode.off:
-        return Icons.repeat_rounded;
-    }
   }
 
   void _showQueue(BuildContext context) {
@@ -477,41 +429,194 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
 // CONTROL BUTTON
 // ═══════════════════════════════════════════════════════════════
 
+/// The floating glass deck that houses the transport controls.
+class _TransportConsole extends StatelessWidget {
+  final bool isPlaying;
+  final bool isBuffering;
+  final bool shuffle;
+  final LoopMode repeatMode;
+  final VoidCallback onShuffle;
+  final VoidCallback onPrevious;
+  final VoidCallback onPlayPause;
+  final VoidCallback onNext;
+  final VoidCallback onRepeat;
+
+  const _TransportConsole({
+    required this.isPlaying,
+    required this.isBuffering,
+    required this.shuffle,
+    required this.repeatMode,
+    required this.onShuffle,
+    required this.onPrevious,
+    required this.onPlayPause,
+    required this.onNext,
+    required this.onRepeat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(color: AppColors.glassBorderStrong, width: 0.6),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.glassBase.withValues(alpha: 0.55),
+            AppColors.glassBase.withValues(alpha: 0.26),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.32),
+            blurRadius: 34,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(36),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              _ControlButton(
+                icon: Icons.shuffle_rounded,
+                isActive: shuffle,
+                tone: BrightIconTone.cyan,
+                onPressed: onShuffle,
+              ),
+              _ControlButton(
+                icon: Icons.skip_previous_rounded,
+                size: 32,
+                discSize: 56,
+                tone: BrightIconTone.violet,
+                alwaysBright: true,
+                onPressed: onPrevious,
+              ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (isBuffering)
+                    SizedBox(
+                      width: 94,
+                      height: 94,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.primary,
+                        ),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.15,
+                        ),
+                      ),
+                    ),
+                  EnhancedPlayButton(
+                    isPlaying: isPlaying,
+                    size: 84,
+                    onPressed: onPlayPause,
+                  ),
+                ],
+              ),
+              _ControlButton(
+                icon: Icons.skip_next_rounded,
+                size: 32,
+                discSize: 56,
+                tone: BrightIconTone.violet,
+                alwaysBright: true,
+                onPressed: onNext,
+              ),
+              _ControlButton(
+                icon: repeatMode == LoopMode.one
+                    ? Icons.repeat_one_rounded
+                    : Icons.repeat_rounded,
+                isActive: repeatMode != LoopMode.off,
+                tone: BrightIconTone.pink,
+                onPressed: onRepeat,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A glass transport control with a bright gradient glyph.
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final bool isActive;
   final double size;
+  final double discSize;
+  final BrightIconTone tone;
+  final bool alwaysBright;
   final VoidCallback onPressed;
 
   const _ControlButton({
     required this.icon,
     this.isActive = false,
-    this.size = 32,
+    this.size = 26,
+    this.discSize = 48,
+    this.tone = BrightIconTone.violet,
+    this.alwaysBright = false,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = tone.stops;
     return GestureDetector(
       onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.all(8),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        width: discSize,
+        height: discSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isActive
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
+          gradient: isActive
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colors.first.withValues(alpha: 0.32),
+                    colors.last.withValues(alpha: 0.10),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    AppColors.glassBase.withValues(alpha: 0.38),
+                    AppColors.glassBase.withValues(alpha: 0.14),
+                  ],
+                ),
           border: Border.all(
             color: isActive
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : Colors.transparent,
-            width: 0.5,
+                ? colors.first.withValues(alpha: 0.45)
+                : AppColors.glassBorder,
+            width: 0.7,
           ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: colors.first.withValues(alpha: 0.38),
+                    blurRadius: 24,
+                    spreadRadius: -6,
+                  ),
+                ]
+              : null,
         ),
-        child: Icon(
-          icon,
-          color: isActive ? AppColors.primary : AppColors.text,
-          size: size,
+        child: Center(
+          child: BrightIcon(
+            icon: icon,
+            size: size,
+            tone: tone,
+            active: isActive || alwaysBright,
+          ),
         ),
       ),
     );

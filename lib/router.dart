@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +18,7 @@ import 'features/history/presentation/history_screen.dart';
 import 'features/favorites/presentation/favorites_screen.dart';
 import 'features/equalizer/presentation/equalizer_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/player/providers/player_provider.dart';
 import 'domain/entities/playlist.dart';
 import 'ui/widgets/enhanced_player_widgets.dart';
 
@@ -136,9 +138,17 @@ final router = GoRouter(
   ],
 );
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
+
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  /// Whether the bottom nav bar is currently on screen.
+  bool _navVisible = true;
 
   int _indexForLocation(String loc) {
     if (loc.startsWith('/search')) return 1;
@@ -148,47 +158,147 @@ class AppShell extends ConsumerWidget {
     return 0;
   }
 
+  /// Scroll-direction driven nav visibility:
+  ///  • scrolling down  → nav slides away, mini player drops into its place
+  ///  • scrolling up    → nav returns, mini player lifts above it
+  bool _onUserScroll(UserScrollNotification notification) {
+    final metrics = notification.metrics;
+
+    // Always reveal the bar once we are back at the very top.
+    if (metrics.pixels <= metrics.minScrollExtent + 1) {
+      if (!_navVisible) setState(() => _navVisible = true);
+      return false;
+    }
+
+    // Nothing to hand the space over to — keep the nav put.
+    final hasTrack = ref.read(playerProvider).currentTrack != null;
+
+    switch (notification.direction) {
+      case ScrollDirection.reverse:
+        // Content moving up = user scrolling down the list.
+        if (hasTrack && _navVisible && metrics.pixels > 40) {
+          setState(() => _navVisible = false);
+        }
+        break;
+      case ScrollDirection.forward:
+        // Content moving down = user scrolling back up.
+        if (!_navVisible) setState(() => _navVisible = true);
+        break;
+      case ScrollDirection.idle:
+        break;
+    }
+    return false;
+  }
+
+  void _onSelect(int i) {
+    switch (i) {
+      case 0:
+        context.go('/');
+        break;
+      case 1:
+        context.go('/search');
+        break;
+      case 2:
+        context.go('/library');
+        break;
+      case 3:
+        context.go('/playlists');
+        break;
+      case 4:
+        context.go('/settings');
+        break;
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final idx = _indexForLocation(location);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
     return Scaffold(
+      extendBody: true,
       body: Stack(
         children: [
-          child,
+          NotificationListener<UserScrollNotification>(
+            onNotification: _onUserScroll,
+            child: widget.child,
+          ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: Consumer(
-              builder: (c, r, _) {
-                return MiniPlayer(onTap: () => context.push('/player'));
-              },
+            child: _BottomDock(
+              navVisible: _navVisible,
+              bottomInset: bottomInset,
+              navBar: EnhancedGlassNavBar(
+                selectedIndex: idx,
+                onSelect: _onSelect,
+              ),
+              onOpenPlayer: () => context.push('/player'),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: EnhancedGlassNavBar(
-        selectedIndex: idx,
-        onSelect: (i) {
-          switch (i) {
-            case 0:
-              context.go('/');
-              break;
-            case 1:
-              context.go('/search');
-              break;
-            case 2:
-              context.go('/library');
-              break;
-            case 3:
-              context.go('/playlists');
-              break;
-            case 4:
-              context.go('/settings');
-              break;
-          }
-        },
+    );
+  }
+}
+
+/// Bottom overlay that cross-fades/repositions the mini player and the nav bar
+/// so they swap places as the user scrolls.
+class _BottomDock extends StatelessWidget {
+  final bool navVisible;
+  final double bottomInset;
+  final Widget navBar;
+  final VoidCallback onOpenPlayer;
+
+  static const double _miniHeight = 78;
+  static const double _gap = 6;
+
+  const _BottomDock({
+    required this.navVisible,
+    required this.bottomInset,
+    required this.navBar,
+    required this.onOpenPlayer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final navTotal = EnhancedGlassNavBar.totalHeight;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SizedBox(
+        height: _miniHeight + navTotal + _gap + 8,
+        child: Stack(
+          children: [
+            // Mini player: sits above the nav when visible, drops into the
+            // nav's slot when the nav is hidden.
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              bottom: navVisible ? navTotal + _gap : 0,
+              child: MiniPlayer(onTap: onOpenPlayer),
+            ),
+            // Nav bar: slides below the fold when hidden.
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              bottom: navVisible ? 0 : -navTotal,
+              child: IgnorePointer(
+                ignoring: !navVisible,
+                child: AnimatedOpacity(
+                  opacity: navVisible ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: navBar,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -9,8 +9,8 @@ import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
-import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/animations/app_animations.dart';
 
 class PlaylistsScreen extends ConsumerStatefulWidget {
@@ -57,10 +57,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
         elevation: 0,
         title: Text(
           'Playlists',
-          style: TextStyle(
-            color: AppColors.text,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
@@ -226,31 +223,48 @@ final _playlistsProvider = FutureProvider(
   (ref) async => ref.watch(playlistsRepositoryProvider).getPlaylists(),
 );
 
-final _playlistCoverProvider = FutureProvider.family<String?, Playlist>((
+/// Resolves up to four distinct cover images for a playlist so the tile can
+/// render a mosaic instead of reusing the same single artwork.
+final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
   ref,
   pl,
 ) async {
   final tracks = pl.tracks ?? [];
-  Song? first;
+  final covers = <String?>[];
+  final pending = <Song>[];
+  final directCover = pl.coverUrl;
+  if (directCover != null && directCover.isNotEmpty) {
+    covers.add(directCover);
+  }
+
   for (final s in tracks) {
-    if ((s.coverUrl ?? '').isNotEmpty) {
-      first = s;
-      break;
+    final cover = s.coverUrl ?? s.artworkUrl;
+    if (cover != null && cover.isNotEmpty) {
+      covers.add(cover);
+    } else {
+      pending.add(s);
     }
-    first ??= s;
+    if (covers.length >= 4) break;
   }
-  if (first == null) return null;
-  if ((first.coverUrl ?? '').isNotEmpty) return first.coverUrl;
-  final api = ref.watch(filesApiProvider);
-  try {
-    return await api.thumbnailUrl(
-      NexoraFiles.parseRootId(first.id),
-      NexoraFiles.parsePath(first.id),
-      size: 512,
-    );
-  } catch (_) {
-    return null;
+
+  // Fill the remaining slots by asking the server for thumbnails.
+  if (covers.length < 4 && pending.isNotEmpty) {
+    final api = ref.watch(filesApiProvider);
+    for (final s in pending) {
+      if (covers.length >= 4) break;
+      try {
+        final url = await api.thumbnailUrl(
+          NexoraFiles.parseRootId(s.id),
+          NexoraFiles.parsePath(s.id),
+          size: 256,
+        );
+        covers.add(url);
+      } catch (_) {
+        // Ignore individual failures; the mosaic just uses fewer tiles.
+      }
+    }
   }
+  return covers;
 });
 
 class _PlaylistTile extends ConsumerWidget {
@@ -259,7 +273,7 @@ class _PlaylistTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coverAsync = ref.watch(_playlistCoverProvider(playlist));
+    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
     return GlassCard(
       borderRadius: 18,
       onTap: () => context.push('/playlists/${playlist.id}', extra: playlist),
@@ -267,10 +281,55 @@ class _PlaylistTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: coverAsync.when(
-              data: (url) => ArtworkImage(url: url, borderRadius: 18),
-              loading: () => ArtworkImage(url: null, borderRadius: 18),
-              error: (_, __) => ArtworkImage(url: null, borderRadius: 18),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: coversAsync.when(
+                    data: (urls) => PlaylistCover(
+                      artworkUrls: urls,
+                      borderRadius: 18,
+                      title: playlist.name,
+                    ),
+                    loading: () => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 18,
+                      title: playlist.name,
+                    ),
+                    error: (_, __) => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 18,
+                      title: playlist.name,
+                    ),
+                  ),
+                ),
+                // Track count badge
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      '${playlist.trackCount ?? 0}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -388,14 +447,29 @@ class _PlaylistCoverBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coverAsync = ref.watch(_playlistCoverProvider(playlist));
+    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
     return SizedBox(
       width: 56,
       height: 56,
-      child: coverAsync.when(
-        data: (url) => ArtworkImage(url: url, size: 56, borderRadius: 12),
-        loading: () => ArtworkImage(url: null, size: 56, borderRadius: 12),
-        error: (_, __) => ArtworkImage(url: null, size: 56, borderRadius: 12),
+      child: coversAsync.when(
+        data: (urls) => PlaylistCover(
+          artworkUrls: urls,
+          borderRadius: 12,
+          title: playlist.name,
+          emptyIconSize: 24,
+        ),
+        loading: () => PlaylistCover(
+          artworkUrls: const [],
+          borderRadius: 12,
+          title: playlist.name,
+          emptyIconSize: 24,
+        ),
+        error: (_, __) => PlaylistCover(
+          artworkUrls: const [],
+          borderRadius: 12,
+          title: playlist.name,
+          emptyIconSize: 24,
+        ),
       ),
     );
   }

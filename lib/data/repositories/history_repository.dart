@@ -5,30 +5,46 @@ import '../../core/database/database_service.dart';
 import '../../core/errors/exceptions.dart';
 import '../../core/sync/sync_manager.dart';
 import '../../domain/entities/playback_history.dart';
+import '../../domain/entities/song.dart';
 import '../api/history_api.dart';
+import '../local/songs_local_datasource.dart';
 
 final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
   final api = ref.watch(historyApiProvider);
   final db = ref.watch(databaseProvider);
   final sync = ref.watch(syncManagerProvider);
-  return HistoryRepository(api, db, sync);
+  final songsLocal = ref.watch(songsLocalDsProvider);
+  return HistoryRepository(api, db, sync, songsLocal);
 });
 
 class HistoryRepository {
   final HistoryApi _api;
   final DatabaseService _db;
   final SyncManager _sync;
+  final SongsLocalDataSource _songsLocal;
   // Debounce last play per song
   final Map<String, DateTime> _lastRecord = {};
 
-  HistoryRepository(this._api, this._db, this._sync);
+  HistoryRepository(this._api, this._db, this._sync, this._songsLocal);
 
+  /// History = server /recents merged with tracks this app actually played
+  /// (recorded locally). Merging is what makes "Recently Played" reflect real
+  /// in-app playback immediately instead of waiting for the server index.
   Future<List<PlaybackHistoryItem>> getHistory({
     int page = 1,
     int limit = 20,
   }) async {
+    Object? remoteError;
+    final remote = <PlaybackHistoryItem>[];
+
     try {
-      final remote = await _api.getHistory(page: page, limit: limit);
+      final items = await _api.getHistory(page: page, limit: limit);
+      remote.addAll(items);
+      try {
+        await _songsLocal.cacheSongs(
+          remote.map((item) => item.song).whereType<Song>().toList(),
+        );
+      } catch (_) {}
       try {
         final db = await _db.database;
         final batch = db.batch();
@@ -43,30 +59,78 @@ class HistoryRepository {
         }
         await batch.commit(noResult: true);
       } catch (_) {}
-      return remote;
     } catch (e) {
-      if (e is NoInternetException) {
-        final db = await _db.database;
-        final rows = await db.query(
-          'history',
-          orderBy: 'playedAt DESC',
-          limit: limit,
-          offset: (page - 1) * limit,
-        );
-        return rows
-            .map(
-              (r) => PlaybackHistoryItem(
-                songId: r['songId'] as String,
-                playedAt: DateTime.fromMillisecondsSinceEpoch(
-                  r['playedAt'] as int,
-                ),
-                playDuration: r['duration'] as int?,
-                completion: (r['completion'] as num?)?.toDouble(),
-              ),
-            )
-            .toList();
+      remoteError = e;
+    }
+
+    final local = await _localHistory(limit: limit * 3);
+
+    // Merge newest-first, keeping only the most recent entry per song.
+    final merged = <String, PlaybackHistoryItem>{};
+    void add(PlaybackHistoryItem item) {
+      final existing = merged[item.songId];
+      if (existing == null || item.playedAt.isAfter(existing.playedAt)) {
+        merged[item.songId] = item;
       }
-      rethrow;
+    }
+
+    for (final item in remote) {
+      add(item);
+    }
+    for (final item in local) {
+      add(item);
+    }
+
+    final list = merged.values.toList()
+      ..sort((a, b) => b.playedAt.compareTo(a.playedAt));
+
+    if (list.isEmpty && remoteError != null) {
+      // Only surface the error when we truly have nothing to show.
+      // ignore: use_rethrow_when_possible
+      throw remoteError;
+    }
+
+    // Drop entries we cannot render or play at all.
+    return list
+        .where(
+          (h) => h.song != null && (h.song!.streamUrl?.isNotEmpty ?? false),
+        )
+        .take(limit)
+        .toList();
+  }
+
+  /// Rows written by [recordPlay] (in-app plays), resolved to real songs.
+  Future<List<PlaybackHistoryItem>> _localHistory({int limit = 60}) async {
+    try {
+      final db = await _db.database;
+      final rows = await db.query(
+        'history',
+        orderBy: 'playedAt DESC',
+        limit: limit,
+      );
+      final out = <PlaybackHistoryItem>[];
+      for (final r in rows) {
+        final songId = (r['songId'] ?? '').toString();
+        if (songId.isEmpty) continue;
+        final playedAt = DateTime.fromMillisecondsSinceEpoch(
+          (r['playedAt'] as int?) ?? 0,
+        );
+        // Resolve full song metadata (artwork + stream URL) from local cache.
+        final song = await _songsLocal.getSong(songId);
+        if (song == null) continue;
+        out.add(
+          PlaybackHistoryItem(
+            songId: songId,
+            song: song,
+            playedAt: playedAt,
+            playDuration: r['duration'] as int?,
+            completion: (r['completion'] as num?)?.toDouble(),
+          ),
+        );
+      }
+      return out;
+    } catch (_) {
+      return [];
     }
   }
 

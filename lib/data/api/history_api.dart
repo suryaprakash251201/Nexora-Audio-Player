@@ -2,12 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../../domain/entities/playback_history.dart';
 import '../dto/file_dto.dart';
 
 final historyApiProvider = Provider<HistoryApi>((ref) {
   final c = ref.watch(apiClientProvider);
-  return HistoryApi(c);
+  final s = ref.watch(secureStorageProvider);
+  return HistoryApi(c, s);
 });
 
 /// Real Nexora history = /recents (server records an access whenever a file
@@ -15,7 +17,33 @@ final historyApiProvider = Provider<HistoryApi>((ref) {
 /// GET /recents?limit= -> {items:[{root_id,root_name,path,name,accessed_at}]}
 class HistoryApi {
   final ApiClient _client;
-  HistoryApi(this._client);
+  final SecureStorageService _storage;
+  HistoryApi(this._client, this._storage);
+
+  /// Resolves the API base URL from secure storage (mirrors SongsApi).
+  Future<String> _resolvedBaseUrl() async {
+    final serverUrl = await _storage.getServerUrl();
+    if (serverUrl != null && serverUrl.isNotEmpty) return serverUrl;
+    return _client.dio.options.baseUrl;
+  }
+
+  /// Stream URL so a history entry is actually playable.
+  Future<String> _streamUrl(String rootId, String path) async {
+    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final base = await _resolvedBaseUrl();
+    return '$base${ApiConstants.filesRaw}'
+        '?root=${Uri.encodeComponent(rootId)}'
+        '&path=${Uri.encodeComponent(path)}&token=$token';
+  }
+
+  /// Artwork URL so history cards show real cover art.
+  Future<String> _artworkUrl(String rootId, String path, {int size = 512}) async {
+    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final base = await _resolvedBaseUrl();
+    return '$base${ApiConstants.filesThumbnail}'
+        '?root=${Uri.encodeComponent(rootId)}'
+        '&path=${Uri.encodeComponent(path)}&size=$size&token=$token';
+  }
 
   Future<List<PlaybackHistoryItem>> getHistory({
     int page = 1,
@@ -29,12 +57,17 @@ class HistoryApi {
     final items =
         (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
     final out = <PlaybackHistoryItem>[];
+    final seen = <String>{};
     for (final raw in items) {
       if (raw is! Map<String, dynamic>) continue;
       final rootId = (raw['root_id'] ?? '').toString();
       final path = (raw['path'] ?? '').toString();
       final name = (raw['name'] ?? '').toString();
       if (rootId.isEmpty || path.isEmpty) continue;
+      final extension = name.contains('.') ? name.split('.').last : '';
+      // /recents can repeat the same file; keep only the most recent entry.
+      final id = '$rootId|$path';
+      if (!seen.add(id)) continue;
       DateTime playedAt;
       try {
         playedAt = DateTime.parse((raw['accessed_at'] ?? '').toString());
@@ -44,17 +77,23 @@ class HistoryApi {
       final f = FileItemDto(
         name: name,
         path: path,
-        size: 0,
+        size: (raw['size'] is int)
+            ? raw['size'] as int
+            : int.tryParse((raw['size'] ?? '0').toString()) ?? 0,
         isDir: false,
         modified: '',
         mime: '',
         rootId: rootId,
-        extension: name.contains('.') ? name.split('.').last : '',
+        extension: extension,
       );
       out.add(
         PlaybackHistoryItem(
           songId: NexoraFiles.songId(f),
-          song: NexoraFiles.toSong(f),
+          song: NexoraFiles.toSong(
+            f,
+            streamUrl: await _streamUrl(rootId, path),
+            artworkUrl: await _artworkUrl(rootId, path),
+          ),
           playedAt: playedAt,
         ),
       );

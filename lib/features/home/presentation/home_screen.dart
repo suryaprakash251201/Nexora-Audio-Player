@@ -10,6 +10,8 @@ import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../providers/home_provider.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../data/dto/file_dto.dart';
+import '../../../domain/entities/album.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -158,8 +160,8 @@ class HomeScreen extends ConsumerWidget {
                                         fallbackId: h.songId,
                                         onTap: song != null
                                             ? () => ref
-                                                .read(playerProvider.notifier)
-                                                .playSongs([song])
+                                                  .read(playerProvider.notifier)
+                                                  .playSongs([song])
                                             : null,
                                       ),
                                     );
@@ -202,7 +204,7 @@ class HomeScreen extends ConsumerWidget {
                                       delay: Duration(milliseconds: i * 80),
                                       child: _AlbumCard(
                                         album: a,
-                                        onTap: () => context.push('/library'),
+                                        onTap: () => _openAlbum(context, a),
                                       ),
                                     );
                                   },
@@ -372,12 +374,13 @@ class HomeScreen extends ConsumerWidget {
                               : 'Browse Library',
                           icon: hasNowPlaying
                               ? (isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded)
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded)
                               : Icons.library_music_rounded,
                           onTap: hasNowPlaying
-                              ? () =>
-                                  ref.read(playerProvider.notifier).togglePlay()
+                              ? () => ref
+                                    .read(playerProvider.notifier)
+                                    .togglePlay()
                               : () => context.push('/library'),
                         ),
                         if (hasNowPlaying) ...[
@@ -448,6 +451,28 @@ class HomeScreen extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+
+  /// Albums are directories on the Nexora server, whose id is "rootId|path".
+  /// Open that exact album folder instead of the generic library list.
+  void _openAlbum(BuildContext context, Album album) {
+    final id = album.id;
+    if (id.isEmpty) {
+      context.push('/library');
+      return;
+    }
+    final rootId = NexoraFiles.parseRootId(id);
+    final path = NexoraFiles.parsePath(id);
+    if (rootId.isEmpty) {
+      context.push('/library');
+      return;
+    }
+    context.push(
+      Uri(
+        path: '/folder',
+        queryParameters: {'root': rootId, 'path': path},
+      ).toString(),
     );
   }
 }
@@ -931,7 +956,7 @@ class _HistoryCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 
 class _AlbumCard extends StatelessWidget {
-  final dynamic album;
+  final Album album;
   final VoidCallback onTap;
   const _AlbumCard({required this.album, required this.onTap});
 
