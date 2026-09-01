@@ -150,8 +150,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         const SizedBox(height: 14),
                         Text(
                           p.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.text,
                             fontSize: 28,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
@@ -160,7 +160,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         const SizedBox(height: 4),
                         Text(
                           p.description ?? 'Playlist • ${_tracks.length} songs',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 14,
                           ),
@@ -208,7 +208,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               : () => ref
                                     .read(playerProvider.notifier)
                                     .playSongs(_tracks, initialIndex: 0),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.play_arrow_rounded, size: 26),
@@ -218,7 +218,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AppColors.text,
                                 ),
                               ),
                             ],
@@ -255,7 +255,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                       [..._tracks]..shuffle(),
                                       initialIndex: 0,
                                     ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
@@ -269,7 +269,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AppColors.text,
                                 ),
                               ),
                             ],
@@ -350,7 +350,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           style: TextStyle(
                             color: isCurrent
                                 ? AppColors.primaryLight
-                                : Colors.white,
+                                : AppColors.text,
                             fontSize: 15,
                             fontWeight: isCurrent
                                 ? FontWeight.w600
@@ -359,13 +359,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         ),
                         subtitle: Text(
                           '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 12,
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.play_arrow_rounded,
                             color: AppColors.textMuted,
                           ),
@@ -438,11 +438,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit, color: Colors.white),
-              title: const Text(
-                'Rename',
-                style: TextStyle(color: Colors.white),
-              ),
+              leading: Icon(Icons.edit, color: AppColors.text),
+              title: Text('Rename', style: TextStyle(color: AppColors.text)),
               onTap: () => Navigator.pop(c),
             ),
             ListTile(
@@ -457,11 +454,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   context: context,
                   builder: (cx) => AlertDialog(
                     backgroundColor: AppColors.surface,
-                    title: const Text(
+                    title: Text(
                       'Delete?',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: AppColors.text),
                     ),
-                    content: const Text(
+                    content: Text(
                       'This will delete the playlist.',
                       style: TextStyle(color: AppColors.textMuted),
                     ),

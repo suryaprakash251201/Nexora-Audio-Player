@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/api/server_api.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/theme_provider.dart';
 import '../../../ui/widgets/glass_surface.dart';
 import '../../../ui/widgets/premium_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -33,7 +34,7 @@ class SettingsScreen extends ConsumerWidget {
                 iconBg: AppColors.primary,
                 title: snap.data ?? 'Not configured',
                 subtitle: 'Tap to configure server URL',
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right_rounded,
                   color: AppColors.textDim,
                 ),
@@ -77,7 +78,7 @@ class SettingsScreen extends ConsumerWidget {
               iconBg: AppColors.secondary,
               title: 'Equalizer',
               subtitle: 'Audiophile 8-band EQ',
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right_rounded,
                 color: AppColors.textDim,
               ),
@@ -105,28 +106,29 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 20),
           _settingsGroup('APPEARANCE', [
-            _SettingTile(
-              icon: Icons.dark_mode_rounded,
-              iconBg: AppColors.primary,
-              title: 'Theme',
-              subtitle: 'Midnight Glassmorphism',
-              trailing: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.secondary],
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 10,
+            ref.watch(themeModeProvider) == AppThemePreference.dark
+                ? _SettingTile(
+                    icon: Icons.dark_mode_rounded,
+                    iconBg: AppColors.primary,
+                    title: 'Theme',
+                    subtitle: 'Dark • Midnight Glassmorphism',
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textDim,
                     ),
-                  ],
-                ),
-              ),
-            ),
+                    onTap: () => _showThemePicker(context, ref),
+                  )
+                : _SettingTile(
+                    icon: Icons.light_mode_rounded,
+                    iconBg: AppColors.secondary,
+                    title: 'Theme',
+                    subtitle: 'Light • Adaptive device support',
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textDim,
+                    ),
+                    onTap: () => _showThemePicker(context, ref),
+                  ),
           ]),
           const SizedBox(height: 20),
           _settingsGroup('ABOUT', [
@@ -151,11 +153,11 @@ class SettingsScreen extends ConsumerWidget {
                 context: context,
                 builder: (c) => AlertDialog(
                   backgroundColor: AppColors.surface,
-                  title: const Text(
+                  title: Text(
                     'Log out?',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.text),
                   ),
-                  content: const Text(
+                  content: Text(
                     'This will clear your session and require re-login.',
                     style: TextStyle(color: AppColors.textMuted),
                   ),
@@ -192,7 +194,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Nexora Audio Player v1.0.0',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textDim, fontSize: 11),
@@ -200,6 +202,97 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showThemePicker(BuildContext context, WidgetRef ref) async {
+    final current = ref.read(themeModeProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theme',
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Adaptive device support included',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                for (final pref in AppThemePreference.values)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      _themeIcon(pref),
+                      color: pref == current
+                          ? AppColors.primary
+                          : AppColors.textMuted,
+                    ),
+                    title: Text(
+                      _themeLabel(pref),
+                      style: TextStyle(
+                        color: pref == current
+                            ? AppColors.primary
+                            : AppColors.text,
+                        fontWeight: pref == current
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    trailing: pref == current
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                    onTap: () {
+                      ref.read(themeModeProvider.notifier).set(pref);
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _themeIcon(AppThemePreference pref) {
+    switch (pref) {
+      case AppThemePreference.light:
+        return Icons.light_mode_rounded;
+      case AppThemePreference.dark:
+        return Icons.dark_mode_rounded;
+      case AppThemePreference.system:
+        return Icons.brightness_auto_rounded;
+    }
+  }
+
+  String _themeLabel(AppThemePreference pref) {
+    switch (pref) {
+      case AppThemePreference.light:
+        return 'Light';
+      case AppThemePreference.dark:
+        return 'Dark';
+      case AppThemePreference.system:
+        return 'System default';
+    }
   }
 
   Widget _settingsGroup(String title, List<Widget> children) {
@@ -210,7 +303,7 @@ class SettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textDim,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -227,7 +320,7 @@ class SettingsScreen extends ConsumerWidget {
               for (var i = 0; i < children.length; i++) ...[
                 children[i],
                 if (i < children.length - 1)
-                  const Divider(
+                  Divider(
                     color: AppColors.border,
                     height: 0.5,
                     indent: 16,
@@ -290,8 +383,8 @@ class _SettingTile extends StatelessWidget {
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: AppColors.text,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
@@ -301,7 +394,7 @@ class _SettingTile extends StatelessWidget {
               subtitle!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             )
           : null,
       trailing: trailing,

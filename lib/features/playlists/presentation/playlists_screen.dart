@@ -55,7 +55,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _createPlaylist,
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.text,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add_rounded),
@@ -88,15 +88,12 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text(
-          'New Playlist',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text('New Playlist', style: TextStyle(color: AppColors.text)),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: AppColors.text),
+          decoration: InputDecoration(
             hintText: 'Playlist name',
             hintStyle: TextStyle(color: AppColors.textDim),
           ),
@@ -192,15 +189,15 @@ class _PlaylistTile extends ConsumerWidget {
             playlist.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
           ),
           Text(
             '${playlist.trackCount ?? 0} songs',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -238,7 +235,7 @@ class _PlaylistList extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 120),
       itemCount: list.length,
       separatorBuilder: (_, __) =>
-          const Divider(color: AppColors.border, height: 1, indent: 84),
+          Divider(color: AppColors.border, height: 1, indent: 84),
       itemBuilder: (c, i) {
         final p = list[i];
         return ListTile(
@@ -251,8 +248,8 @@ class _PlaylistList extends StatelessWidget {
             p.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -260,9 +257,9 @@ class _PlaylistList extends StatelessWidget {
             '${p.trackCount ?? 0} songs${p.description != null && p.description!.isNotEmpty ? ' • ${p.description}' : ''}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
-          trailing: const Icon(Icons.chevron_right, color: AppColors.textDim),
+          trailing: Icon(Icons.chevron_right, color: AppColors.textDim),
           onTap: () => context.push('/playlists/${p.id}', extra: p),
         );
       },

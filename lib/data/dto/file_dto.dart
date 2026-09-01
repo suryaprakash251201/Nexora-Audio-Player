@@ -117,12 +117,20 @@ class NexoraFiles {
         '&token=${Uri.encodeComponent(token)}';
   }
 
-  /// "03 - usurey poguthu (from Ravaanan).flac" -> "usurey poguthu (from Ravaanan)"
-  static String parseTitle(String fileName) {
+  /// Clean a song title from a file name:
+  ///   "03 - usurey poguthu (from Ravaanan).flac" -> "usurey poguthu"
+  ///   "1-katchi sera (from Think Indie).mp3"     -> "katchi sera"
+  static String parseTitle(String fileName, {bool stripParenthetical = true}) {
     var t = fileName;
     final dot = t.lastIndexOf('.');
     if (dot > 0) t = t.substring(0, dot);
-    t = t.replaceFirst(RegExp(r'^\s*\d+[\.\)\-]?\s*'), '');
+    // Strip leading track-number prefixes: "1-", "12.", "03 - ", "3)" etc.
+    t = t.replaceFirst(RegExp(r'^\s*\d+\s*[\.\)\-–—]?\s*'), '');
+    // Strip parenthetical/bracket qualifiers like " (from Think Indie)" or
+    // " [Official Audio]" so titles stay clean.
+    if (stripParenthetical) {
+      t = t.replaceAll(RegExp(r'\s*[\[\(][^\]\)]*[\]\)]\s*$'), '').trim();
+    }
     return t.trim().isEmpty ? fileName : t.trim();
   }
 

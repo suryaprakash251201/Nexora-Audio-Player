@@ -156,10 +156,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.graphic_eq_rounded,
                             size: 40,
-                            color: Colors.white,
+                            color: AppColors.text,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -174,7 +174,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Audiophile Player',
                           style: TextStyle(
                             color: AppColors.textMuted,
@@ -259,13 +259,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextField(
                           controller: _passController,
                           obscureText: _obscure,
-                          style: const TextStyle(color: AppColors.text),
+                          style: TextStyle(color: AppColors.text),
                           decoration: InputDecoration(
                             hintText: 'Password',
-                            hintStyle: const TextStyle(
-                              color: AppColors.textDim,
-                            ),
-                            prefixIcon: const Icon(
+                            hintStyle: TextStyle(color: AppColors.textDim),
+                            prefixIcon: Icon(
                               Icons.lock_outline,
                               color: AppColors.textMuted,
                             ),
@@ -282,7 +280,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Align(
+                        Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Try admin / amma@123 for testing',
@@ -299,11 +297,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: ElevatedButton(
                             onPressed: isLoading ? null : _handleLogin,
                             child: isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 24,
                                     height: 24,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
+                                      color: AppColors.text,
                                       strokeWidth: 2,
                                     ),
                                   )
@@ -348,7 +346,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'Self-hosted • LAN supported • Offline ready\nIf login fails, check server is http://192.168.1.5 and both devices on same Wi-Fi.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -424,10 +422,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       children: [
         TextField(
           controller: controller,
-          style: const TextStyle(color: AppColors.text),
+          style: TextStyle(color: AppColors.text),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textDim, fontSize: 13),
+            hintStyle: TextStyle(color: AppColors.textDim, fontSize: 13),
             prefixIcon: Icon(icon, color: AppColors.textMuted),
           ),
         ),
@@ -435,7 +433,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 4),
           Text(
             helper,
-            style: const TextStyle(color: AppColors.textDim, fontSize: 10),
+            style: TextStyle(color: AppColors.textDim, fontSize: 10),
           ),
         ],
       ],

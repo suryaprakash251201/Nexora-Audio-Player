@@ -20,12 +20,10 @@ class FolderEntry {
 
   String get id => '$rootId|$path';
 
-  /// Cover = thumbnail of the first audio file inside the folder
-  /// (server FolderCover scans the audio file's directory).
+  /// Cover = a cover.jpeg/cover.png in the folder if present, otherwise the
+  /// thumbnail of the first audio file inside the folder.
   Future<String?> coverUrl(FilesApi api) async {
-    final f = await api.firstAudioFile(rootId, path);
-    if (f == null) return null;
-    return api.thumbnailUrl(rootId, f.path, size: 512);
+    return api.folderCoverUrl(rootId, path);
   }
 }
 
@@ -77,7 +75,8 @@ final folderContentProvider = FutureProvider.autoDispose
       return FolderContent(folders: folders, songs: songs);
     });
 
-/// Lazily resolves a folder cover (first audio file's thumbnail).
+/// Lazily resolves a folder cover (cover.jpeg/cover.png, else first audio
+/// file's thumbnail).
 final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
   ref,
   folderId,
@@ -87,9 +86,7 @@ final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
   if (idx <= 0) return null;
   final rootId = folderId.substring(0, idx);
   final path = folderId.substring(idx + 1);
-  final f = await api.firstAudioFile(rootId, path);
-  if (f == null) return null;
-  return api.thumbnailUrl(rootId, f.path, size: 512);
+  return api.folderCoverUrl(rootId, path);
 });
 
 /// Apple Music style folder browser: breadcrumb, folder grid with covers,
@@ -168,7 +165,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                       vertical: 8,
                     ),
                     itemCount: crumbs.length,
-                    separatorBuilder: (_, __) => const Icon(
+                    separatorBuilder: (_, __) => Icon(
                       Icons.chevron_right,
                       size: 16,
                       color: AppColors.textDim,
@@ -186,7 +183,9 @@ class FolderBrowserScreen extends ConsumerWidget {
                           child: Text(
                             label,
                             style: TextStyle(
-                              color: isLast ? Colors.white : AppColors.primary,
+                              color: isLast
+                                  ? AppColors.text
+                                  : AppColors.primary,
                               fontSize: 13,
                               fontWeight: isLast
                                   ? FontWeight.bold
@@ -205,7 +204,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                   child: Text(
                     'Folders',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: AppColors.text,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -231,7 +230,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                   child: Text(
                     'Songs',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: AppColors.text,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -283,7 +282,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                       style: TextStyle(
                         color: isCurrent
                             ? AppColors.primaryLight
-                            : Colors.white,
+                            : AppColors.text,
                         fontSize: 15,
                         fontWeight: isCurrent
                             ? FontWeight.w600
@@ -294,7 +293,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                       s.artist ?? s.album ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                       ),
@@ -326,7 +325,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                             ),
                           ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.more_vert,
                             color: AppColors.textMuted,
                             size: 18,
@@ -373,21 +372,18 @@ class FolderBrowserScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.play_arrow, color: Colors.white),
-              title: const Text(
-                'Play next',
-                style: TextStyle(color: Colors.white),
-              ),
+              leading: Icon(Icons.play_arrow, color: AppColors.text),
+              title: Text('Play next', style: TextStyle(color: AppColors.text)),
               onTap: () {
                 Navigator.pop(c);
                 ref.read(playerProvider.notifier).playNext(song);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.queue_music, color: Colors.white),
-              title: const Text(
+              leading: Icon(Icons.queue_music, color: AppColors.text),
+              title: Text(
                 'Add to queue',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.text),
               ),
               onTap: () {
                 Navigator.pop(c);
@@ -431,8 +427,8 @@ class _FolderCard extends ConsumerWidget {
             folder.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

@@ -42,17 +42,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _controller,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.text),
               decoration: InputDecoration(
                 hintText: 'Songs, albums, artists, playlists',
-                hintStyle: const TextStyle(color: AppColors.textDim),
+                hintStyle: TextStyle(color: AppColors.textDim),
                 prefixIcon: const Icon(
                   Icons.search_rounded,
                   color: AppColors.primary,
                 ),
                 suffixIcon: query.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close_rounded,
                           color: AppColors.textMuted,
                         ),
@@ -73,10 +73,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: AppColors.border,
-                    width: 0.5,
-                  ),
+                  borderSide: BorderSide(color: AppColors.border, width: 0.5),
                 ),
               ),
               onChanged: (v) =>
@@ -117,10 +114,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Text(
+                              Text(
                                 'Recent searches',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.text,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),
@@ -158,9 +155,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               title: Text(
                                 q,
-                                style: const TextStyle(color: Colors.white),
+                                style: TextStyle(color: AppColors.text),
                               ),
-                              trailing: const Icon(
+                              trailing: Icon(
                                 Icons.north_west_rounded,
                                 size: 16,
                                 color: AppColors.textDim,
@@ -236,7 +233,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             ),
                             title: Text(
                               ar.name,
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: AppColors.text),
                             ),
                           ),
                         ),
@@ -264,13 +261,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             ),
                             title: Text(
                               p.name,
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: AppColors.text),
                             ),
                             subtitle: Text(
                               '${p.trackCount ?? 0} tracks',
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                              ),
+                              style: TextStyle(color: AppColors.textMuted),
                             ),
                           ),
                         ),
@@ -296,8 +291,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -338,13 +333,13 @@ class _SongResultTile extends ConsumerWidget {
       title: Text(
         song.title,
         style: TextStyle(
-          color: isPlaying ? AppColors.primaryLight : Colors.white,
+          color: isPlaying ? AppColors.primaryLight : AppColors.text,
           fontWeight: isPlaying ? FontWeight.w600 : FontWeight.w400,
         ),
       ),
       subtitle: Text(
         song.artist ?? '',
-        style: const TextStyle(color: AppColors.textMuted),
+        style: TextStyle(color: AppColors.textMuted),
       ),
       onTap: onTap,
     );
@@ -359,10 +354,10 @@ class _AlbumResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: ArtworkImage(url: album.coverUrl, size: 48, borderRadius: 10),
-      title: Text(album.title, style: const TextStyle(color: Colors.white)),
+      title: Text(album.title, style: TextStyle(color: AppColors.text)),
       subtitle: Text(
         album.artist ?? '',
-        style: const TextStyle(color: AppColors.textMuted),
+        style: TextStyle(color: AppColors.textMuted),
       ),
     );
   }

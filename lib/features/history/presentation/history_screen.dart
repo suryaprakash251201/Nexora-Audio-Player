@@ -38,7 +38,7 @@ class HistoryScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 100),
                   itemCount: items.length,
                   separatorBuilder: (_, __) =>
-                      const Divider(color: AppColors.border, height: 1),
+                      Divider(color: AppColors.border, height: 1),
                   itemBuilder: (c, i) {
                     final h = items[i];
                     final s = h.song;
@@ -84,7 +84,7 @@ class HistoryScreen extends ConsumerWidget {
                         style: TextStyle(
                           color: isCurrent
                               ? AppColors.primaryLight
-                              : Colors.white,
+                              : AppColors.text,
                           fontWeight: isCurrent
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -92,7 +92,7 @@ class HistoryScreen extends ConsumerWidget {
                       ),
                       subtitle: Text(
                         '${s?.artist ?? ''} • ${_timeAgo(h.playedAt)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12,
                         ),

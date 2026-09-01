@@ -75,10 +75,10 @@ class _CassettePlayerState extends State<CassettePlayer>
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
+                  child: Text(
                     'NEXORA',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.text,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
@@ -86,7 +86,7 @@ class _CassettePlayerState extends State<CassettePlayer>
                   ),
                 ),
                 const Spacer(),
-                const Text(
+                Text(
                   'HF • 90',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 10),
                 ),
@@ -162,7 +162,7 @@ class _CassettePlayerState extends State<CassettePlayer>
               ),
             ),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.circle, size: 6, color: AppColors.textDim),
@@ -229,7 +229,7 @@ class _CassettePlayerState extends State<CassettePlayer>
 
   Widget _tapePlaceholder() => Container(
     color: AppColors.surfaceRaised,
-    child: const Center(
+    child: Center(
       child: Icon(Icons.music_note, color: AppColors.textMuted, size: 32),
     ),
   );

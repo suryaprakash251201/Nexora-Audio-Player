@@ -298,8 +298,8 @@ class HomeScreen extends ConsumerWidget {
                               hasNowPlaying
                                   ? 'NOW PLAYING'
                                   : 'CONTINUE LISTENING',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: AppColors.text,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.2,
@@ -324,8 +324,8 @@ class HomeScreen extends ConsumerWidget {
                       current.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: AppColors.text,
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
@@ -343,10 +343,10 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ] else ...[
-                    const Text(
+                    Text(
                       'Your audiophile\ncollection awaits',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.text,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
@@ -465,9 +465,9 @@ class _AppBarContent extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.graphic_eq_rounded,
-            color: Colors.white,
+            color: AppColors.text,
             size: 20,
           ),
         ),
@@ -476,13 +476,13 @@ class _AppBarContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Nexora',
               style: TextStyle(
                 fontSize: 23,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
-                color: Colors.white,
+                color: AppColors.text,
               ),
             ),
             Row(
@@ -490,7 +490,7 @@ class _AppBarContent extends StatelessWidget {
               children: [
                 GlowDot(size: 5, color: AppColors.success),
                 const SizedBox(width: 5),
-                const Text(
+                Text(
                   'Hi-Fi Streaming',
                   style: TextStyle(
                     color: AppColors.textMuted,
@@ -602,8 +602,8 @@ class _QuickAction extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -636,7 +636,7 @@ class _HeroButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.text,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -693,12 +693,12 @@ class _HeroGhostButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 18),
+            Icon(icon, color: AppColors.text, size: 18),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -775,9 +775,9 @@ class _SongCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.play_arrow_rounded,
-                      color: Colors.white,
+                      color: AppColors.text,
                       size: 22,
                     ),
                   ),
@@ -789,8 +789,8 @@ class _SongCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -800,7 +800,7 @@ class _SongCard extends StatelessWidget {
               song.artist ?? 'Unknown',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
             if (song.lossless == true) ...[
               const SizedBox(height: 6),
@@ -871,9 +871,9 @@ class _HistoryCard extends StatelessWidget {
                           width: 0.6,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.play_arrow_rounded,
-                        color: Colors.white,
+                        color: AppColors.text,
                         size: 18,
                       ),
                     ),
@@ -885,8 +885,8 @@ class _HistoryCard extends StatelessWidget {
               song?.title ?? fallbackId,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -897,10 +897,7 @@ class _HistoryCard extends StatelessWidget {
                 song.artist as String,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11),
               ),
             ],
           ],
@@ -944,8 +941,8 @@ class _AlbumCard extends StatelessWidget {
                       color: AppColors.primary,
                       child: Text(
                         '${album.trackCount} songs',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppColors.text,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -959,8 +956,8 @@ class _AlbumCard extends StatelessWidget {
               album.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -970,7 +967,7 @@ class _AlbumCard extends StatelessWidget {
               album.artist ?? 'Albums',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),

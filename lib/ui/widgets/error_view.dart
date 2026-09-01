@@ -40,10 +40,10 @@ class ErrorView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Something went wrong',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.text,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -52,7 +52,7 @@ class ErrorView extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 13,
                     height: 1.4,
@@ -115,8 +115,8 @@ class EmptyView extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.text,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -126,7 +126,7 @@ class EmptyView extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
                   height: 1.4,
@@ -163,7 +163,7 @@ class LoadingView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message!,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 13),
+              style: TextStyle(color: AppColors.textDim, fontSize: 13),
             ),
           ],
         ],

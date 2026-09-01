@@ -97,6 +97,49 @@ class FilesApi {
     return null;
   }
 
+  /// Cover image file (cover.jpeg/cover.png/folder.jpg/... if any) directly
+  /// inside a folder. Falls back to a cover image stored one level up.
+  static const coverImageNames = {'cover', 'folder', 'front', 'album'};
+
+  Future<FileItemDto?> folderCoverFile(String rootId, String path) async {
+    try {
+      final items = await list(rootId, path, limit: 200);
+      final imageExts = const {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'};
+      FileItemDto? best;
+      int bestRank = -1;
+      // Prefer png/jpg/jpeg cover images that aren't audio files.
+      for (final f in items) {
+        if (f.isDir) continue;
+        final name = f.name.toLowerCase();
+        final dot = name.lastIndexOf('.');
+        final stem = dot > 0 ? name.substring(0, dot) : name;
+        if (!coverImageNames.contains(stem)) continue;
+        if (!imageExts.contains(f.extension.toLowerCase())) continue;
+        final rank = switch (f.extension.toLowerCase()) {
+          'png' => 3,
+          'jpeg' || 'jpg' => 2,
+          _ => 1,
+        };
+        if (rank > bestRank) {
+          bestRank = rank;
+          best = f;
+        }
+      }
+      return best;
+    } catch (_) {}
+    return null;
+  }
+
+  /// Thumbnail URL for a folder cover image if one exists, else the first
+  /// audio file's thumbnail (the server itself falls back to a nearby cover).
+  Future<String?> folderCoverUrl(String rootId, String path) async {
+    final cover = await folderCoverFile(rootId, path);
+    if (cover != null) return thumbnailUrl(rootId, cover.path, size: 512);
+    final f = await firstAudioFile(rootId, path);
+    if (f == null) return null;
+    return thumbnailUrl(rootId, f.path, size: 512);
+  }
+
   /// Resolve the best "music" root id (icon/name heuristic, else first root).
   Future<String?> musicRootId() async {
     try {

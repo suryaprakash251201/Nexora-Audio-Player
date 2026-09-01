@@ -33,7 +33,7 @@ class FavoritesScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 100),
                   itemCount: songs.length,
                   separatorBuilder: (_, __) =>
-                      const Divider(color: AppColors.border, height: 1),
+                      Divider(color: AppColors.border, height: 1),
                   itemBuilder: (c, i) {
                     final s = songs[i];
                     final isCurrent =
@@ -78,7 +78,7 @@ class FavoritesScreen extends ConsumerWidget {
                         style: TextStyle(
                           color: isCurrent
                               ? AppColors.primaryLight
-                              : Colors.white,
+                              : AppColors.text,
                           fontWeight: isCurrent
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -86,7 +86,7 @@ class FavoritesScreen extends ConsumerWidget {
                       ),
                       subtitle: Text(
                         s.artist ?? '',
-                        style: const TextStyle(color: AppColors.textMuted),
+                        style: TextStyle(color: AppColors.textMuted),
                       ),
                       trailing: IconButton(
                         icon: const Icon(

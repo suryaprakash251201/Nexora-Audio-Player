@@ -140,25 +140,25 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.dns_rounded,
                           size: 32,
-                          color: Colors.white,
+                          color: AppColors.text,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Nexora Server',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.text,
                           letterSpacing: -0.3,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'Self-hosted or LAN server',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textMuted),
@@ -166,8 +166,8 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                       const SizedBox(height: 24),
                       TextField(
                         controller: _controller,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: AppColors.text),
+                        decoration: InputDecoration(
                           hintText:
                               'http://192.168.1.5  or  https://music.example.com',
                           hintStyle: TextStyle(
@@ -228,7 +228,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                         child: const Text('Save & Connect'),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
                         style: TextStyle(
                           color: AppColors.textDim,

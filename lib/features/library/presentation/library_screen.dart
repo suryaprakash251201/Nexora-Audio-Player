@@ -38,7 +38,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           controller: _tab,
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.label,
-          labelColor: Colors.white,
+          labelColor: AppColors.text,
           unselectedLabelColor: AppColors.textDim,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.w600,
@@ -122,7 +122,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
         padding: const EdgeInsets.only(bottom: 100),
         itemCount: _songs.length + (_hasMore ? 1 : 0),
         separatorBuilder: (_, __) =>
-            const Divider(color: AppColors.border, height: 1),
+            Divider(color: AppColors.border, height: 1),
         itemBuilder: (c, i) {
           if (i >= _songs.length) {
             if (!_loading) Future.microtask(() => _load());
@@ -162,14 +162,14 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isCurrent ? AppColors.primaryLight : Colors.white,
+                color: isCurrent ? AppColors.primaryLight : AppColors.text,
                 fontSize: 14,
                 fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
             subtitle: Text(
               '${s.artist ?? 'Unknown'} • ${formatDuration(s.durationDuration)}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -198,7 +198,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
                     ),
                   ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.more_vert,
                     color: AppColors.textMuted,
                     size: 18,
@@ -229,21 +229,18 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.play_arrow, color: Colors.white),
-              title: const Text(
-                'Play next',
-                style: TextStyle(color: Colors.white),
-              ),
+              leading: Icon(Icons.play_arrow, color: AppColors.text),
+              title: Text('Play next', style: TextStyle(color: AppColors.text)),
               onTap: () {
                 Navigator.pop(c);
                 ref.read(playerProvider.notifier).playNext(song);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.queue_music, color: Colors.white),
-              title: const Text(
+              leading: Icon(Icons.queue_music, color: AppColors.text),
+              title: Text(
                 'Add to queue',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.text),
               ),
               onTap: () {
                 Navigator.pop(c);
@@ -254,10 +251,10 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.playlist_add, color: Colors.white),
-              title: const Text(
+              leading: Icon(Icons.playlist_add, color: AppColors.text),
+              title: Text(
                 'Add to playlist',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.text),
               ),
               onTap: () => Navigator.pop(c),
             ),
@@ -378,8 +375,8 @@ class _FolderCard extends ConsumerWidget {
             folder.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

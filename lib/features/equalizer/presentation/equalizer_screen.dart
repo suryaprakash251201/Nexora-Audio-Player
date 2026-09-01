@@ -76,17 +76,17 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                           gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.graphic_eq_rounded,
-                          color: Colors.white,
+                          color: AppColors.text,
                           size: 20,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         'Audiophile EQ',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.text,
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
@@ -124,7 +124,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Adjust playback for a richer soundstage. Native DSP plugs in when available.',
                     style: TextStyle(
                       color: AppColors.textMuted,
@@ -135,10 +135,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Preamp',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.text,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -232,7 +232,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border, width: 0.5),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
@@ -309,16 +309,13 @@ class _BandCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isActive ? accent : Colors.white,
+              color: isActive ? accent : AppColors.text,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
-          Text(
-            freq,
-            style: const TextStyle(color: AppColors.textDim, fontSize: 10),
-          ),
+          Text(freq, style: TextStyle(color: AppColors.textDim, fontSize: 10)),
           const SizedBox(height: 8),
           Expanded(
             child: RotatedBox(

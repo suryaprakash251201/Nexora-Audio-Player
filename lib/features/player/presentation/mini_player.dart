@@ -84,8 +84,8 @@ class MiniPlayer extends ConsumerWidget {
                       track.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: AppColors.text,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -94,7 +94,7 @@ class MiniPlayer extends ConsumerWidget {
                       track.artist ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                       ),
@@ -124,7 +124,7 @@ class MiniPlayer extends ConsumerWidget {
                               state.isPlaying
                                   ? Icons.pause_rounded
                                   : Icons.play_arrow_rounded,
-                              color: Colors.white,
+                              color: AppColors.text,
                               size: 24,
                             ),
                             onPressed: () =>
@@ -132,13 +132,24 @@ class MiniPlayer extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.skip_next_rounded,
-                            color: Colors.white,
+                            color: AppColors.text,
                             size: 26,
                           ),
                           onPressed: () =>
                               ref.read(playerProvider.notifier).next(),
+                        ),
+                        // Close / dismiss the mini player
+                        IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: AppColors.textMuted,
+                            size: 20,
+                          ),
+                          tooltip: 'Close',
+                          onPressed: () =>
+                              ref.read(playerProvider.notifier).clearQueue(),
                         ),
                       ],
                     ),

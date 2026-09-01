@@ -1,12 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Global theme mode selector. The app sets this before the frame is built so
+/// that the whole `AppColors` palette resolves consistently across every screen
+/// (the palette is read as runtime getters, so the build tree re-evaluates them
+/// whenever the app rebuilds after a toggle).
+enum AppThemeMode { dark, light }
+
+/// Theme-aware color palette. Every token is a getter that resolves against
+/// the current [AppThemeMode], so flipping the app theme recolor the entire UI
+/// without touching hundreds of call sites.
 class AppColors {
+  AppColors._();
+
+  /// The active theme mode. Set by the app root before building.
+  static AppThemeMode mode = AppThemeMode.dark;
+
   // ── Backgrounds ──
-  static const Color background = Color(0xFF050508);
-  static const Color surface = Color(0xFF0D0D14);
-  static const Color surfaceRaised = Color(0xFF16161F);
-  static const Color surfaceHigh = Color(0xFF1E1E2A);
+  static const Color _backgroundDark = Color(0xFF050508);
+  static const Color _backgroundLight = Color(0xFFF3F3F8);
+  static Color get background =>
+      mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
+
+  static const Color _surfaceDark = Color(0xFF0D0D14);
+  static const Color _surfaceLight = Color(0xFFFFFFFF);
+  static Color get surface =>
+      mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
+
+  static const Color _surfaceRaisedDark = Color(0xFF16161F);
+  static const Color _surfaceRaisedLight = Color(0xFFECECF3);
+  static Color get surfaceRaised =>
+      mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
+
+  static const Color _surfaceHighDark = Color(0xFF1E1E2A);
+  static const Color _surfaceHighLight = Color(0xFFE2E2EC);
+  static Color get surfaceHigh =>
+      mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
 
   // ── Accent ──
   static const Color primary = Color(0xFF8B5CF6);
@@ -22,41 +51,78 @@ class AppColors {
   static const Color warning = Color(0xFFFBBF24);
 
   // ── Text ──
-  static const Color text = Color(0xFFFFFFFF);
-  static const Color textMuted = Color(0xFF9CA3AF);
-  static const Color textDim = Color(0xFF6B7280);
+  static const Color _textDark = Color(0xFFFFFFFF);
+  static const Color _textLight = Color(0xFF0B0B12);
+  static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
+
+  static const Color _textMutedDark = Color(0xFF9CA3AF);
+  static const Color _textMutedLight = Color(0xFF5C5C70);
+  static Color get textMuted =>
+      mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
+
+  static const Color _textDimDark = Color(0xFF6B7280);
+  static const Color _textDimLight = Color(0xFF8B8BA2);
+  static Color get textDim =>
+      mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
   // ── Borders & Lines ──
-  static const Color border = Color(0xFF1F1F2E);
-  static const Color hairline = Color(0xFF2A2A3C);
-  static const Color borderLight = Color(0xFF374151);
+  static const Color _borderDark = Color(0xFF1F1F2E);
+  static const Color _borderLight = Color(0xFFE0E0EA);
+  static Color get border =>
+      mode == AppThemeMode.dark ? _borderDark : _borderLight;
+
+  static const Color _hairlineDark = Color(0xFF2A2A3C);
+  static const Color _hairlineLight = Color(0xFFE9E9F1);
+  static Color get hairline =>
+      mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
+
+  static const Color _borderLightDark = Color(0xFF374151);
+  static const Color _borderLightLight = Color(0xFFBDBDD0);
+  static Color get borderLight =>
+      mode == AppThemeMode.dark ? _borderLightDark : _borderLightLight;
 
   // ── Glass ──
-  static const Color glassBase = Color(0xFF1A1A28);
-  static const Color glassHighlight = Color(0x0AFFFFFF);
-  static const Color glassBorder = Color(0x15FFFFFF);
-  static const Color glassBorderStrong = Color(0x25FFFFFF);
+  static const Color _glassBaseDark = Color(0xFF1A1A28);
+  static const Color _glassBaseLight = Color(0xFFF6F6FB);
+  static Color get glassBase =>
+      mode == AppThemeMode.dark ? _glassBaseDark : _glassBaseLight;
+
+  static const Color _glassHighlightDark = Color(0x0AFFFFFF);
+  static const Color _glassHighlightLight = Color(0x0A000000);
+  static Color get glassHighlight =>
+      mode == AppThemeMode.dark ? _glassHighlightDark : _glassHighlightLight;
+
+  static const Color _glassBorderDark = Color(0x15FFFFFF);
+  static const Color _glassBorderLight = Color(0x14000000);
+  static Color get glassBorder =>
+      mode == AppThemeMode.dark ? _glassBorderDark : _glassBorderLight;
+
+  static const Color _glassBorderStrongDark = Color(0x25FFFFFF);
+  static const Color _glassBorderStrongLight = Color(0x26000000);
+  static Color get glassBorderStrong => mode == AppThemeMode.dark
+      ? _glassBorderStrongDark
+      : _glassBorderStrongLight;
 
   // ── Gradients ──
-  static const LinearGradient primaryGradient = LinearGradient(
+  static LinearGradient get primaryGradient => const LinearGradient(
     colors: [primary, Color(0xFF6366F1)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient secondaryGradient = LinearGradient(
+  static LinearGradient get secondaryGradient => const LinearGradient(
     colors: [secondary, Color(0xFF0EA5E9)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient accentGradient = LinearGradient(
+  static LinearGradient get accentGradient => const LinearGradient(
     colors: [primary, tertiary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient shimmerGradient = LinearGradient(
+  static LinearGradient get shimmerGradient => const LinearGradient(
     colors: [Color(0x00FFFFFF), Color(0x08FFFFFF), Color(0x00FFFFFF)],
     begin: Alignment(-1.0, -0.3),
     end: Alignment(1.0, 0.3),
@@ -70,32 +136,50 @@ class AppColors {
 }
 
 class AppTheme {
-  static ThemeData get darkTheme {
+  /// Build the theme for the given mode after pointing the global palette at it.
+  static ThemeData themeFor(AppThemeMode mode) {
+    AppColors.mode = mode;
+    final isDark = mode == AppThemeMode.dark;
+    final colorScheme = isDark
+        ? ColorScheme.dark(
+            primary: AppColors.primary,
+            secondary: AppColors.secondary,
+            tertiary: AppColors.tertiary,
+            surface: AppColors.surface,
+            error: AppColors.error,
+            onPrimary: AppColors.text,
+            onSecondary: AppColors.text,
+            onSurface: AppColors.text,
+          )
+        : ColorScheme.light(
+            primary: AppColors.primary,
+            secondary: AppColors.secondary,
+            tertiary: AppColors.tertiary,
+            surface: AppColors.surface,
+            error: AppColors.error,
+            onPrimary: AppColors.text,
+            onSecondary: AppColors.text,
+            onSurface: AppColors.text,
+          );
+
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: isDark ? Brightness.dark : Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        tertiary: AppColors.tertiary,
-        surface: AppColors.surface,
-        error: AppColors.error,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: Colors.white,
-      ),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
-          .copyWith(
+      colorScheme: colorScheme,
+      textTheme:
+          GoogleFonts.interTextTheme(
+            isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
+          ).copyWith(
             // Display / Hero
             displayLarge: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 40,
               fontWeight: FontWeight.w800,
               letterSpacing: -1.2,
               height: 1.1,
             ),
             displayMedium: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 32,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.8,
@@ -103,36 +187,36 @@ class AppTheme {
             ),
             // Headlines
             headlineLarge: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 28,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
             ),
             headlineMedium: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 22,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.3,
             ),
             // Titles
             titleLarge: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
             titleMedium: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
             titleSmall: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
             // Body
             bodyLarge: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 16,
               fontWeight: FontWeight.w400,
               height: 1.5,
@@ -151,7 +235,7 @@ class AppTheme {
             ),
             // Labels
             labelLarge: GoogleFonts.inter(
-              color: Colors.white,
+              color: AppColors.text,
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
@@ -170,14 +254,14 @@ class AppTheme {
             ),
           ),
       useMaterial3: true,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppColors.text),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: AppColors.text,
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -190,13 +274,13 @@ class AppTheme {
         indicatorColor: AppColors.primary.withValues(alpha: 0.15),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return TextStyle(
               color: AppColors.primary,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             );
           }
-          return const TextStyle(
+          return TextStyle(
             color: AppColors.textDim,
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -206,7 +290,7 @@ class AppTheme {
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.primary,
         inactiveTrackColor: AppColors.surfaceRaised,
-        thumbColor: Colors.white,
+        thumbColor: AppColors.text,
         overlayColor: AppColors.primary.withValues(alpha: 0.15),
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
@@ -217,13 +301,13 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 0.5),
+          side: BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.text,
           elevation: 0,
           shadowColor: AppColors.primary.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
@@ -239,8 +323,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: AppColors.border),
+          foregroundColor: AppColors.text,
+          side: BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -255,7 +339,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        hintStyle: const TextStyle(color: AppColors.textDim, fontSize: 14),
+        hintStyle: TextStyle(color: AppColors.textDim, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
@@ -266,25 +350,25 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border, width: 0.5),
+          borderSide: BorderSide(color: AppColors.border, width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceHigh,
-        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
+        contentTextStyle: TextStyle(color: AppColors.text, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: AppColors.border,
         thickness: 0.5,
         space: 0.5,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
@@ -297,4 +381,8 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get darkTheme => themeFor(AppThemeMode.dark);
+
+  static ThemeData get lightTheme => themeFor(AppThemeMode.light);
 }

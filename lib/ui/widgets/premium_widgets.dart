@@ -259,8 +259,8 @@ class SectionHeader extends StatelessWidget {
           ],
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.text,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -332,7 +332,7 @@ class PlayButton extends StatelessWidget {
         ),
         child: Icon(
           isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          color: Colors.white,
+          color: AppColors.text,
           size: size * 0.5,
         ),
       ),

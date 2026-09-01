@@ -22,6 +22,7 @@ class PlaybackStateData {
   final bool shuffleEnabled;
   final LoopMode repeatMode;
   final double volume;
+  final double playbackSpeed;
 
   const PlaybackStateData({
     this.currentTrack,
@@ -34,6 +35,7 @@ class PlaybackStateData {
     this.shuffleEnabled = false,
     this.repeatMode = LoopMode.off,
     this.volume = 1.0,
+    this.playbackSpeed = 1.0,
   });
 
   PlaybackStateData copyWith({
@@ -47,6 +49,7 @@ class PlaybackStateData {
     bool? shuffleEnabled,
     LoopMode? repeatMode,
     double? volume,
+    double? playbackSpeed,
   }) => PlaybackStateData(
     currentTrack: currentTrack ?? this.currentTrack,
     queue: queue ?? this.queue,
@@ -58,6 +61,7 @@ class PlaybackStateData {
     shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
     repeatMode: repeatMode ?? this.repeatMode,
     volume: volume ?? this.volume,
+    playbackSpeed: playbackSpeed ?? this.playbackSpeed,
   );
 }
 
@@ -249,6 +253,11 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   Future<void> setVolume(double v) async {
     await _handler.player.setVolume(v);
     state = state.copyWith(volume: v);
+  }
+
+  Future<void> setSpeed(double s) async {
+    await _handler.setSpeed(s);
+    state = state.copyWith(playbackSpeed: s);
   }
 
   @override

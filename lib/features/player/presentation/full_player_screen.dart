@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart' show LoopMode;
+import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/premium_widgets.dart';
@@ -19,6 +19,7 @@ class FullPlayerScreen extends ConsumerStatefulWidget {
 class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
     with SingleTickerProviderStateMixin {
   bool _showCassette = false;
+  double? _dragValue; // non-null while the user is scrubbing the slider
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +37,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             'Nothing playing',
             style: TextStyle(color: AppColors.textMuted),
@@ -50,6 +51,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
     final dur = state.duration.inMilliseconds == 0
         ? (track.duration ?? Duration.zero)
         : state.duration;
+    // Show the scrubbed position while the user drags the seek slider.
+    final seekMs = _dragValue != null
+        ? _dragValue! * dur.inMilliseconds
+        : pos.inMilliseconds;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -95,9 +100,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   leading: IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white,
+                      color: AppColors.text,
                       size: 32,
                     ),
                     onPressed: () => Navigator.pop(context),
@@ -136,7 +141,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           _showCassette
                               ? Icons.album_rounded
                               : Icons.audiotrack_rounded,
-                          color: Colors.white,
+                          color: AppColors.text,
                           size: 20,
                         ),
                       ),
@@ -202,8 +207,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.text,
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.3,
@@ -224,7 +229,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           Text(
                             track.album!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 13,
                             ),
@@ -266,7 +271,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             inactiveTrackColor: Colors.white.withValues(
                               alpha: 0.15,
                             ),
-                            thumbColor: Colors.white,
+                            thumbColor: AppColors.text,
                             overlayColor: AppColors.primary.withValues(
                               alpha: 0.2,
                             ),
@@ -277,13 +282,23 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           child: Slider(
                             value: dur.inMilliseconds == 0
                                 ? 0
-                                : (pos.inMilliseconds / dur.inMilliseconds)
-                                      .clamp(0.0, 1.0),
-                            onChanged: (v) => notifier.seek(
-                              Duration(
-                                milliseconds: (v * dur.inMilliseconds).round(),
-                              ),
+                                : (seekMs / dur.inMilliseconds).clamp(0.0, 1.0),
+                            onChangeStart: (_) => setState(
+                              () => _dragValue = dur.inMilliseconds == 0
+                                  ? 0
+                                  : (pos.inMilliseconds / dur.inMilliseconds)
+                                        .clamp(0.0, 1.0),
                             ),
+                            onChanged: (v) => setState(() => _dragValue = v),
+                            onChangeEnd: (v) {
+                              notifier.seek(
+                                Duration(
+                                  milliseconds: (v * dur.inMilliseconds)
+                                      .round(),
+                                ),
+                              );
+                              setState(() => _dragValue = null);
+                            },
                           ),
                         ),
                         Padding(
@@ -292,8 +307,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                formatDuration(pos),
-                                style: const TextStyle(
+                                formatDuration(
+                                  Duration(milliseconds: seekMs.round()),
+                                ),
+                                style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -301,7 +318,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                               ),
                               Text(
                                 formatDuration(dur),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -320,28 +337,47 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                                 Icons.shuffle_rounded,
                                 color: state.shuffleEnabled
                                     ? AppColors.primary
-                                    : Colors.white,
+                                    : AppColors.text,
                               ),
                               onPressed: () => notifier.toggleShuffle(),
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.skip_previous_rounded,
                                 size: 40,
-                                color: Colors.white,
+                                color: AppColors.text,
                               ),
                               onPressed: () => notifier.previous(),
                             ),
-                            PlayButton(
-                              isPlaying: isPlaying,
-                              size: 76,
-                              onPressed: () => notifier.togglePlay(),
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (state.processingState ==
+                                    ProcessingState.buffering)
+                                  SizedBox(
+                                    width: 76,
+                                    height: 76,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: const AlwaysStoppedAnimation(
+                                        AppColors.primary,
+                                      ),
+                                      backgroundColor: AppColors.primary
+                                          .withValues(alpha: 0.15),
+                                    ),
+                                  ),
+                                PlayButton(
+                                  isPlaying: isPlaying,
+                                  size: 76,
+                                  onPressed: () => notifier.togglePlay(),
+                                ),
+                              ],
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.skip_next_rounded,
                                 size: 40,
-                                color: Colors.white,
+                                color: AppColors.text,
                               ),
                               onPressed: () => notifier.next(),
                             ),
@@ -350,7 +386,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                                 _repeatIcon(state.repeatMode),
                                 color: state.repeatMode != LoopMode.off
                                     ? AppColors.primary
-                                    : Colors.white,
+                                    : AppColors.text,
                               ),
                               onPressed: () => notifier.cycleRepeat(),
                             ),
@@ -370,6 +406,11 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                               icon: Icons.favorite_rounded,
                               color: AppColors.tertiary,
                               onTap: () {},
+                            ),
+                            const SizedBox(width: 14),
+                            _SpeedControl(
+                              speed: state.playbackSpeed,
+                              onChanged: (s) => notifier.setSpeed(s),
                             ),
                             const SizedBox(width: 14),
                             _IconGlow(
@@ -398,7 +439,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         colors: [AppColors.surfaceRaised, AppColors.surfaceHigh],
       ),
     ),
-    child: const Center(
+    child: Center(
       child: Icon(
         Icons.music_note_rounded,
         size: 100,
@@ -454,10 +495,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'Up Next',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.text,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
@@ -530,7 +571,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                                   alignment: Alignment.center,
                                   child: Text(
                                     '${i + 1}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.textDim,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -544,7 +585,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             style: TextStyle(
                               color: isCurrent
                                   ? AppColors.primaryLight
-                                  : Colors.white,
+                                  : AppColors.text,
                               fontWeight: isCurrent
                                   ? FontWeight.w600
                                   : FontWeight.w400,
@@ -555,13 +596,13 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             item.artist ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12,
                             ),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.close_rounded,
                               size: 18,
                               color: AppColors.textDim,
@@ -589,31 +630,88 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
 class _IconGlow extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final Color color;
+  final Color? color;
 
-  const _IconGlow({
-    required this.icon,
-    required this.onTap,
-    this.color = AppColors.textMuted,
-  });
+  const _IconGlow({required this.icon, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
+    final c = color ?? AppColors.textMuted;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            colors: [c.withValues(alpha: 0.1), c.withValues(alpha: 0.05)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.withValues(alpha: 0.15), width: 0.5),
+        ),
+        child: Icon(icon, color: c, size: 22),
+      ),
+    );
+  }
+}
+
+/// Playback speed selector. Cycles through common speeds on tap and shows the
+/// current value.
+class _SpeedControl extends StatelessWidget {
+  final double speed;
+  final ValueChanged<double> onChanged;
+  static const List<double> _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  const _SpeedControl({required this.speed, required this.onChanged});
+
+  String _label(double s) {
+    if (s == 1.0) return '1x';
+    // Format as 1.5x, 0.75x, 2x
+    final str = s == s.roundToDouble() ? '${s.round()}x' : '${s}x';
+    return str;
+  }
+
+  void _cycle() {
+    final idx = _speeds.indexWhere((s) => (s - speed).abs() < 0.001);
+    final next = _speeds[(idx < 0 ? 0 : idx + 1) % _speeds.length];
+    onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = speed != 1.0;
+    final c = active ? AppColors.secondary : AppColors.textMuted;
+    return GestureDetector(
+      onTap: _cycle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
             colors: [
-              color.withValues(alpha: 0.1),
-              color.withValues(alpha: 0.05),
+              c.withValues(alpha: active ? 0.18 : 0.1),
+              c.withValues(alpha: active ? 0.08 : 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
+          border: Border.all(
+            color: c.withValues(alpha: active ? 0.35 : 0.15),
+            width: 0.5,
+          ),
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.speed_rounded, color: c, size: 18),
+            const SizedBox(width: 4),
+            Text(
+              _label(speed),
+              style: TextStyle(
+                color: c,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

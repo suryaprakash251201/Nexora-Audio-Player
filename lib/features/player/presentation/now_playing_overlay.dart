@@ -154,16 +154,13 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
         track.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
       ),
       subtitle: Text(
         track.artist ?? 'Unknown Artist',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.textMuted),
+        style: TextStyle(color: AppColors.textMuted),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -171,12 +168,12 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
           IconButton(
             icon: Icon(
               state.isPlaying ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
+              color: AppColors.text,
             ),
             onPressed: () => notifier.togglePlay(),
           ),
           IconButton(
-            icon: const Icon(Icons.skip_next, color: Colors.white),
+            icon: Icon(Icons.skip_next, color: AppColors.text),
             onPressed: () => notifier.next(),
           ),
         ],
@@ -250,8 +247,8 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                           maxLines: 1,
                           overflow: TextOverflow.fade,
                           softWrap: false,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.text,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -270,9 +267,9 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.more_horiz,
-                      color: Colors.white,
+                      color: AppColors.text,
                       size: 28,
                     ),
                     onPressed: () {},
@@ -287,7 +284,7 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                 trackHeight: 6,
                 activeTrackColor: Colors.white.withValues(alpha: 0.8),
                 inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-                thumbColor: Colors.white,
+                thumbColor: AppColors.text,
                 overlayColor: Colors.white.withValues(alpha: 0.1),
                 trackShape: const RoundedRectSliderTrackShape(),
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
@@ -329,10 +326,10 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.fast_rewind_rounded,
                     size: 40,
-                    color: Colors.white,
+                    color: AppColors.text,
                   ),
                   onPressed: () => notifier.previous(),
                 ),
@@ -342,15 +339,15 @@ class _NowPlayingOverlayState extends ConsumerState<NowPlayingOverlay>
                         ? Icons.pause_rounded
                         : Icons.play_arrow_rounded,
                     size: 60,
-                    color: Colors.white,
+                    color: AppColors.text,
                   ),
                   onPressed: () => notifier.togglePlay(),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.fast_forward_rounded,
                     size: 40,
-                    color: Colors.white,
+                    color: AppColors.text,
                   ),
                   onPressed: () => notifier.next(),
                 ),
