@@ -4,6 +4,7 @@ import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../providers/search_provider.dart';
+import '../../../data/repositories/search_repository.dart';
 import '../../player/providers/player_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
