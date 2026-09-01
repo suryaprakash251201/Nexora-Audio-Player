@@ -247,6 +247,7 @@ class NexoraAudioHandler extends BaseAudioHandler
     if (enable) await _player.shuffle();
   }
 
+  @override
   Future<void> setSpeed(double speed) async {
     await _player.setSpeed(speed);
   }

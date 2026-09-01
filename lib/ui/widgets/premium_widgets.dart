@@ -214,7 +214,7 @@ class _ShimmerWidgetState extends State<ShimmerWidget>
             gradient: LinearGradient(
               begin: Alignment(-1.0 + 2.0 * _controller.value, 0),
               end: Alignment(-0.5 + 2.0 * _controller.value, 0),
-              colors: const [
+              colors: [
                 AppColors.surfaceRaised,
                 AppColors.surfaceHigh,
                 AppColors.surfaceRaised,
