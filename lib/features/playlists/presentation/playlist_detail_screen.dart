@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../domain/entities/playlist.dart';
+import '../../../domain/entities/song.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
@@ -80,12 +81,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         slivers: [
           SliverAppBar(
             backgroundColor: Colors.black.withValues(alpha: 0.8),
-            flexibleSpace: ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
             pinned: true,
             expandedHeight: 300,
             flexibleSpace: FlexibleSpaceBar(
