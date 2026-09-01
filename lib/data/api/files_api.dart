@@ -27,7 +27,10 @@ class FilesApi {
 
   String _base() => _client.dio.options.baseUrl;
 
-  Future<String> _token() async => _storage.getToken() ?? '';
+  Future<String> _token() async {
+    final t = await _storage.getToken();
+    return t ?? '';
+  }
 
   /// Thumbnail URL for any audio file path. Works for plain Image.network
   /// because the `?token=` query authenticates the request.

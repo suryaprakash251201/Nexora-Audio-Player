@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/repositories/songs_repository.dart';
 import '../../../data/api/files_api.dart';
 import '../../../ui/theme.dart';
@@ -231,7 +232,6 @@ class _FoldersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rootIdAsync = ref.watch(_musicRootProvider);
-    final foldersAsync = ref.watch(_foldersProvider);
     return rootIdAsync.when(
       loading: () => const LoadingView(),
       error: (e, _) => ErrorView(
@@ -244,33 +244,43 @@ class _FoldersTab extends ConsumerWidget {
               subtitle: 'No storage root found on the server',
               icon: Icons.folder_off_outlined,
             )
-          : foldersAsync.when(
-              loading: () => const LoadingView(),
-              error: (e, _) => ErrorView(
-                message: e.toString(),
-                onRetry: () => ref.invalidate(_foldersProvider),
+          : _FolderGrid(rootId: rootId),
+    );
+  }
+}
+
+class _FolderGrid extends ConsumerWidget {
+  final String rootId;
+  const _FolderGrid({required this.rootId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final foldersAsync = ref.watch(_foldersProvider(rootId));
+    return foldersAsync.when(
+      loading: () => const LoadingView(),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(_foldersProvider(rootId)),
+      ),
+      data: (folders) => folders.isEmpty
+          ? const EmptyView(
+              title: 'No folders',
+              subtitle: 'The music root is empty',
+              icon: Icons.folder_open,
+            )
+          : RefreshIndicator(
+              onRefresh: () async => ref.invalidate(_foldersProvider(rootId)),
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 190,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.78,
+                ),
+                itemCount: folders.length,
+                itemBuilder: (c, i) => _FolderCard(folder: folders[i]),
               ),
-              data: (folders) => folders.isEmpty
-                  ? const EmptyView(
-                      title: 'No folders',
-                      subtitle: 'The music root is empty',
-                      icon: Icons.folder_open,
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () async => ref.invalidate(_foldersProvider),
-                      child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 190,
-                              mainAxisSpacing: 20,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.78,
-                            ),
-                        itemCount: folders.length,
-                        itemBuilder: (c, i) => _FolderCard(folder: folders[i]),
-                      ),
-                    ),
             ),
     );
   }
