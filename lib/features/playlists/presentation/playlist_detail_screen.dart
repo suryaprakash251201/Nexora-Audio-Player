@@ -4,15 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
-import '../../../ui/nexora/nexora_artwork.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
+import '../../../ui/widgets/playlist_cover.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 
+/// Playlist detail — full audiophile redesign.
+///
+/// Big square mosaic cover as the hero, editorial title block, two
+/// primary actions (Play / Shuffle) as full-width tonal buttons, then
+/// the tracklist in a contained card so hairlines read consistently
+/// across the whole list.
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
   final String playlistId;
   final Playlist? initial;
@@ -114,11 +120,58 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
             SliverToBoxAdapter(child: _hero(p)),
             SliverToBoxAdapter(child: _actions(p)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'TRACKS',
+                      style: TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceRaised,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _tracks.length.toString(),
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_tracks.isNotEmpty)
+                      Text(
+                        '${formatDuration(_totalDuration() ?? Duration.zero)} total',
+                        style: TextStyle(
+                          color: AppColors.textFaint,
+                          fontSize: 11.5,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
             if (_tracks.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
+                  padding: EdgeInsets.symmetric(vertical: 36),
                   child: NexoraEmptyState(
                     icon: Icons.queue_music_outlined,
                     title: 'Empty playlist',
@@ -128,39 +181,65 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.only(
-                  bottom: NexoraSpacing.dockBottomReserve,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((c, i) {
-                    final s = _tracks[i];
-                    final isCurrent =
-                        ref.watch(playerProvider).currentTrack?.id == s.id;
-                    return Column(
-                      children: [
-                        NexoraTrackRow(
-                          artworkUrl: s.coverUrl,
-                          title: s.title,
-                          subtitle:
-                              '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                          indexLabel: (i + 1).toString().padLeft(2, '0'),
-                          isCurrent: isCurrent,
-                          isPlaying:
-                              isCurrent && ref.watch(playerProvider).isPlaying,
-                          isFavorite: s.isFavorite,
-                          isDownloaded: s.isDownloaded,
-                          onTap: () => ref
-                              .read(playerProvider.notifier)
-                              .playSongs(_tracks, initialIndex: i),
-                          onMore: () {},
-                        ),
-                        if (i != _tracks.length - 1)
-                          const NexoraDivider(indent: 64, endIndent: 0),
-                      ],
-                    );
-                  }, childCount: _tracks.length),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                sliver: SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border, width: 0.7),
+                      boxShadow: AppColors.mode == AppThemeMode.dark
+                          ? null
+                          : NexoraShadow.card(false),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < _tracks.length; i++) ...[
+                            Builder(
+                              builder: (c) {
+                                final s = _tracks[i];
+                                final isCurrent =
+                                    ref
+                                        .watch(playerProvider)
+                                        .currentTrack
+                                        ?.id ==
+                                    s.id;
+                                return NexoraTrackRow(
+                                  artworkUrl: s.coverUrl,
+                                  title: s.title,
+                                  subtitle:
+                                      '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                                  indexLabel: (i + 1).toString().padLeft(
+                                    2,
+                                    '0',
+                                  ),
+                                  isCurrent: isCurrent,
+                                  isPlaying:
+                                      isCurrent &&
+                                      ref.watch(playerProvider).isPlaying,
+                                  isFavorite: s.isFavorite,
+                                  isDownloaded: s.isDownloaded,
+                                  onTap: () => ref
+                                      .read(playerProvider.notifier)
+                                      .playSongs(_tracks, initialIndex: i),
+                                  onMore: () {},
+                                );
+                              },
+                            ),
+                            if (i != _tracks.length - 1)
+                              const NexoraDivider(indent: 64, endIndent: 0),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
+            const SliverPadding(
+              padding: EdgeInsets.only(bottom: NexoraSpacing.dockBottomReserve),
+            ),
           ],
         ),
       ),
@@ -168,24 +247,43 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   Widget _hero(Playlist p) {
-    final cover = _firstTrackArtwork(p);
     final count = p.trackCount ?? _tracks.length;
     final total = _totalDuration();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: SizedBox(width: 220, height: 220, child: cover)),
-          const SizedBox(height: NexoraSpacing.s24),
+          Center(
+            child: SizedBox(
+              width: 220,
+              height: 220,
+              child: Hero(
+                tag: 'playlist-cover-${p.id}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: AppColors.mode == AppThemeMode.dark
+                        ? null
+                        : NexoraShadow.card(false),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: _firstTrackArtwork(p),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
           Text(
             p.name,
             style: TextStyle(
               color: AppColors.text,
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
-              height: 1.1,
+              height: 1.15,
             ),
           ),
           if (p.description != null && p.description!.trim().isNotEmpty) ...[
@@ -199,18 +297,20 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 6),
-          Text(
-            [
-              '$count ${count == 1 ? 'track' : 'tracks'}',
-              if (total != null) formatDuration(total),
-            ].join(' • '),
-            style: TextStyle(
-              color: AppColors.textDim,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-            ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _MetaPill(
+                icon: Icons.music_note_rounded,
+                label: '$count ${count == 1 ? 'track' : 'tracks'}',
+              ),
+              const SizedBox(width: 8),
+              if (total != null)
+                _MetaPill(
+                  icon: Icons.schedule_rounded,
+                  label: formatDuration(total),
+                ),
+            ],
           ),
         ],
       ),
@@ -219,14 +319,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
   Widget _actions(Playlist p) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Row(
         children: [
           Expanded(
-            child: NexoraTextButton(
-              label: 'Play',
+            child: _PrimaryAction(
               icon: Icons.play_arrow_rounded,
-              primary: true,
+              label: 'Play',
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
@@ -234,11 +333,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         .playSongs(_tracks, initialIndex: 0),
             ),
           ),
-          const SizedBox(width: NexoraSpacing.s12),
+          const SizedBox(width: 10),
           Expanded(
-            child: NexoraTextButton(
-              label: 'Shuffle',
+            child: _SecondaryAction(
               icon: Icons.shuffle_rounded,
+              label: 'Shuffle',
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
@@ -259,15 +358,17 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   Widget _firstTrackArtwork(Playlist p) {
-    String? url = p.coverUrl;
+    final urls = <String?>[];
+    final direct = p.coverUrl;
+    if (direct != null && direct.isNotEmpty) urls.add(direct);
     for (final t in p.tracks ?? const []) {
-      final trackUrl = t.coverUrl ?? t.artworkUrl;
-      if (trackUrl != null && trackUrl.isNotEmpty) {
-        url ??= trackUrl;
-        break;
+      final u = t.coverUrl ?? t.artworkUrl;
+      if (u != null && u.isNotEmpty) {
+        urls.add(u);
+        if (urls.length >= 4) break;
       }
     }
-    return NexoraArtwork(url: url, size: 220);
+    return PlaylistCover(artworkUrls: urls, borderRadius: 0, title: p.name);
   }
 
   void _showOptions() {
@@ -277,9 +378,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       isScrollControlled: true,
       builder: (c) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
         ),
         child: SafeArea(
           child: Column(
@@ -290,7 +391,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 width: 40,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.textDim.withValues(alpha: 0.5),
+                  color: AppColors.textFaint.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -313,7 +414,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   final ok = await showDialog<bool>(
                     context: context,
                     builder: (cx) => AlertDialog(
-                      backgroundColor: AppColors.surface,
+                      backgroundColor: AppColors.card,
                       title: Text(
                         'Delete?',
                         style: TextStyle(color: AppColors.text),
@@ -354,6 +455,133 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _MetaPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.6),
+          width: 0.6,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColors.textMuted),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _PrimaryAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NexoraPressable(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.30),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _SecondaryAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NexoraPressable(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.7),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.text, size: 19),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );

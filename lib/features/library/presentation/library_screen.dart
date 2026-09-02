@@ -18,6 +18,11 @@ import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 import 'folder_browser_screen.dart';
 
+/// Library — five editorial lanes behind a confident header.
+///
+/// Audiophile redesign: large page title, tonal segmented tab bar
+/// (adaptive, with custom layout), and a content area that swaps in
+/// real lists/grids with calm hover/select states.
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
   @override
@@ -43,26 +48,45 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
+            // Page header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
               child: Row(
                 children: [
-                  Text(
-                    'Library',
-                    style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.6,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Library',
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Your collection, organized.',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13.5,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
                   NexoraIconButton(
                     icon: Icons.search_rounded,
                     onTap: () => context.go('/search'),
@@ -71,11 +95,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 ],
               ),
             ),
-            const SizedBox(height: NexoraSpacing.s12),
+            const SizedBox(height: 12),
             _SegmentedTabs(controller: _tab, tabs: _tabs),
             Expanded(
               child: TabBarView(
                 controller: _tab,
+                physics: const BouncingScrollPhysics(),
                 children: const [
                   _SongsTab(),
                   _AlbumsTab(),
@@ -103,41 +128,52 @@ class _SegmentedTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return SizedBox(
       height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s20),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: tabs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: NexoraSpacing.s8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (c, i) {
           return AnimatedBuilder(
             animation: controller,
             builder: (c, _) {
               final selected = controller.index == i;
-              return GestureDetector(
-                onTap: () => controller.animateTo(i),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: NexoraSpacing.s16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.text : Colors.transparent,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: selected ? AppColors.text : AppColors.border,
-                      width: 0.6,
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => controller.animateTo(i),
+                  borderRadius: BorderRadius.circular(22),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
                     ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    tabs[i],
-                    style: TextStyle(
-                      color: selected ? AppColors.background : AppColors.text,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.text
+                          : (isDark ? AppColors.surfaceRaised : AppColors.card),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: selected
+                            ? AppColors.text
+                            : AppColors.border.withValues(alpha: 0.8),
+                        width: 0.7,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      tabs[i],
+                      style: TextStyle(
+                        color: selected ? AppColors.background : AppColors.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
                     ),
                   ),
                 ),
@@ -214,6 +250,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     if (_error != null)
       return ErrorView(message: _error!, onRetry: () => _load(refresh: true));
     if (_loading && _songs.isEmpty) return const LoadingView();
@@ -221,8 +258,11 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
       return const EmptyView(
         title: 'No songs',
         subtitle: 'Check server connection or pull to refresh',
+        icon: Icons.music_note_outlined,
       );
     return RefreshIndicator(
+      color: AppColors.accent,
+      backgroundColor: AppColors.card,
       onRefresh: () => _load(refresh: true),
       child: ListView.separated(
         padding: const EdgeInsets.only(
@@ -272,9 +312,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
       isScrollControlled: true,
       builder: (c) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
         ),
         child: SafeArea(
           child: Column(
@@ -285,7 +325,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
                 width: 40,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.textDim.withValues(alpha: 0.5),
+                  color: AppColors.textFaint.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -350,23 +390,23 @@ class _AlbumsTab extends ConsumerWidget {
             )
           : GridView.builder(
               padding: const EdgeInsets.fromLTRB(
-                20,
                 16,
-                20,
+                16,
+                16,
                 NexoraSpacing.dockBottomReserve,
               ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 168,
-                mainAxisSpacing: NexoraSpacing.s24,
-                crossAxisSpacing: NexoraSpacing.s16,
-                childAspectRatio: 0.82,
+                maxCrossAxisExtent: 170,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.80,
               ),
               itemCount: albums.length,
               itemBuilder: (c, i) => NexoraAlbumCard(
                 coverUrl: albums[i].coverUrl,
                 title: albums[i].title,
                 subtitle: albums[i].artist,
-                size: 168,
+                size: 170,
                 onTap: () => context.push(
                   '/album/${Uri.encodeComponent(albums[i].id)}',
                   extra: albums[i],
@@ -427,7 +467,7 @@ class _ArtistsTab extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PLAYLISTS TAB (deferred to dedicated screen via nav)
+// PLAYLISTS TAB
 // ═══════════════════════════════════════════════════════════════
 
 class _PlaylistsTab extends ConsumerWidget {
@@ -437,31 +477,52 @@ class _PlaylistsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.queue_music_rounded, color: AppColors.textDim, size: 28),
-            const SizedBox(height: NexoraSpacing.s12),
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.11),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.22),
+                  width: 0.7,
+                ),
+              ),
+              child: Icon(
+                Icons.queue_music_rounded,
+                color: AppColors.accent,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 22),
             Text(
-              'Playlists live in their own section.',
+              'Playlists, your way',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
               ),
             ),
-            const SizedBox(height: NexoraSpacing.s4),
+            const SizedBox(height: 8),
             Text(
-              'Open the Playlists tab in the bottom bar to browse your collections.',
+              'Curated collections live in their own section.\nOpen the Playlists tab in the bottom bar.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
-            const SizedBox(height: NexoraSpacing.s16),
+            const SizedBox(height: 22),
             NexoraTextButton(
               label: 'Open Playlists',
-              icon: Icons.queue_music_rounded,
+              icon: Icons.arrow_forward_rounded,
               primary: true,
               onTap: () => context.go('/playlists'),
             ),
@@ -473,7 +534,7 @@ class _PlaylistsTab extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FOLDERS TAB (kept as grid of folder entries)
+// FOLDERS TAB
 // ═══════════════════════════════════════════════════════════════
 
 class _FoldersTab extends ConsumerWidget {
@@ -542,23 +603,23 @@ class _FolderGrid extends ConsumerWidget {
             )
           : GridView.builder(
               padding: const EdgeInsets.fromLTRB(
-                20,
                 16,
-                20,
+                16,
+                16,
                 NexoraSpacing.dockBottomReserve,
               ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 168,
-                mainAxisSpacing: NexoraSpacing.s24,
-                crossAxisSpacing: NexoraSpacing.s16,
-                childAspectRatio: 0.82,
+                maxCrossAxisExtent: 170,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.80,
               ),
               itemCount: folders.length,
               itemBuilder: (c, i) => NexoraAlbumCard(
                 coverUrl: null,
                 title: folders[i].name,
                 subtitle: 'Folder',
-                size: 168,
+                size: 170,
                 onTap: () => context.push(
                   '/folder?root=${folders[i].rootId}&path=${Uri.encodeComponent(folders[i].path)}',
                 ),

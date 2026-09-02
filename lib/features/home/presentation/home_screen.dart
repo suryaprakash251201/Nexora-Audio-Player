@@ -19,10 +19,10 @@ import '../../../domain/entities/song.dart';
 
 /// Home — the listener's entry point.
 ///
-/// Structure mirrors a good hi-fi front panel: identity at the top, four
-/// immediate actions, whatever is currently playing, then a calm editorial
-/// stack of library sections. Everything is choreographed with a staggered
-/// entrance so the screen assembles rather than simply appearing.
+/// Audiophile redesign: a confident hero stage (greeting + continue),
+/// four adaptive quick-actions with tonal iconography, and three editorial
+/// rails (recent, recents played, albums) that build rhythm without
+/// flooding the eye. Everything staggered so the screen assembles.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -31,6 +31,7 @@ class HomeScreen extends ConsumerWidget {
     final recentSongs = ref.watch(recentSongsProvider);
     final recentlyPlayed = ref.watch(recentlyPlayedProvider);
     final albums = ref.watch(featuredAlbumsProvider);
+    final artists = ref.watch(featuredArtistsProvider);
     final current = ref.watch(playerProvider).currentTrack;
 
     return Scaffold(
@@ -38,13 +39,16 @@ class HomeScreen extends ConsumerWidget {
       body: Stack(
         children: [
           // Ambient light. Sits behind everything and never intercepts taps.
-          const Positioned.fill(child: NexoraAurora(intensity: 0.5)),
+          const Positioned.fill(child: NexoraAurora(intensity: 0.45)),
           Positioned.fill(
             child: RefreshIndicator(
+              color: AppColors.accent,
+              backgroundColor: AppColors.card,
               onRefresh: () async {
                 ref.invalidate(recentSongsProvider);
                 ref.invalidate(recentlyPlayedProvider);
                 ref.invalidate(featuredAlbumsProvider);
+                ref.invalidate(featuredArtistsProvider);
                 ref.invalidate(favoritesProvider);
               },
               child: CustomScrollView(
@@ -65,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
                         tooltip: 'Search',
                       ),
                       IconButton(
-                        icon: const Icon(Icons.settings_outlined),
+                        icon: const Icon(Icons.tune_rounded),
                         onPressed: () => context.push('/settings'),
                         tooltip: 'Settings',
                       ),
@@ -74,17 +78,19 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 170),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
                       child: NexoraStaggeredColumn(
                         children: [
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 4),
                           const _Greeting(),
-                          const SizedBox(height: 26),
-                          const _QuickActions(),
+                          const SizedBox(height: 24),
                           if (current != null) ...[
-                            const SizedBox(height: 30),
                             const _ContinueListening(),
+                            const SizedBox(height: 32),
                           ],
+                          const _QuickActions(),
+                          const SizedBox(height: 34),
+                          const _HiFiStats(),
                           const SizedBox(height: 34),
                           _SectionHeader(
                             'Recently Added',
@@ -106,7 +112,16 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 14),
                           _AlbumsGrid(asyncAlbums: albums),
-                          const SizedBox(height: 8),
+                          if (artists.value?.isNotEmpty == true) ...[
+                            const SizedBox(height: 34),
+                            _SectionHeader(
+                              'Artists you follow',
+                              onSeeAll: () => context.go('/library'),
+                            ),
+                            const SizedBox(height: 14),
+                            _ArtistsRow(asyncArtists: artists),
+                          ],
+                          const SizedBox(height: 12),
                         ],
                       ),
                     ),
@@ -134,9 +149,9 @@ class _BrandLockup extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            color: AppColors.surfaceRaised.withValues(alpha: 0.9),
-            border: Border.all(color: AppColors.border, width: 0.6),
+            borderRadius: BorderRadius.circular(10),
+            color: AppColors.card,
+            border: Border.all(color: AppColors.border, width: 0.7),
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.asset(
@@ -150,21 +165,51 @@ class _BrandLockup extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 11),
-        Text(
-          'NEXORA',
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 3,
-            color: AppColors.text,
-          ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'NEXORA',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'LOSSLESS READY',
+                  style: TextStyle(
+                    color: AppColors.textFaint,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-/// Time-aware greeting above the library heading.
+/// Time-aware greeting with editorial hero type.
 class _Greeting extends StatelessWidget {
   const _Greeting();
 
@@ -177,55 +222,91 @@ class _Greeting extends StatelessWidget {
     return 'Winding down';
   }
 
+  IconData get _greetingIcon {
+    final h = DateTime.now().hour;
+    if (h < 5) return Icons.nightlight_round;
+    if (h < 8) return Icons.wb_twilight_rounded;
+    if (h < 12) return Icons.wb_sunny_rounded;
+    if (h < 17) return Icons.wb_cloudy_rounded;
+    if (h < 22) return Icons.nights_stay_rounded;
+    return Icons.bedtime_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            NexoraGlyph(
-              kind: NexoraGlyphKind.waveform,
-              size: 13,
-              color: AppColors.accent,
-            ),
-            const SizedBox(width: 7),
-            Text(
-              _greeting.toUpperCase(),
-              style: TextStyle(
-                color: AppColors.accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.25),
+                    width: 0.6,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_greetingIcon, size: 11, color: AppColors.accent),
+                    const SizedBox(width: 5),
+                    Text(
+                      _greeting.toUpperCase(),
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 9),
-        Text(
-          'Your library',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 34,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -1,
-            height: 1.08,
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 14),
+          Text(
+            'Your library',
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.2,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pick up where you left off, or discover something new.',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 14,
+              height: 1.4,
+              letterSpacing: -0.1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Four one-tap destinations. Keeps the most common intents one press away
-/// instead of buried two screens deep.
+/// Four tonal quick actions — each is a colored chip with its own iconography
+/// and brand, sized for thumb reach.
 class _QuickActions extends ConsumerWidget {
   const _QuickActions();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final songsAsync = ref.watch(recentSongsProvider);
+    final isDark = AppColors.mode == AppThemeMode.dark;
 
     void shuffleAll() {
       final songs = songsAsync.value;
@@ -242,53 +323,241 @@ class _QuickActions extends ConsumerWidget {
       ref.read(playerProvider.notifier).toggleShuffle();
     }
 
-    return Row(
+    final actions = <_QuickActionData>[
+      _QuickActionData(
+        icon: Icons.shuffle_rounded,
+        label: 'Shuffle all',
+        color: AppColors.accent,
+        onTap: shuffleAll,
+      ),
+      _QuickActionData(
+        icon: Icons.favorite_rounded,
+        label: 'Favorites',
+        color: const Color(0xFFFF4D6D),
+        onTap: () => context.push('/favorites'),
+      ),
+      _QuickActionData(
+        icon: Icons.download_rounded,
+        label: 'Downloads',
+        color: const Color(0xFF2EC4B6),
+        onTap: () => context.push('/downloads'),
+      ),
+      _QuickActionData(
+        icon: Icons.equalizer_rounded,
+        label: 'Equalizer',
+        color: const Color(0xFFFFB020),
+        onTap: () => context.push('/equalizer'),
+      ),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 3.2,
       children: [
-        Expanded(
-          child: _QuickActionTile(
-            icon: NexoraGlyph(
-              kind: NexoraGlyphKind.waveform,
-              size: 20,
-              color: AppColors.accent,
-            ),
-            label: 'Shuffle all',
-            onTap: shuffleAll,
+        for (final a in actions) _QuickActionTile(data: a, isDark: isDark),
+      ],
+    );
+  }
+}
+
+class _QuickActionData {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  _QuickActionData({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+}
+
+class _QuickActionTile extends StatelessWidget {
+  final _QuickActionData data;
+  final bool isDark;
+  const _QuickActionTile({required this.data, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = data.color.withValues(alpha: isDark ? 0.13 : 0.10);
+    return NexoraPressable(
+      onTap: data.onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? AppColors.border.withValues(alpha: 0.9)
+                : AppColors.border,
+            width: 0.7,
           ),
+          boxShadow: isDark ? null : NexoraShadow.card(false),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _QuickActionTile(
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: data.color.withValues(alpha: 0.18),
+                  width: 0.6,
+                ),
+              ),
+              child: Icon(data.icon, color: data.color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                data.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_rounded,
+              size: 14,
+              color: AppColors.textFaint,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact "session" stats card — total plays, total time, unique artists.
+/// Audiophile-focused: no vanity numbers, only context that matters.
+class _HiFiStats extends ConsumerWidget {
+  const _HiFiStats();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recents = ref.watch(recentlyPlayedProvider);
+    final recentsValue = recents.value ?? const [];
+
+    final totalPlays = recentsValue.length;
+    final totalMinutes = recentsValue.fold<int>(
+      0,
+      (s, h) => s + (h.durationSeconds ?? 0),
+    );
+    final hours = (totalMinutes / 3600).floor();
+    final minutes = ((totalMinutes % 3600) / 60).floor();
+    final losslessCount = recentsValue.where((h) => h.lossless == true).length;
+    final losslessRatio = totalPlays == 0
+        ? 0
+        : ((losslessCount / totalPlays) * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.7),
+        boxShadow: AppColors.mode == AppThemeMode.dark
+            ? null
+            : NexoraShadow.card(false),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatColumn(
+              label: 'Plays',
+              value: totalPlays.toString(),
+              accent: AppColors.accent,
+            ),
+          ),
+          _StatDivider(),
+          Expanded(
+            child: _StatColumn(
+              label: 'Time',
+              value: hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m',
+              accent: const Color(0xFF2EC4B6),
+            ),
+          ),
+          _StatDivider(),
+          Expanded(
+            child: _StatColumn(
+              label: 'Lossless',
+              value: '$losslessRatio%',
+              accent: const Color(0xFFFFB020),
+            ),
+          ),
+          IconButton(
             icon: Icon(
-              Icons.favorite_rounded,
-              size: 19,
-              color: AppColors.accent,
+              Icons.bar_chart_rounded,
+              size: 18,
+              color: AppColors.textMuted,
             ),
-            label: 'Favorites',
-            onTap: () => context.push('/favorites'),
+            tooltip: 'See full stats',
+            onPressed: () => context.push('/stats'),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _QuickActionTile(
-            icon: Icon(
-              Icons.download_rounded,
-              size: 19,
-              color: AppColors.accent,
+        ],
+      ),
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color accent;
+  const _StatColumn({
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
             ),
-            label: 'Downloads',
-            onTap: () => context.push('/downloads'),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _QuickActionTile(
-            icon: NexoraGlyph(
-              kind: NexoraGlyphKind.stats,
-              size: 20,
-              color: AppColors.accent,
+            const SizedBox(width: 5),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: AppColors.textDim,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+              ),
             ),
-            label: 'Your stats',
-            onTap: () => context.push('/stats'),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppColors.text,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ],
@@ -296,47 +565,14 @@ class _QuickActions extends ConsumerWidget {
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final Widget icon;
-  final String label;
-  final VoidCallback onTap;
-
+class _StatDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return NexoraPressable(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.66),
-          borderRadius: NexoraRadius.chip,
-          border: Border.all(color: AppColors.border, width: 0.6),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            icon,
-            const SizedBox(height: 9),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Container(
+      width: 0.7,
+      height: 28,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: AppColors.hairline,
     );
   }
 }
@@ -369,8 +605,8 @@ class _ContinueListening extends ConsumerWidget {
             children: [
               ArtworkImage(
                 url: track.artUri?.toString(),
-                size: 62,
-                borderRadius: 8,
+                size: 64,
+                borderRadius: 10,
                 showShadow: true,
               ),
               const SizedBox(width: 14),
@@ -389,22 +625,18 @@ class _ContinueListening extends ConsumerWidget {
                           maxHeight: 13,
                         ),
                         const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            state.isPlaying ? 'NOW PLAYING' : 'PAUSED',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.3,
-                            ),
+                        Text(
+                          state.isPlaying ? 'NOW PLAYING' : 'PAUSED',
+                          style: TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Text(
                       track.title,
                       maxLines: 1,
@@ -412,8 +644,8 @@ class _ContinueListening extends ConsumerWidget {
                       style: TextStyle(
                         color: AppColors.text,
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -430,13 +662,11 @@ class _ContinueListening extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        if (lossless) ...[
-                          const SizedBox(width: 8),
+                        if (lossless)
                           const NexoraHiResBadge(
                             label: 'LOSSLESS',
                             compact: true,
                           ),
-                        ],
                       ],
                     ),
                   ],
@@ -446,9 +676,9 @@ class _ContinueListening extends ConsumerWidget {
               _HeroPlayButton(isPlaying: state.isPlaying),
             ],
           ),
-          const SizedBox(height: 13),
+          const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(2.5),
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 2.5,
@@ -473,12 +703,20 @@ class _HeroPlayButton extends ConsumerWidget {
       onTap: () => ref.read(playerProvider.notifier).togglePlay(),
       scale: 0.9,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 48,
+        height: 48,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.accent,
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.30),
+              blurRadius: 14,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -490,7 +728,7 @@ class _HeroPlayButton extends ConsumerWidget {
             isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
             key: ValueKey<bool>(isPlaying),
             color: AppColors.onAccent,
-            size: 24,
+            size: 26,
           ),
         ),
       ),
@@ -500,50 +738,53 @@ class _HeroPlayButton extends ConsumerWidget {
 
 /// Editorial section heading with an optional "See all" affordance.
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.label, {this.onSeeAll});
-
   final String label;
   final VoidCallback? onSeeAll;
 
+  const _SectionHeader(this.label, {this.onSeeAll});
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 21,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.4,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
             ),
           ),
-        ),
-        if (onSeeAll != null)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onSeeAll,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'See all',
-                  style: TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+          if (onSeeAll != null)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onSeeAll,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'See all',
+                    style: TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 15,
-                  color: AppColors.accent,
-                ),
-              ],
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 15,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -564,11 +805,12 @@ class _RecentSongsRow extends ConsumerWidget {
           );
         }
         return SizedBox(
-          height: 196,
+          height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             itemCount: songs.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 16),
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, i) => _SongCard(
               song: songs[i],
               onTap: () => ref
@@ -578,7 +820,7 @@ class _RecentSongsRow extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const _SkeletonRow(height: 196, width: 140),
+      loading: () => const _SkeletonRow(height: 200, width: 140),
       error: (e, _) => ErrorView(
         message: e.toString(),
         onRetry: () => ref.invalidate(recentSongsProvider),
@@ -607,11 +849,12 @@ class _RecentlyPlayedRow extends ConsumerWidget {
           );
         }
         return SizedBox(
-          height: 164,
+          height: 172,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             itemCount: songs.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => _SmallSongCard(
               song: songs[i] as Song,
               onTap: () => ref.read(playerProvider.notifier).playSongs([
@@ -621,7 +864,7 @@ class _RecentlyPlayedRow extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const _SkeletonRow(height: 164, width: 120),
+      loading: () => const _SkeletonRow(height: 172, width: 120),
       error: (e, _) => ErrorView(
         message: e.toString(),
         onRetry: () => ref.invalidate(recentlyPlayedProvider),
@@ -639,8 +882,8 @@ class _AlbumsGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 2,
-      mainAxisSpacing: 20,
-      crossAxisSpacing: 16,
+      mainAxisSpacing: 14,
+      crossAxisSpacing: 14,
       childAspectRatio: 0.78,
     );
 
@@ -681,6 +924,69 @@ class _AlbumsGrid extends ConsumerWidget {
   }
 }
 
+class _ArtistsRow extends ConsumerWidget {
+  const _ArtistsRow({required this.asyncArtists});
+
+  final AsyncValue asyncArtists;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return asyncArtists.when(
+      data: (artists) {
+        if (artists.isEmpty) return const SizedBox.shrink();
+        return SizedBox(
+          height: 122,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemCount: artists.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (context, i) {
+              final a = artists[i];
+              return NexoraPressable(
+                onTap: () => context.push(
+                  '/artist/${Uri.encodeComponent(a.id)}',
+                  extra: a,
+                ),
+                child: SizedBox(
+                  width: 96,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipOval(
+                        child: ArtworkImage(
+                          url: a.artworkUrl,
+                          size: 96,
+                          borderRadius: 0,
+                          showShadow: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        a.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const _SkeletonRow(height: 122, width: 96),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
 class _SongCard extends StatelessWidget {
   const _SongCard({required this.song, required this.onTap});
 
@@ -699,7 +1005,7 @@ class _SongCard extends StatelessWidget {
             ArtworkImage(
               url: song.effectiveArtwork,
               size: 140,
-              borderRadius: 8,
+              borderRadius: 10,
               showShadow: true,
             ),
             const SizedBox(height: 10),
@@ -709,8 +1015,8 @@ class _SongCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppColors.text,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
                 letterSpacing: -0.2,
               ),
             ),
@@ -719,7 +1025,7 @@ class _SongCard extends StatelessWidget {
               song.displayArtist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
             ),
           ],
         ),
@@ -746,7 +1052,7 @@ class _SmallSongCard extends StatelessWidget {
             ArtworkImage(
               url: song.effectiveArtwork,
               size: 120,
-              borderRadius: 8,
+              borderRadius: 10,
               showShadow: true,
             ),
             const SizedBox(height: 8),
@@ -756,11 +1062,11 @@ class _SmallSongCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppColors.text,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               song.displayArtist,
               maxLines: 1,
@@ -790,7 +1096,7 @@ class _AlbumCard extends StatelessWidget {
             aspectRatio: 1,
             child: ArtworkImage(
               url: album.coverUrl,
-              borderRadius: 8,
+              borderRadius: 10,
               showShadow: true,
             ),
           ),
@@ -801,8 +1107,8 @@ class _AlbumCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: AppColors.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
               letterSpacing: -0.2,
             ),
           ),
@@ -811,7 +1117,7 @@ class _AlbumCard extends StatelessWidget {
             '${album.artist ?? 'Album'} • ${album.trackCount ?? '—'} tracks',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
           ),
         ],
       ),
@@ -847,11 +1153,11 @@ class _EmptyHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 0.6),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 0.7),
       ),
       child: Row(
         children: [
@@ -881,6 +1187,7 @@ class _SkeletonRow extends StatelessWidget {
       height: height,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (_, _) => ShimmerLoading(
