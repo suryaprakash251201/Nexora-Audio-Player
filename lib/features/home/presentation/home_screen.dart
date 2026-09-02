@@ -452,13 +452,15 @@ class _HiFiStats extends ConsumerWidget {
     final recentsValue = recents.value ?? const [];
 
     final totalPlays = recentsValue.length;
-    final totalMinutes = recentsValue.fold<int>(
+    final totalSeconds = recentsValue.fold<int>(
       0,
-      (s, h) => s + (h.durationSeconds ?? 0),
+      (s, h) => s + (h.playDuration ?? 0),
     );
-    final hours = (totalMinutes / 3600).floor();
-    final minutes = ((totalMinutes % 3600) / 60).floor();
-    final losslessCount = recentsValue.where((h) => h.lossless == true).length;
+    final hours = (totalSeconds / 3600).floor();
+    final minutes = ((totalSeconds % 3600) / 60).floor();
+    final losslessCount = recentsValue
+        .where((h) => h.song?.lossless == true)
+        .length;
     final losslessRatio = totalPlays == 0
         ? 0
         : ((losslessCount / totalPlays) * 100).round();

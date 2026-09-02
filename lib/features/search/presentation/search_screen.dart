@@ -357,7 +357,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       for (var i = 0; i < res.artists.length; i++) ...[
                         _ArtistResultTile(artist: res.artists[i]),
                         if (i != res.artists.length - 1)
-                          const Divider(
+                          Divider(
                             color: AppColors.hairline,
                             height: 0.5,
                             thickness: 0.5,
@@ -387,7 +387,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       for (var i = 0; i < res.playlists.length; i++) ...[
                         _PlaylistResultTile(playlist: res.playlists[i]),
                         if (i != res.playlists.length - 1)
-                          const Divider(
+                          Divider(
                             color: AppColors.hairline,
                             height: 0.5,
                             thickness: 0.5,
@@ -718,7 +718,7 @@ class _SongResultList extends ConsumerWidget {
                     .playSongs(songs.cast(), initialIndex: i),
               ),
               if (i != songs.length - 1)
-                const Divider(
+                Divider(
                   color: AppColors.hairline,
                   height: 0.5,
                   thickness: 0.5,
