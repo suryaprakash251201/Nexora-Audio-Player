@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../nexora/nexora_tokens.dart';
 import '../theme.dart';
 
-// ═══════════════════════════════════════════════════════════════
-// LYRICS DISPLAY
-// ═══════════════════════════════════════════════════════════════
-
-/// A full-screen lyrics display with elegant typography and smooth scrolling.
-/// Supports both synchronized (LRC) and plain lyrics.
+/// Full-screen synced lyrics display with elegant typography and smooth scrolling.
 class LyricsDisplay extends StatefulWidget {
   final List<LyricLine> lyrics;
   final Duration currentPosition;
   final VoidCallback? onClose;
   final String? title;
   final String? artist;
+  final String? artworkUrl;
 
   const LyricsDisplay({
     super.key,
@@ -23,6 +20,7 @@ class LyricsDisplay extends StatefulWidget {
     this.onClose,
     this.title,
     this.artist,
+    this.artworkUrl,
   });
 
   @override
@@ -41,17 +39,14 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
 
   void _updateCurrentLine() {
     if (widget.lyrics.isEmpty) return;
-
     final pos = widget.currentPosition;
     int newLine = -1;
-
     for (var i = 0; i < widget.lyrics.length; i++) {
       if (widget.lyrics[i].timestamp != null &&
           widget.lyrics[i].timestamp! <= pos) {
         newLine = i;
       }
     }
-
     if (newLine != _currentLine && newLine >= 0) {
       setState(() => _currentLine = newLine);
       _scrollToLine(newLine);
@@ -60,12 +55,10 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
 
   void _scrollToLine(int index) {
     if (!_scrollController.hasClients) return;
-
     final itemHeight = 56.0;
     final viewportHeight = _scrollController.position.viewportDimension;
     final targetOffset =
         (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
-
     _scrollController.animateTo(
       targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 400),
@@ -82,17 +75,54 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background.withValues(alpha: 0.97),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
+            if (widget.artworkUrl != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: _buildArtwork(),
+              ),
             Expanded(
               child: widget.lyrics.isEmpty
                   ? _buildEmptyState()
                   : _buildLyricsList(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArtwork() {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          widget.artworkUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Container(
+            color: AppColors.surfaceRaised,
+            child: Icon(
+              Icons.music_note_rounded,
+              color: AppColors.textDim,
+              size: 28,
+            ),
+          ),
         ),
       ),
     );
@@ -184,7 +214,6 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
         return GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            // Could seek to this timestamp if available
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
@@ -212,10 +241,6 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LYRIC LINE MODEL
-// ═══════════════════════════════════════════════════════════════
-
 /// Represents a single line of lyrics with optional timestamp.
 class LyricLine {
   final String text;
@@ -224,7 +249,6 @@ class LyricLine {
   const LyricLine({required this.text, this.timestamp});
 
   /// Parse LRC format lyrics.
-  /// Format: [mm:ss.xx]Lyric text
   static List<LyricLine> parseLrc(String lrc) {
     final lines = <LyricLine>[];
     final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)');
@@ -250,15 +274,12 @@ class LyricLine {
           );
         }
       } else if (line.trim().isNotEmpty && !line.trim().startsWith('[')) {
-        // Plain text line without timestamp
         lines.add(LyricLine(text: line.trim()));
       }
     }
-
     return lines;
   }
 
-  /// Parse plain text lyrics (no timestamps).
   static List<LyricLine> parsePlain(String text) {
     return text
         .split('\n')
@@ -267,10 +288,6 @@ class LyricLine {
         .toList();
   }
 }
-
-// ═══════════════════════════════════════════════════════════════
-// LYRICS BUTTON (for player screen)
-// ═══════════════════════════════════════════════════════════════
 
 /// A button that opens the lyrics display from the player screen.
 class LyricsButton extends StatelessWidget {

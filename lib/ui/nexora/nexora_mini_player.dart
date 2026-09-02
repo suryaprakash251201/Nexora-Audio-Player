@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/player/providers/player_provider.dart';
 import '../theme.dart';
+import '../widgets/animated_cover.dart';
 import 'nexora_artwork.dart';
 import 'nexora_glass.dart';
 import 'nexora_primitives.dart';
@@ -86,11 +87,32 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                 padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
                 child: Row(
                   children: [
-                    Hero(
-                      tag: 'nexora-artwork-${track.id}',
-                      child: NexoraArtwork(
-                        url: track.artUri?.toString(),
-                        size: 42,
+                    SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          NexoraArtwork(
+                            url: track.artUri?.toString(),
+                            size: 42,
+                          ),
+                          if (state.isPlaying)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: NexoraEqualizerBars(
+                                  playing: true,
+                                  barWidth: 2,
+                                  minHeight: 2,
+                                  maxHeight: 10,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: NexoraSpacing.s12),

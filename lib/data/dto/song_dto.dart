@@ -23,6 +23,7 @@ class SongDto {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool? isFavorite;
+  final String? rootId;
 
   SongDto({
     required this.id,
@@ -47,6 +48,7 @@ class SongDto {
     this.createdAt,
     this.updatedAt,
     this.isFavorite,
+    this.rootId,
   });
 
   factory SongDto.fromJson(Map<String, dynamic> j) {
@@ -105,6 +107,7 @@ class SongDto {
           j['isFavorite'] as bool? ??
           j['favorite'] as bool? ??
           j['liked'] as bool?,
+      rootId: (j['rootId'] ?? j['root_id'])?.toString(),
     );
   }
 
@@ -134,6 +137,7 @@ class SongDto {
       isFavorite: isFavorite ?? false,
       isDownloaded: isDownloaded,
       localPath: localPath,
+      rootId: rootId,
     );
   }
 

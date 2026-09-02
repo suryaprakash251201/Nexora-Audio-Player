@@ -28,6 +28,9 @@ class Song {
   /// reorder/remove operations (not the song identity itself).
   final String? itemRef;
 
+  /// Storage root ID (needed for /audio/info and /audio/lyrics API calls).
+  final String? rootId;
+
   const Song({
     required this.id,
     required this.title,
@@ -54,6 +57,7 @@ class Song {
     this.isDownloaded = false,
     this.localPath,
     this.itemRef,
+    this.rootId,
   });
 
   Song copyWith({
@@ -82,6 +86,7 @@ class Song {
     bool? isDownloaded,
     String? localPath,
     String? itemRef,
+    String? rootId,
   }) {
     return Song(
       id: id ?? this.id,
@@ -109,6 +114,7 @@ class Song {
       isDownloaded: isDownloaded ?? this.isDownloaded,
       localPath: localPath ?? this.localPath,
       itemRef: itemRef ?? this.itemRef,
+      rootId: rootId ?? this.rootId,
     );
   }
 
