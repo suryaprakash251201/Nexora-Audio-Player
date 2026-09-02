@@ -103,8 +103,7 @@ double _gainAt(List<double> gains, double freq) {
     final f0 = kPresetFreqs[i];
     final f1 = kPresetFreqs[i + 1];
     if (freq >= f0 && freq <= f1) {
-      final t = (math.log(freq) - math.log(f0)) /
-          (math.log(f1) - math.log(f0));
+      final t = (math.log(freq) - math.log(f0)) / (math.log(f1) - math.log(f0));
       return gains[i] + (gains[i + 1] - gains[i]) * t;
     }
   }
@@ -312,7 +311,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NexoraSpacing.s16,
+                ),
                 itemCount: _kPresets.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (c, i) {
@@ -416,7 +417,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             ),
             const SizedBox(height: NexoraSpacing.s24),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexoraSpacing.s16,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -447,7 +450,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             ),
             const SizedBox(height: NexoraSpacing.s20),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexoraSpacing.s16,
+              ),
               child: Container(
                 padding: const EdgeInsets.all(NexoraSpacing.s16),
                 decoration: BoxDecoration(
@@ -708,20 +713,13 @@ class _CurvePainter extends CustomPainter {
       canvas.drawCircle(
         Offset(x, y),
         4.5,
-        Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.22),
+        Paint()..color = AppColors.accent.withValues(alpha: 0.22),
       );
-      canvas.drawCircle(
-        Offset(x, y),
-        2.5,
-        Paint()..color = AppColors.text,
-      );
+      canvas.drawCircle(Offset(x, y), 2.5, Paint()..color = AppColors.text);
     }
   }
 
   @override
   bool shouldRepaint(covariant _CurvePainter old) =>
-      old.gains != gains ||
-      old.preamp != preamp ||
-      old.freqs != freqs;
+      old.gains != gains || old.preamp != preamp || old.freqs != freqs;
 }

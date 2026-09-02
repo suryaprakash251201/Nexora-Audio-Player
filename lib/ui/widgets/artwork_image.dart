@@ -48,8 +48,7 @@ class ArtworkImage extends ConsumerWidget {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    final imageKey =
-        token != null ? '$url?_auth=${token.hashCode}' : url!;
+    final imageKey = token != null ? '$url?_auth=${token.hashCode}' : url!;
 
     final image = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),

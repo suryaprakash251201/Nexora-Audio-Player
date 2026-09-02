@@ -53,10 +53,7 @@ class AppPageTransitions {
             begin: const Offset(0, 0.15),
             end: Offset.zero,
           ).animate(curve),
-          child: FadeTransition(
-            opacity: curve,
-            child: child,
-          ),
+          child: FadeTransition(opacity: curve, child: child),
         );
       },
       transitionDuration: const Duration(milliseconds: 400),
@@ -88,10 +85,7 @@ class AppPageTransitions {
 
         return SlideTransition(
           position: slideAnimation,
-          child: FadeTransition(
-            opacity: curve,
-            child: child,
-          ),
+          child: FadeTransition(opacity: curve, child: child),
         );
       },
       transitionDuration: const Duration(milliseconds: 300),
@@ -118,10 +112,7 @@ class AppPageTransitions {
         return AnimatedBuilder(
           animation: curve,
           builder: (context, child) {
-            return FadeTransition(
-              opacity: curve,
-              child: child,
-            );
+            return FadeTransition(opacity: curve, child: child);
           },
           child: child,
         );
@@ -154,10 +145,7 @@ class ParallaxScroll extends StatelessWidget {
             ? scrollController.offset * parallaxFactor
             : 0.0;
 
-        return Transform.translate(
-          offset: Offset(0, -offset),
-          child: child,
-        );
+        return Transform.translate(offset: Offset(0, -offset), child: child);
       },
       child: child,
     );
@@ -199,10 +187,7 @@ class FadeEdgeScroll extends StatelessWidget {
         ).createShader(bounds);
       },
       blendMode: BlendMode.dstIn,
-      child: Padding(
-        padding: padding,
-        child: child,
-      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }

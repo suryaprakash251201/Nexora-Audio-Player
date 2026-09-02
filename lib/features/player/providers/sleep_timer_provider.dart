@@ -11,11 +11,8 @@ class SleepTimerState {
   final Duration? remaining;
   final bool fadeOut;
 
-  const SleepTimerState({
-    this.isActive = false,
-    this.total,
-    this.remaining,
-  }) : fadeOut = true;
+  const SleepTimerState({this.isActive = false, this.total, this.remaining})
+    : fadeOut = true;
 
   const SleepTimerState.inactive() : this(isActive: false);
 
@@ -23,12 +20,11 @@ class SleepTimerState {
     bool? isActive,
     Duration? total,
     Duration? remaining,
-  }) =>
-      SleepTimerState(
-        isActive: isActive ?? this.isActive,
-        total: total ?? this.total,
-        remaining: remaining ?? this.remaining,
-      );
+  }) => SleepTimerState(
+    isActive: isActive ?? this.isActive,
+    total: total ?? this.total,
+    remaining: remaining ?? this.remaining,
+  );
 
   String get label {
     if (!isActive || remaining == null) return 'Off';
@@ -53,8 +49,8 @@ class SleepTimerState {
 
 final sleepTimerProvider =
     StateNotifierProvider<SleepTimerNotifier, SleepTimerState>(
-  (ref) => SleepTimerNotifier(ref),
-);
+      (ref) => SleepTimerNotifier(ref),
+    );
 
 class SleepTimerNotifier extends StateNotifier<SleepTimerState> {
   final Ref _ref;
@@ -137,7 +133,9 @@ class SleepTimerNotifier extends StateNotifier<SleepTimerState> {
       // Fade from originalVolume to 0 over 12s
       final factor = (rem / 12).clamp(0.0, 1.0);
       final vol = (_originalVolume ?? 1.0) * factor;
-      unawaited(_ref.read(playerProvider.notifier).setVolume(vol.clamp(0.0, 1.0)));
+      unawaited(
+        _ref.read(playerProvider.notifier).setVolume(vol.clamp(0.0, 1.0)),
+      );
     });
   }
 

@@ -18,11 +18,7 @@ import 'nexora_tokens.dart';
 class NexoraMiniPlayer extends ConsumerStatefulWidget {
   final VoidCallback onTap;
   final VoidCallback? onShowQueue;
-  const NexoraMiniPlayer({
-    super.key,
-    required this.onTap,
-    this.onShowQueue,
-  });
+  const NexoraMiniPlayer({super.key, required this.onTap, this.onShowQueue});
 
   @override
   ConsumerState<NexoraMiniPlayer> createState() => _NexoraMiniPlayerState();
@@ -39,8 +35,10 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
 
     final progress = state.duration.inMilliseconds == 0
         ? 0.0
-        : (state.position.inMilliseconds / state.duration.inMilliseconds)
-            .clamp(0.0, 1.0);
+        : (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          );
 
     return AnimatedScale(
       scale: _dragOffset.abs() > 20 ? 0.98 : 1.0,
@@ -51,121 +49,117 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
         onTap: widget.onTap,
         onLongPress: () => _showQueue(context),
         onVerticalDragEnd: (details) {
-        final vy = details.primaryVelocity ?? 0;
-        if (vy < -360) {
-          if (widget.onShowQueue != null) {
-            widget.onShowQueue!.call();
-          } else {
-            _showQueue(context);
+          final vy = details.primaryVelocity ?? 0;
+          if (vy < -360) {
+            if (widget.onShowQueue != null) {
+              widget.onShowQueue!.call();
+            } else {
+              _showQueue(context);
+            }
           }
-        }
-      },
-      onHorizontalDragUpdate: (details) {
-        setState(() => _dragOffset += details.delta.dx);
-      },
-      onHorizontalDragEnd: (details) {
-        final v = details.primaryVelocity ?? 0;
-        if (_dragOffset < -44 || v < -520) {
-          ref.read(playerProvider.notifier).next();
-        } else if (_dragOffset > 44 || v > 520) {
-          ref.read(playerProvider.notifier).previous();
-        }
-        setState(() => _dragOffset = 0);
-      },
-      onHorizontalDragCancel: () => setState(() => _dragOffset = 0),
-      child: NexoraGlass(
-        borderRadius: BorderRadius.circular(16),
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        padding: EdgeInsets.zero,
-        blur: 24,
-        tintAlpha: 0.6,
-        borderAlpha: 0.4,
-        borderWidth: 0.7,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-              child: Row(
-                children: [
-                  Hero(
-                    tag: 'nexora-artwork-${track.id}',
-                    child: NexoraArtwork(
-                      url: track.artUri?.toString(),
-                      size: 42,
+        },
+        onHorizontalDragUpdate: (details) {
+          setState(() => _dragOffset += details.delta.dx);
+        },
+        onHorizontalDragEnd: (details) {
+          final v = details.primaryVelocity ?? 0;
+          if (_dragOffset < -44 || v < -520) {
+            ref.read(playerProvider.notifier).next();
+          } else if (_dragOffset > 44 || v > 520) {
+            ref.read(playerProvider.notifier).previous();
+          }
+          setState(() => _dragOffset = 0);
+        },
+        onHorizontalDragCancel: () => setState(() => _dragOffset = 0),
+        child: NexoraGlass(
+          borderRadius: BorderRadius.circular(16),
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.zero,
+          blur: 24,
+          tintAlpha: 0.6,
+          borderAlpha: 0.4,
+          borderWidth: 0.7,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                child: Row(
+                  children: [
+                    Hero(
+                      tag: 'nexora-artwork-${track.id}',
+                      child: NexoraArtwork(
+                        url: track.artUri?.toString(),
+                        size: 42,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: NexoraSpacing.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          track.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                        if (track.artist != null) ...[
-                          const SizedBox(height: 2),
+                    const SizedBox(width: NexoraSpacing.s12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text(
-                            track.artist!,
+                            track.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.text,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.1,
                             ),
                           ),
+                          if (track.artist != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              track.artist!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  _MiniPlayButton(
-                    isPlaying: state.isPlaying,
-                    onPressed: () =>
-                      ref.read(playerProvider.notifier).togglePlay(),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.skip_next_rounded,
-                      color: AppColors.text,
-                      size: 24,
+                    _MiniPlayButton(
+                      isPlaying: state.isPlaying,
+                      onPressed: () =>
+                          ref.read(playerProvider.notifier).togglePlay(),
                     ),
-                    onPressed: () =>
-                      ref.read(playerProvider.notifier).next(),
-                    tooltip: 'Next',
+                    IconButton(
+                      icon: Icon(
+                        Icons.skip_next_rounded,
+                        color: AppColors.text,
+                        size: 24,
+                      ),
+                      onPressed: () => ref.read(playerProvider.notifier).next(),
+                      tooltip: 'Next',
+                    ),
+                  ],
+                ),
+              ),
+              // Thin progress line — accent only, no glow.
+              Stack(
+                children: [
+                  Container(
+                    height: 2,
+                    color: AppColors.surfaceHigh.withValues(alpha: 0.5),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    alignment: Alignment.centerLeft,
+                    child: Container(height: 2, color: AppColors.accent),
                   ),
                 ],
               ),
-            ),
-            // Thin progress line — accent only, no glow.
-            Stack(
-              children: [
-                Container(
-                  height: 2,
-                  color: AppColors.surfaceHigh.withValues(alpha: 0.5),
-                ),
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    height: 2,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -274,8 +268,10 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                                   artworkUrl: item.artUri?.toString(),
                                   title: item.title,
                                   subtitle: item.artist,
-                                  indexLabel:
-                                      (i + 1).toString().padLeft(2, '0'),
+                                  indexLabel: (i + 1).toString().padLeft(
+                                    2,
+                                    '0',
+                                  ),
                                   isCurrent: isCurrent,
                                   isPlaying: isCurrent && state.isPlaying,
                                   trailing: IconButton(

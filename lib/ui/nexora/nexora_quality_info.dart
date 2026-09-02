@@ -162,8 +162,7 @@ class NexoraQualityInfo extends StatelessWidget {
         if (engineLabel != null || outputLabel != null) ...[
           const SizedBox(height: NexoraSpacing.s16),
           const _Field(label: 'Playback Engine', value: 'Nexora Audio Engine'),
-          if (engineLabel != null)
-            _Field(label: 'Output', value: engineLabel!),
+          if (engineLabel != null) _Field(label: 'Output', value: engineLabel!),
         ],
       ],
     );
@@ -214,7 +213,11 @@ class _Field extends StatelessWidget {
 class NexoraQualityHero extends StatelessWidget {
   final String? artworkUrl;
   final double size;
-  const NexoraQualityHero({super.key, required this.artworkUrl, this.size = 88});
+  const NexoraQualityHero({
+    super.key,
+    required this.artworkUrl,
+    this.size = 88,
+  });
 
   @override
   Widget build(BuildContext context) {

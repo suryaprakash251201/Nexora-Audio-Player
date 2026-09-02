@@ -112,9 +112,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                 controller: controller,
                 autofocus: true,
                 style: TextStyle(color: AppColors.text),
-                decoration: const InputDecoration(
-                  hintText: 'Playlist name',
-                ),
+                decoration: const InputDecoration(hintText: 'Playlist name'),
               ),
               const SizedBox(height: 16),
               Row(
@@ -128,8 +126,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pop(c, controller.text.trim()),
+                      onPressed: () => Navigator.pop(c, controller.text.trim()),
                       child: const Text('Create'),
                     ),
                   ),
@@ -145,15 +142,13 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Created "$name"')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Created "$name"')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
@@ -163,42 +158,44 @@ final _playlistsProvider = FutureProvider(
   (ref) async => ref.watch(playlistsRepositoryProvider).getPlaylists(),
 );
 
-final _playlistCoversProvider =
-    FutureProvider.family<List<String?>, Playlist>((ref, pl) async {
-      final tracks = pl.tracks ?? [];
-      final covers = <String?>[];
-      final pending = <Song>[];
-      final directCover = pl.coverUrl;
-      if (directCover != null && directCover.isNotEmpty) {
-        covers.add(directCover);
-      }
+final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
+  ref,
+  pl,
+) async {
+  final tracks = pl.tracks ?? [];
+  final covers = <String?>[];
+  final pending = <Song>[];
+  final directCover = pl.coverUrl;
+  if (directCover != null && directCover.isNotEmpty) {
+    covers.add(directCover);
+  }
 
-      for (final s in tracks) {
-        final cover = s.coverUrl ?? s.artworkUrl;
-        if (cover != null && cover.isNotEmpty) {
-          covers.add(cover);
-        } else {
-          pending.add(s);
-        }
-        if (covers.length >= 4) break;
-      }
+  for (final s in tracks) {
+    final cover = s.coverUrl ?? s.artworkUrl;
+    if (cover != null && cover.isNotEmpty) {
+      covers.add(cover);
+    } else {
+      pending.add(s);
+    }
+    if (covers.length >= 4) break;
+  }
 
-      if (covers.length < 4 && pending.isNotEmpty) {
-        final api = ref.watch(filesApiProvider);
-        for (final s in pending) {
-          if (covers.length >= 4) break;
-          try {
-            final url = await api.thumbnailUrl(
-              NexoraFiles.parseRootId(s.id),
-              NexoraFiles.parsePath(s.id),
-              size: 256,
-            );
-            covers.add(url);
-          } catch (_) {}
-        }
-      }
-      return covers;
-    });
+  if (covers.length < 4 && pending.isNotEmpty) {
+    final api = ref.watch(filesApiProvider);
+    for (final s in pending) {
+      if (covers.length >= 4) break;
+      try {
+        final url = await api.thumbnailUrl(
+          NexoraFiles.parseRootId(s.id),
+          NexoraFiles.parsePath(s.id),
+          size: 256,
+        );
+        covers.add(url);
+      } catch (_) {}
+    }
+  }
+  return covers;
+});
 
 class _PlaylistGrid extends StatelessWidget {
   final List<Playlist> list;
@@ -217,8 +214,7 @@ class _PlaylistGrid extends StatelessWidget {
       itemCount: list.length,
       itemBuilder: (c, i) => _PlaylistCard(
         playlist: list[i],
-        onTap: () =>
-            context.push('/playlists/${list[i].id}', extra: list[i]),
+        onTap: () => context.push('/playlists/${list[i].id}', extra: list[i]),
       ),
     );
   }
@@ -274,10 +270,7 @@ class _PlaylistCard extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -370,10 +363,7 @@ class _PlaylistRow extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                 ],
               ),

@@ -128,7 +128,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
           GoRoute(path: '/stats', builder: (c, s) => const StatsScreen()),
-          GoRoute(path: '/downloads', builder: (c, s) => const DownloadsScreen()),
+          GoRoute(
+            path: '/downloads',
+            builder: (c, s) => const DownloadsScreen(),
+          ),
           GoRoute(
             path: '/equalizer',
             builder: (c, s) => const EqualizerScreen(),
@@ -380,8 +383,9 @@ class _BottomDock extends StatelessWidget {
                 final t = navController.value.clamp(0.0, 1.0);
                 // Quick fade for the trailing 30% of the slide so the
                 // nav never feels "half-present" while it's tucked away.
-                final opacity =
-                    t < 0.3 ? 1.0 : (1.0 - (t - 0.3) / 0.7).clamp(0.0, 1.0);
+                final opacity = t < 0.3
+                    ? 1.0
+                    : (1.0 - (t - 0.3) / 0.7).clamp(0.0, 1.0);
                 return Positioned(
                   left: 0,
                   right: 0,

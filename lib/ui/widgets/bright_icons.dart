@@ -80,13 +80,9 @@ class GlassBrightIcon extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: active
-            ? accent.withValues(alpha: 0.10)
-            : AppColors.surfaceHigh,
+        color: active ? accent.withValues(alpha: 0.10) : AppColors.surfaceHigh,
         border: Border.all(
-          color: active
-              ? accent.withValues(alpha: 0.45)
-              : AppColors.border,
+          color: active ? accent.withValues(alpha: 0.45) : AppColors.border,
           width: 0.8,
         ),
       ),
@@ -139,9 +135,10 @@ class _BrightIconButtonState extends State<BrightIconButton>
       vsync: this,
       duration: const Duration(milliseconds: 140),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.90).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.90,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -234,9 +231,10 @@ class _GlowIconButtonState extends State<GlowIconButton>
       vsync: this,
       duration: const Duration(milliseconds: 140),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.94).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -253,22 +251,22 @@ class _GlowIconButtonState extends State<GlowIconButton>
         : BorderRadius.circular(widget.borderRadius);
 
     final content = Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          color: AppColors.surfaceHigh,
-          border: Border.all(color: AppColors.border, width: 0.6),
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        color: AppColors.surfaceHigh,
+        border: Border.all(color: AppColors.border, width: 0.6),
+      ),
+      child: Center(
+        child: BrightIcon(
+          icon: widget.icon,
+          size: widget.iconSize,
+          tone: widget.tone,
+          active: true,
         ),
-        child: Center(
-          child: BrightIcon(
-            icon: widget.icon,
-            size: widget.iconSize,
-            tone: widget.tone,
-            active: true,
-          ),
-        ),
-      );
+      ),
+    );
 
     final button = GestureDetector(
       onTapDown: (_) => _controller.forward(),

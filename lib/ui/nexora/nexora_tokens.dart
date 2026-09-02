@@ -28,9 +28,12 @@ class NexoraSpacing {
   static const double s48 = 48;
 
   /// Compact screen-edge padding.
-  static const EdgeInsets screenHorizontal = EdgeInsets.symmetric(horizontal: 20);
-  static const EdgeInsets screenHorizontalTight =
-      EdgeInsets.symmetric(horizontal: 16);
+  static const EdgeInsets screenHorizontal = EdgeInsets.symmetric(
+    horizontal: 20,
+  );
+  static const EdgeInsets screenHorizontalTight = EdgeInsets.symmetric(
+    horizontal: 16,
+  );
   static const EdgeInsets screenAll = EdgeInsets.all(20);
 
   /// Bottom inset that lives above the mini-player + nav dock.

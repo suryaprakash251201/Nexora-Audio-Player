@@ -29,8 +29,7 @@ class DownloadsScreen extends StatelessWidget {
       ),
       body: const EmptyView(
         title: 'No downloads',
-        subtitle:
-            'Downloaded tracks will appear here for offline playback',
+        subtitle: 'Downloaded tracks will appear here for offline playback',
         icon: Icons.download_outlined,
       ),
     );

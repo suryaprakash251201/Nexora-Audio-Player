@@ -9,8 +9,7 @@ import '../../../ui/theme.dart';
 class ServerConfigScreen extends ConsumerStatefulWidget {
   const ServerConfigScreen({super.key});
   @override
-  ConsumerState<ServerConfigScreen> createState() =>
-      _ServerConfigScreenState();
+  ConsumerState<ServerConfigScreen> createState() => _ServerConfigScreenState();
 }
 
 class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
@@ -51,8 +50,8 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     if (ok) {
       try {
         final probe = await api.probeServer(url);
-        final version = probe['/healthz'] is Map &&
-                (probe['/healthz']['body'] is Map)
+        final version =
+            probe['/healthz'] is Map && (probe['/healthz']['body'] is Map)
             ? (probe['/healthz']['body']['version'] ?? 'ok')
             : 'ok';
         details = '\nVersion: $version\nNormalized: ${probe['normalized']}';
@@ -78,16 +77,14 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter server URL')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Enter server URL')));
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Server saved: $url')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Server saved: $url')));
     context.pop();
   }
 
@@ -132,10 +129,11 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: (_status == 'success'
-                                ? AppColors.success
-                                : AppColors.error)
-                            .withValues(alpha: 0.08),
+                        color:
+                            (_status == 'success'
+                                    ? AppColors.success
+                                    : AppColors.error)
+                                .withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _status == 'success'
@@ -147,12 +145,12 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                       child: Text(
                         _msg ?? '',
                         style: TextStyle(
-                              color: _status == 'success'
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
+                          color: _status == 'success'
+                              ? AppColors.success
+                              : AppColors.error,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -166,9 +164,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.wifi_tethering_rounded),
                       label: const Text('Test Connection'),

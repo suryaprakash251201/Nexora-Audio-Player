@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../theme.dart';
 
 /// An audiophile-grade waveform visualizer that renders smooth
@@ -43,18 +45,13 @@ class _WaveformVisualizerState extends State<WaveformVisualizer>
       widget.barCount,
       (i) => AnimationController(
         vsync: this,
-        duration: Duration(
-          milliseconds: 400 + _random.nextInt(600),
-        ),
+        duration: Duration(milliseconds: 400 + _random.nextInt(600)),
       ),
     );
 
     _animations = _controllers.map((controller) {
       return Tween<double>(begin: 0.2, end: 1.0).animate(
-        CurvedAnimation(
-          parent: controller,
-          curve: Curves.easeInOutSine,
-        ),
+        CurvedAnimation(parent: controller, curve: Curves.easeInOutSine),
       );
     }).toList();
 
@@ -122,9 +119,7 @@ class _WaveformVisualizerState extends State<WaveformVisualizer>
                 height: widget.height * heightFactor,
                 margin: EdgeInsets.symmetric(horizontal: widget.spacing / 2),
                 decoration: BoxDecoration(
-                  color: color.withValues(
-                    alpha: 0.4 + (heightFactor * 0.6),
-                  ),
+                  color: color.withValues(alpha: 0.4 + (heightFactor * 0.6)),
                   borderRadius: BorderRadius.circular(widget.barWidth / 2),
                 ),
               );
@@ -250,15 +245,9 @@ class _CircularVisualizerPainter extends CustomPainter {
       final endX = center.dx + math.cos(angle) * (radius + barHeight);
       final endY = center.dy + math.sin(angle) * (radius + barHeight);
 
-      paint.color = color.withValues(
-        alpha: 0.3 + (barHeight / 40) * 0.7,
-      );
+      paint.color = color.withValues(alpha: 0.3 + (barHeight / 40) * 0.7);
 
-      canvas.drawLine(
-        Offset(baseX, baseY),
-        Offset(endX, endY),
-        paint,
-      );
+      canvas.drawLine(Offset(baseX, baseY), Offset(endX, endY), paint);
     }
   }
 

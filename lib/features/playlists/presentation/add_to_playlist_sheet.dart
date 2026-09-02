@@ -63,9 +63,8 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
           .addTrack(playlist.id, widget.song.id);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added to “${playlist.name}”')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Added to “${playlist.name}”')));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -115,9 +114,7 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: NexoraRadius.sheetTop,
-          border: Border(
-            top: BorderSide(color: AppColors.border, width: 0.6),
-          ),
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
         ),
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: bottomInset + 16),
@@ -320,11 +317,7 @@ class _PlaylistTile extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(
-              Icons.add_rounded,
-              size: 18,
-              color: AppColors.textDim,
-            ),
+            Icon(Icons.add_rounded, size: 18, color: AppColors.textDim),
           ],
         ),
       ),

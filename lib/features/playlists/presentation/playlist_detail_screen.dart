@@ -132,42 +132,33 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   bottom: NexoraSpacing.dockBottomReserve,
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (c, i) {
-                      final s = _tracks[i];
-                      final isCurrent = ref
-                          .watch(playerProvider)
-                          .currentTrack
-                          ?.id ==
-                          s.id;
-                      return Column(
-                        children: [
-                          NexoraTrackRow(
-                            artworkUrl: s.coverUrl,
-                            title: s.title,
-                            subtitle:
-                                '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                            indexLabel:
-                                (i + 1).toString().padLeft(2, '0'),
-                            isCurrent: isCurrent,
-                            isPlaying:
-                                isCurrent &&
-                                ref.watch(playerProvider).isPlaying,
-                            isFavorite: s.isFavorite,
-                            isDownloaded: s.isDownloaded,
-                            onTap: () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(_tracks, initialIndex: i),
-                            onMore: () {},
-                          ),
-                          if (i != _tracks.length - 1)
-                            const NexoraDivider(
-                                indent: 64, endIndent: 0),
-                        ],
-                      );
-                    },
-                    childCount: _tracks.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((c, i) {
+                    final s = _tracks[i];
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                    return Column(
+                      children: [
+                        NexoraTrackRow(
+                          artworkUrl: s.coverUrl,
+                          title: s.title,
+                          subtitle:
+                              '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                          indexLabel: (i + 1).toString().padLeft(2, '0'),
+                          isCurrent: isCurrent,
+                          isPlaying:
+                              isCurrent && ref.watch(playerProvider).isPlaying,
+                          isFavorite: s.isFavorite,
+                          isDownloaded: s.isDownloaded,
+                          onTap: () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs(_tracks, initialIndex: i),
+                          onMore: () {},
+                        ),
+                        if (i != _tracks.length - 1)
+                          const NexoraDivider(indent: 64, endIndent: 0),
+                      ],
+                    );
+                  }, childCount: _tracks.length),
                 ),
               ),
           ],
@@ -185,13 +176,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: SizedBox(
-              width: 220,
-              height: 220,
-              child: cover,
-            ),
-          ),
+          Center(child: SizedBox(width: 220, height: 220, child: cover)),
           const SizedBox(height: NexoraSpacing.s24),
           Text(
             p.name,
@@ -245,8 +230,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
-                      .read(playerProvider.notifier)
-                      .playSongs(_tracks, initialIndex: 0),
+                        .read(playerProvider.notifier)
+                        .playSongs(_tracks, initialIndex: 0),
             ),
           ),
           const SizedBox(width: NexoraSpacing.s12),
@@ -256,10 +241,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               icon: Icons.shuffle_rounded,
               onTap: _tracks.isEmpty
                   ? null
-                  : () => ref.read(playerProvider.notifier).playSongs(
-                        [..._tracks]..shuffle(),
-                        initialIndex: 0,
-                      ),
+                  : () => ref
+                        .read(playerProvider.notifier)
+                        .playSongs([..._tracks]..shuffle(), initialIndex: 0),
             ),
           ),
         ],
@@ -312,13 +296,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.edit, color: AppColors.text),
-                title: Text('Rename',
-                    style: TextStyle(color: AppColors.text)),
+                title: Text('Rename', style: TextStyle(color: AppColors.text)),
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
                 title: const Text(
                   'Delete playlist',
                   style: TextStyle(color: AppColors.error),

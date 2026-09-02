@@ -79,10 +79,7 @@ class _NexoraEntranceState extends State<NexoraEntrance>
     _controller = AnimationController(vsync: this, duration: widget.duration);
     final curved = CurvedAnimation(parent: _controller, curve: widget.curve);
     _opacity = curved;
-    _offset = Tween<double>(
-      begin: widget.slideOffset,
-      end: 0,
-    ).animate(curved);
+    _offset = Tween<double>(begin: widget.slideOffset, end: 0).animate(curved);
 
     if (!widget.enabled) {
       _controller.value = 1;

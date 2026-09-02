@@ -41,9 +41,10 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
       vsync: this,
       duration: const Duration(milliseconds: 180),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.94).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -106,10 +107,7 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
               transitionBuilder: (child, anim) {
                 return ScaleTransition(
                   scale: anim,
-                  child: FadeTransition(
-                    opacity: anim,
-                    child: child,
-                  ),
+                  child: FadeTransition(opacity: anim, child: child),
                 );
               },
               child: Icon(
@@ -234,9 +232,7 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
               builder: (_, _) {
                 return Transform.scale(
                   scale: widget.isPlaying
-                      ? 1.0 +
-                          0.012 *
-                              math.sin(_controller.value * 2 * math.pi)
+                      ? 1.0 + 0.012 * math.sin(_controller.value * 2 * math.pi)
                       : 1.0,
                   child: Container(
                     decoration: BoxDecoration(
@@ -302,10 +298,8 @@ class EnhancedSeekBar extends StatelessWidget {
             inactiveTrackColor: AppColors.surfaceHigh,
             thumbColor: AppColors.text,
             overlayColor: AppColors.accent.withValues(alpha: 0.10),
-            thumbShape:
-                const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape:
-                const RoundSliderOverlayShape(overlayRadius: 14),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
             trackShape: const RoundedRectSliderTrackShape(),
           ),
           child: Slider(
@@ -497,10 +491,10 @@ class GlassMiniPlayer extends StatelessWidget {
                       ),
                       child: artworkUrl == null
                           ? Icon(
-                            Icons.music_note_rounded,
-                            color: AppColors.textDim,
-                            size: 20,
-                          )
+                              Icons.music_note_rounded,
+                              color: AppColors.textDim,
+                              size: 20,
+                            )
                           : null,
                     ),
                     const SizedBox(width: 10),
@@ -598,10 +592,7 @@ class _MiniIconButton extends StatelessWidget {
         padding: EdgeInsets.zero,
         iconSize: 20,
         onPressed: onPressed,
-        icon: Icon(
-          icon,
-          color: isAccent ? AppColors.accent : AppColors.text,
-        ),
+        icon: Icon(icon, color: isAccent ? AppColors.accent : AppColors.text),
       ),
     );
   }
@@ -627,16 +618,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
   static const _destinations = [
     (Icons.home_outlined, Icons.home_rounded, 'Home'),
     (Icons.search_outlined, Icons.search_rounded, 'Search'),
-    (
-      Icons.library_music_outlined,
-      Icons.library_music_rounded,
-      'Library',
-    ),
-    (
-      Icons.queue_music_outlined,
-      Icons.queue_music_rounded,
-      'Playlists',
-    ),
+    (Icons.library_music_outlined, Icons.library_music_rounded, 'Library'),
+    (Icons.queue_music_outlined, Icons.queue_music_rounded, 'Playlists'),
     (Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
   ];
 
@@ -706,10 +689,7 @@ class _SpringCurve extends Curve {
   @override
   double transformInternal(double t) {
     // Damped sine wave: starts fast, overshoots, settles.
-    return 1 -
-        math.exp(-5 * t) *
-            math.cos(t * 9.0) *
-            (1 - t);
+    return 1 - math.exp(-5 * t) * math.cos(t * 9.0) * (1 - t);
   }
 }
 
@@ -832,8 +812,9 @@ class _NavItemState extends State<_NavItem>
                 style: TextStyle(
                   color: color,
                   fontSize: 10,
-                  fontWeight:
-                      widget.selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: widget.selected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   letterSpacing: 0.3,
                 ),
                 child: Text(widget.label),
@@ -926,9 +907,7 @@ class GlassSongTile extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Center(
-                        child: _MiniBars(color: AppColors.accent),
-                      ),
+                      child: Center(child: _MiniBars(color: AppColors.accent)),
                     ),
                 ],
               ),
@@ -946,8 +925,7 @@ class GlassSongTile extends StatelessWidget {
                     style: TextStyle(
                       color: textColor,
                       fontSize: 15,
-                      fontWeight:
-                          isCurrent ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -1016,13 +994,11 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: AppColors.durFast,
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _controller = AnimationController(duration: AppColors.durFast, vsync: this);
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -1033,8 +1009,8 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ??
-        (widget.isActive ? AppColors.accent : AppColors.text);
+    final color =
+        widget.color ?? (widget.isActive ? AppColors.accent : AppColors.text);
 
     Widget button = GestureDetector(
       onTapDown: (_) {
@@ -1048,15 +1024,9 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnimation,
-        builder: (_, child) => Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        ),
-        child: Icon(
-          widget.icon,
-          color: color,
-          size: widget.size,
-        ),
+        builder: (_, child) =>
+            Transform.scale(scale: _scaleAnimation.value, child: child),
+        child: Icon(widget.icon, color: color, size: widget.size),
       ),
     );
 
@@ -1099,8 +1069,8 @@ class PremiumVolumeSlider extends StatelessWidget {
           volume == 0
               ? Icons.volume_off_rounded
               : volume < 0.5
-                  ? Icons.volume_down_rounded
-                  : Icons.volume_up_rounded,
+              ? Icons.volume_down_rounded
+              : Icons.volume_up_rounded,
           color: AppColors.textMuted,
           size: 20,
         ),
@@ -1116,10 +1086,7 @@ class PremiumVolumeSlider extends StatelessWidget {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
             ),
-            child: Slider(
-              value: volume.clamp(0.0, 1.0),
-              onChanged: onChanged,
-            ),
+            child: Slider(value: volume.clamp(0.0, 1.0), onChanged: onChanged),
           ),
         ),
       ],
@@ -1160,11 +1127,7 @@ class AudioQualityBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isHiRes) ...[
-            Icon(
-              Icons.high_quality_rounded,
-              color: AppColors.accent,
-              size: 12,
-            ),
+            Icon(Icons.high_quality_rounded, color: AppColors.accent, size: 12),
             const SizedBox(width: 4),
           ],
           Text(
@@ -1211,13 +1174,11 @@ class _PremiumFeatureCardState extends State<PremiumFeatureCard>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: AppColors.durFast,
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _controller = AnimationController(duration: AppColors.durFast, vsync: this);
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -1239,10 +1200,8 @@ class _PremiumFeatureCardState extends State<PremiumFeatureCard>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnimation,
-        builder: (_, child) => Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        ),
+        builder: (_, child) =>
+            Transform.scale(scale: _scaleAnimation.value, child: child),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1269,11 +1228,7 @@ class _PremiumFeatureCardState extends State<PremiumFeatureCard>
                   color: accentColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: accentColor,
-                  size: 24,
-                ),
+                child: Icon(widget.icon, color: accentColor, size: 24),
               ),
               const SizedBox(height: 12),
               Text(
@@ -1287,10 +1242,7 @@ class _PremiumFeatureCardState extends State<PremiumFeatureCard>
               const SizedBox(height: 4),
               Text(
                 widget.subtitle,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ],
           ),
@@ -1339,10 +1291,8 @@ class _MiniBarsState extends State<_MiniBars>
           children: List.generate(3, (i) {
             final h =
                 4 +
-                    8 *
-                        ((math.sin(_controller.value * math.pi * 2 +
-                                i * 1.5) +
-                            1) /
+                8 *
+                    ((math.sin(_controller.value * math.pi * 2 + i * 1.5) + 1) /
                         2);
             return Container(
               width: 3,

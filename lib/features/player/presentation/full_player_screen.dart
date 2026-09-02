@@ -92,121 +92,126 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                     onMode: () => _showVisualModeSheet(context, ref),
                     modeLabel: mode.label,
                   ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final w = MediaQuery.of(context).size.width;
-                      final artworkSize =
-                          (w * 0.72).clamp(220.0, 360.0).toDouble();
-                      return SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 460),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: NexoraSpacing.s20,
-                              ),
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: NexoraSpacing.s8),
-                                  GestureDetector(
-                                    onHorizontalDragEnd: (details) {
-                                      final v = details.primaryVelocity ?? 0;
-                                      if (v < -380 || v > 380) {
-                                        HapticFeedback.lightImpact();
-                                      }
-                                      if (v < -380) {
-                                        notifier.next();
-                                      } else if (v > 380) {
-                                        notifier.previous();
-                                      }
-                                    },
-                                    child: Hero(
-                                      tag: 'nexora-artwork-${track.id}',
-                                      child: _ArtworkStage(
-                                        mode: mode,
-                                        isPlaying: isPlaying,
-                                        artworkUrl: track.artUri?.toString(),
-                                        size: artworkSize,
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final w = MediaQuery.of(context).size.width;
+                        final artworkSize = (w * 0.72)
+                            .clamp(220.0, 360.0)
+                            .toDouble();
+                        return SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 460),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: NexoraSpacing.s20,
+                                ),
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: NexoraSpacing.s8),
+                                    GestureDetector(
+                                      onHorizontalDragEnd: (details) {
+                                        final v = details.primaryVelocity ?? 0;
+                                        if (v < -380 || v > 380) {
+                                          HapticFeedback.lightImpact();
+                                        }
+                                        if (v < -380) {
+                                          notifier.next();
+                                        } else if (v > 380) {
+                                          notifier.previous();
+                                        }
+                                      },
+                                      child: Hero(
+                                        tag: 'nexora-artwork-${track.id}',
+                                        child: _ArtworkStage(
+                                          mode: mode,
+                                          isPlaying: isPlaying,
+                                          artworkUrl: track.artUri?.toString(),
+                                          size: artworkSize,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s24),
-                                  _TrackIdentity(
-                                    title: track.title,
-                                    artist: track.artist,
-                                    album: track.album,
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s12),
-                                  GestureDetector(
-                                    onTap: () => _showAudioDetailsSheet(
-                                      context,
-                                      track,
+                                    const SizedBox(height: NexoraSpacing.s24),
+                                    _TrackIdentity(
+                                      title: track.title,
+                                      artist: track.artist,
+                                      album: track.album,
                                     ),
-                                    child: NexoraQualityInfo(
-                                      codec: track.extras?['codec'] as String?,
-                                      lossless:
-                                          track.extras?['lossless'] as bool?,
-                                      bitDepth:
-                                          track.extras?['bitDepth'] as int?,
-                                      sampleRate:
-                                          track.extras?['sampleRate'] as int?,
-                                      bitrate: track.extras?['bitrate'] as int?,
-                                      compact: true,
+                                    const SizedBox(height: NexoraSpacing.s12),
+                                    GestureDetector(
+                                      onTap: () => _showAudioDetailsSheet(
+                                        context,
+                                        track,
+                                      ),
+                                      child: NexoraQualityInfo(
+                                        codec:
+                                            track.extras?['codec'] as String?,
+                                        lossless:
+                                            track.extras?['lossless'] as bool?,
+                                        bitDepth:
+                                            track.extras?['bitDepth'] as int?,
+                                        sampleRate:
+                                            track.extras?['sampleRate'] as int?,
+                                        bitrate:
+                                            track.extras?['bitrate'] as int?,
+                                        compact: true,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s24),
-                                  NexoraSeekBar(
-                                    position: pos,
-                                    duration: dur,
-                                    onSeek: notifier.seek,
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s20),
-                                  NexoraPlaybackControls(
-                                    isPlaying: isPlaying,
-                                    isBuffering:
-                                        state.processingState ==
-                                        ProcessingState.buffering,
-                                    shuffle: state.shuffleEnabled,
-                                    repeatMode: state.repeatMode,
-                                    onShuffle: notifier.toggleShuffle,
-                                    onPrevious: notifier.previous,
-                                    onPlayPause: notifier.togglePlay,
-                                    onNext: notifier.next,
-                                    onRepeat: notifier.cycleRepeat,
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s20),
-                                  _SleepTimerInlineBar(
-                                    onTap: () =>
-                                        _showSleepTimerSheet(context, ref),
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s12),
-                                  _SecondaryActions(
-                                    onQueue: () => _showQueue(context),
-                                    onAddToPlaylist: () =>
-                                        _addToPlaylist(context, track),
-                                    onSpeed: () => _cycleSpeed(
-                                      notifier,
-                                      state.playbackSpeed,
+                                    const SizedBox(height: NexoraSpacing.s24),
+                                    NexoraSeekBar(
+                                      position: pos,
+                                      duration: dur,
+                                      onSeek: notifier.seek,
                                     ),
-                                    speedLabel: _speedLabel(state.playbackSpeed),
-                                    speedActive: state.playbackSpeed != 1.0,
-                                  ),
-                                  const SizedBox(height: NexoraSpacing.s24),
-                                ],
+                                    const SizedBox(height: NexoraSpacing.s20),
+                                    NexoraPlaybackControls(
+                                      isPlaying: isPlaying,
+                                      isBuffering:
+                                          state.processingState ==
+                                          ProcessingState.buffering,
+                                      shuffle: state.shuffleEnabled,
+                                      repeatMode: state.repeatMode,
+                                      onShuffle: notifier.toggleShuffle,
+                                      onPrevious: notifier.previous,
+                                      onPlayPause: notifier.togglePlay,
+                                      onNext: notifier.next,
+                                      onRepeat: notifier.cycleRepeat,
+                                    ),
+                                    const SizedBox(height: NexoraSpacing.s20),
+                                    _SleepTimerInlineBar(
+                                      onTap: () =>
+                                          _showSleepTimerSheet(context, ref),
+                                    ),
+                                    const SizedBox(height: NexoraSpacing.s12),
+                                    _SecondaryActions(
+                                      onQueue: () => _showQueue(context),
+                                      onAddToPlaylist: () =>
+                                          _addToPlaylist(context, track),
+                                      onSpeed: () => _cycleSpeed(
+                                        notifier,
+                                        state.playbackSpeed,
+                                      ),
+                                      speedLabel: _speedLabel(
+                                        state.playbackSpeed,
+                                      ),
+                                      speedActive: state.playbackSpeed != 1.0,
+                                    ),
+                                    const SizedBox(height: NexoraSpacing.s24),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ],
       ),
@@ -217,8 +222,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
 
   void _cycleSpeed(PlayerNotifier notifier, double current) {
     final idx = _speedLadder.indexWhere((s) => (s - current).abs() < 0.001);
-    final next =
-        _speedLadder[(idx < 0 ? 2 : (idx + 1) % _speedLadder.length)];
+    final next = _speedLadder[(idx < 0 ? 2 : (idx + 1) % _speedLadder.length)];
     notifier.setSpeed(next);
   }
 
@@ -334,8 +338,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                 artworkUrl: item.artUri?.toString(),
                                 title: item.title,
                                 subtitle: item.artist,
-                                indexLabel:
-                                    (i + 1).toString().padLeft(2, '0'),
+                                indexLabel: (i + 1).toString().padLeft(2, '0'),
                                 isCurrent: isCurrent,
                                 isPlaying: isCurrent && state.isPlaying,
                                 trailing: IconButton(
@@ -425,10 +428,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    NexoraArtwork(
-                      url: track.artUri?.toString(),
-                      size: 72,
-                    ),
+                    NexoraArtwork(url: track.artUri?.toString(), size: 72),
                     const SizedBox(width: NexoraSpacing.s16),
                     Expanded(
                       child: Column(
@@ -509,9 +509,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
 
   String? _channelLabel(dynamic channels) {
     if (channels == null) return null;
-    final n = channels is int
-        ? channels
-        : int.tryParse(channels.toString());
+    final n = channels is int ? channels : int.tryParse(channels.toString());
     if (n == null) return channels.toString();
     if (n == 1) return 'Mono';
     if (n == 2) return 'Stereo';
@@ -681,11 +679,7 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
           IconButton(
-            icon: Icon(
-              Icons.bedtime_outlined,
-              color: AppColors.text,
-              size: 22,
-            ),
+            icon: Icon(Icons.bedtime_outlined, color: AppColors.text, size: 22),
             onPressed: onSleepTimer,
             tooltip: 'Sleep timer',
           ),
@@ -718,8 +712,10 @@ class _ArtworkStage extends StatelessWidget {
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeOutCubic,
       transitionBuilder: (child, anim) {
-        final curved =
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutCubic,
+        );
         return FadeTransition(
           opacity: curved,
           child: ScaleTransition(
@@ -730,15 +726,9 @@ class _ArtworkStage extends StatelessWidget {
       },
       layoutBuilder: (current, previous) => Stack(
         alignment: Alignment.center,
-        children: [
-          ...previous,
-          if (current != null) current,
-        ],
+        children: [...previous, if (current != null) current],
       ),
-      child: KeyedSubtree(
-        key: ValueKey(mode),
-        child: _buildForMode(),
-      ),
+      child: KeyedSubtree(key: ValueKey(mode), child: _buildForMode()),
     );
   }
 
@@ -766,10 +756,7 @@ class _ArtworkStage extends StatelessWidget {
         return SizedBox(
           width: size,
           height: size * 0.62,
-          child: CassettePlayer(
-            isPlaying: isPlaying,
-            artworkUrl: artworkUrl,
-          ),
+          child: CassettePlayer(isPlaying: isPlaying, artworkUrl: artworkUrl),
         );
       case PlayerVisualMode.minimal:
         return NexoraArtwork(url: artworkUrl, size: size * 0.85);
@@ -1024,11 +1011,7 @@ class _TrackIdentity extends StatelessWidget {
   final String title;
   final String? artist;
   final String? album;
-  const _TrackIdentity({
-    required this.title,
-    this.artist,
-    this.album,
-  });
+  const _TrackIdentity({required this.title, this.artist, this.album});
 
   @override
   Widget build(BuildContext context) {
@@ -1154,10 +1137,7 @@ class _Pill extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: active
                 ? AppColors.accent.withValues(alpha: 0.12)
@@ -1404,19 +1384,13 @@ class _SleepTimerSheet extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    timer.isActive
-                        ? timer.label
-                        : 'Music stops automatically',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                    timer.isActive ? timer.label : 'Music stops automatically',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                 ),
                 if (timer.isActive)
                   GestureDetector(
-                    onTap: () =>
-                        ref.read(sleepTimerProvider.notifier).cancel(),
+                    onTap: () => ref.read(sleepTimerProvider.notifier).cancel(),
                     child: const Text(
                       'Cancel',
                       style: TextStyle(

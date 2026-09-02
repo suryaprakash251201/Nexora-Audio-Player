@@ -66,19 +66,17 @@ class NexoraTrackRow extends StatelessWidget {
                       color: AppColors.accent,
                     )
                   : indexLabel != null
-                      ? Text(
-                          indexLabel!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isCurrent
-                                ? AppColors.accent
-                                : AppColors.textDim,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                  ? Text(
+                      indexLabel!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isCurrent ? AppColors.accent : AppColors.textDim,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
             const SizedBox(width: NexoraSpacing.s12),
             // Artwork
@@ -227,10 +225,7 @@ class NexoraAlbumCard extends StatelessWidget {
                 subtitle!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ],
           ],

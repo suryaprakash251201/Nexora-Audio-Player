@@ -46,5 +46,5 @@ class PlayerVisualModeNotifier extends StateNotifier<PlayerVisualMode> {
 
 final playerVisualModeProvider =
     StateNotifierProvider<PlayerVisualModeNotifier, PlayerVisualMode>(
-  (ref) => PlayerVisualModeNotifier(),
-);
+      (ref) => PlayerVisualModeNotifier(),
+    );

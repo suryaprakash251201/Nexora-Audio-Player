@@ -53,16 +53,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           color: AppColors.textDim,
                           fontSize: 14,
                         ),
-                        prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          size: 20,
-                        ),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
                         suffixIcon: query.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                ),
+                                icon: const Icon(Icons.close_rounded, size: 18),
                                 onPressed: () {
                                   _controller.clear();
                                   ref.read(searchQueryProvider.notifier).state =
@@ -121,9 +115,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               InkWell(
                                 onTap: () {
                                   _controller.text = q;
-                                  ref
-                                      .read(searchQueryProvider.notifier)
-                                      .state = q;
+                                  ref.read(searchQueryProvider.notifier).state =
+                                      q;
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -203,11 +196,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ],
                         if (res.artists.isNotEmpty) ...[
                           _resultHeader('Artists'),
-                          ...res.artists.map((a) => _ArtistResultTile(artist: a)),
+                          ...res.artists.map(
+                            (a) => _ArtistResultTile(artist: a),
+                          ),
                         ],
                         if (res.playlists.isNotEmpty) ...[
                           _resultHeader('Playlists'),
-                          ...res.playlists.map((p) => _PlaylistResultTile(playlist: p)),
+                          ...res.playlists.map(
+                            (p) => _PlaylistResultTile(playlist: p),
+                          ),
                         ],
                       ],
                     );
@@ -245,8 +242,7 @@ class _SongResultTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPlaying =
-        ref.watch(playerProvider).currentTrack?.id == song.id;
+    final isPlaying = ref.watch(playerProvider).currentTrack?.id == song.id;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -291,9 +287,7 @@ class _SongResultTile extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isPlaying ? AppColors.accent : AppColors.text,
-                      fontWeight: isPlaying
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+                      fontWeight: isPlaying ? FontWeight.w600 : FontWeight.w500,
                       fontSize: 15,
                       letterSpacing: -0.1,
                     ),
@@ -303,19 +297,14 @@ class _SongResultTile extends ConsumerWidget {
                     song.artist ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             ),
             if (song.duration != null)
               Text(
-                formatDuration(
-                  Duration(seconds: song.duration as int? ?? 0),
-                ),
+                formatDuration(Duration(seconds: song.duration as int? ?? 0)),
                 style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
@@ -345,11 +334,7 @@ class _AlbumResultTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ArtworkImage(
-            url: album.coverUrl,
-            size: 48,
-            borderRadius: 6,
-          ),
+          ArtworkImage(url: album.coverUrl, size: 48, borderRadius: 6),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -371,10 +356,7 @@ class _AlbumResultTile extends StatelessWidget {
                   album.artist ?? '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ],
             ),
@@ -479,10 +461,7 @@ class _PlaylistResultTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${playlist.trackCount ?? 0} tracks',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ],
             ),

@@ -17,15 +17,10 @@ import '../../player/providers/player_provider.dart';
 class ArtistDetailScreen extends ConsumerStatefulWidget {
   final String artistId;
   final Artist? initial;
-  const ArtistDetailScreen({
-    super.key,
-    required this.artistId,
-    this.initial,
-  });
+  const ArtistDetailScreen({super.key, required this.artistId, this.initial});
 
   @override
-  ConsumerState<ArtistDetailScreen> createState() =>
-      _ArtistDetailScreenState();
+  ConsumerState<ArtistDetailScreen> createState() => _ArtistDetailScreenState();
 }
 
 class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
@@ -128,44 +123,35 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                   bottom: NexoraSpacing.dockBottomReserve,
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (c, i) {
-                      final s = _songs[i];
-                      final isCurrent = ref
-                          .watch(playerProvider)
-                          .currentTrack
-                          ?.id ==
-                          s.id;
-                      return Column(
-                        children: [
-                          NexoraTrackRow(
-                            artworkUrl: s.coverUrl,
-                            title: s.title,
-                            subtitle:
-                                s.album ?? 'Single',
-                            duration:
-                                formatDuration(Duration(seconds: s.duration ?? 0)),
-                            indexLabel:
-                                (i + 1).toString().padLeft(2, '0'),
-                            isCurrent: isCurrent,
-                            isPlaying:
-                                isCurrent &&
-                                ref.watch(playerProvider).isPlaying,
-                            isFavorite: s.isFavorite,
-                            isDownloaded: s.isDownloaded,
-                            onTap: () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(_songs, initialIndex: i),
-                            onMore: () {},
+                  delegate: SliverChildBuilderDelegate((c, i) {
+                    final s = _songs[i];
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                    return Column(
+                      children: [
+                        NexoraTrackRow(
+                          artworkUrl: s.coverUrl,
+                          title: s.title,
+                          subtitle: s.album ?? 'Single',
+                          duration: formatDuration(
+                            Duration(seconds: s.duration ?? 0),
                           ),
-                          if (i != _songs.length - 1)
-                            const NexoraDivider(
-                                indent: 64, endIndent: 0),
-                        ],
-                      );
-                    },
-                    childCount: _songs.length,
-                  ),
+                          indexLabel: (i + 1).toString().padLeft(2, '0'),
+                          isCurrent: isCurrent,
+                          isPlaying:
+                              isCurrent && ref.watch(playerProvider).isPlaying,
+                          isFavorite: s.isFavorite,
+                          isDownloaded: s.isDownloaded,
+                          onTap: () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs(_songs, initialIndex: i),
+                          onMore: () {},
+                        ),
+                        if (i != _songs.length - 1)
+                          const NexoraDivider(indent: 64, endIndent: 0),
+                      ],
+                    );
+                  }, childCount: _songs.length),
                 ),
               ),
           ],
@@ -219,10 +205,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '${a.albumCount ?? 0} albums • ${a.trackCount ?? _songs.length} tracks',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ],
             ),
@@ -245,8 +228,8 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
               onTap: _songs.isEmpty
                   ? null
                   : () => ref
-                      .read(playerProvider.notifier)
-                      .playSongs(_songs, initialIndex: 0),
+                        .read(playerProvider.notifier)
+                        .playSongs(_songs, initialIndex: 0),
             ),
           ),
           const SizedBox(width: NexoraSpacing.s12),
@@ -256,10 +239,9 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
               icon: Icons.shuffle_rounded,
               onTap: _songs.isEmpty
                   ? null
-                  : () => ref.read(playerProvider.notifier).playSongs(
-                        [..._songs]..shuffle(),
-                        initialIndex: 0,
-                      ),
+                  : () => ref
+                        .read(playerProvider.notifier)
+                        .playSongs([..._songs]..shuffle(), initialIndex: 0),
             ),
           ),
         ],

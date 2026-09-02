@@ -135,7 +135,8 @@ class NexoraGlass extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: shadow ??
+        boxShadow:
+            shadow ??
             [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),

@@ -53,13 +53,15 @@ class HiFiGlassContainer extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: boxShadow ?? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow:
+            boxShadow ??
+            [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
       ),
       child: ClipRRect(
         borderRadius: radius,
@@ -70,7 +72,8 @@ class HiFiGlassContainer extends StatelessWidget {
               borderRadius: radius,
               color: AppColors.surface.withValues(alpha: opacity),
               gradient: gradient,
-              border: border ??
+              border:
+                  border ??
                   Border.all(
                     color: AppColors.border.withValues(alpha: 0.6),
                     width: 0.6,
@@ -86,9 +89,7 @@ class HiFiGlassContainer extends StatelessWidget {
                     ),
                   ),
                 if (showShimmer)
-                  Positioned.fill(
-                    child: _ShimmerOverlay(borderRadius: radius),
-                  ),
+                  Positioned.fill(child: _ShimmerOverlay(borderRadius: radius)),
                 child,
               ],
             ),
@@ -113,10 +114,7 @@ class _InnerGlow extends StatelessWidget {
         gradient: RadialGradient(
           center: const Alignment(-0.4, -0.4),
           radius: 0.8,
-          colors: [
-            color.withValues(alpha: 0.08),
-            Colors.transparent,
-          ],
+          colors: [color.withValues(alpha: 0.08), Colors.transparent],
         ),
       ),
     );
@@ -161,10 +159,7 @@ class _ShimmerOverlayState extends State<_ShimmerOverlay>
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
           child: FractionallySizedBox(
             widthFactor: 0.4,
-            alignment: Alignment(
-              -1.4 + (_controller.value * 2.8),
-              0,
-            ),
+            alignment: Alignment(-1.4 + (_controller.value * 2.8), 0),
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -218,15 +213,14 @@ class _AmbientBackgroundState extends State<AmbientBackground>
       widget.orbCount,
       (i) => AnimationController(
         vsync: this,
-        duration: Duration(
-          milliseconds: 15000 + _random.nextInt(10000),
-        ),
+        duration: Duration(milliseconds: 15000 + _random.nextInt(10000)),
       ),
     );
     _animations = _controllers.map((c) {
-      return Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: c, curve: Curves.linear),
-      );
+      return Tween<double>(
+        begin: 0,
+        end: 1,
+      ).animate(CurvedAnimation(parent: c, curve: Curves.linear));
     }).toList();
 
     for (var i = 0; i < _controllers.length; i++) {
@@ -244,7 +238,8 @@ class _AmbientBackgroundState extends State<AmbientBackground>
 
   @override
   Widget build(BuildContext context) {
-    final colors = widget.colors ??
+    final colors =
+        widget.colors ??
         [
           AppColors.accent.withValues(alpha: 0.15),
           AppColors.accentSoft.withValues(alpha: 0.10),
@@ -270,10 +265,7 @@ class _AmbientBackgroundState extends State<AmbientBackground>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [
-                        colors[i % colors.length],
-                        Colors.transparent,
-                      ],
+                      colors: [colors[i % colors.length], Colors.transparent],
                     ),
                   ),
                 ),
@@ -326,13 +318,11 @@ class _PressScaleState extends State<PressScale>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
-    _animation = Tween<double>(begin: 1.0, end: widget.scale).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: widget.scale,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -365,10 +355,8 @@ class _PressScaleState extends State<PressScale>
       onTapCancel: _onTapCancel,
       child: AnimatedBuilder(
         animation: _animation,
-        builder: (_, child) => Transform.scale(
-          scale: _animation.value,
-          child: child,
-        ),
+        builder: (_, child) =>
+            Transform.scale(scale: _animation.value, child: child),
         child: widget.child,
       ),
     );
@@ -384,29 +372,31 @@ class SlideUpPageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
   SlideUpPageRoute({required this.child})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(0.0, 0.08);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
-            var tween = Tween(begin: begin, end: end).chain(
-              CurveTween(curve: curve),
-            );
-            var fadeTween = Tween<double>(begin: 0.0, end: 1.0).chain(
-              CurveTween(curve: curve),
-            );
-            return FadeTransition(
-              opacity: animation.drive(fadeTween),
-              child: SlideTransition(
-                position: animation.drive(tween),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 360),
-          reverseTransitionDuration: const Duration(milliseconds: 280),
-        );
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) => child,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 0.08);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var fadeTween = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
+          return FadeTransition(
+            opacity: animation.drive(fadeTween),
+            child: SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 360),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+      );
 }
 
 /// A custom page transition that scales up with fade (hero-like).
@@ -414,27 +404,29 @@ class ScaleFadePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
   ScaleFadePageRoute({required this.child})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const curve = Curves.easeOutCubic;
-            var scaleTween = Tween<double>(begin: 0.94, end: 1.0).chain(
-              CurveTween(curve: curve),
-            );
-            var fadeTween = Tween<double>(begin: 0.0, end: 1.0).chain(
-              CurveTween(curve: curve),
-            );
-            return FadeTransition(
-              opacity: animation.drive(fadeTween),
-              child: ScaleTransition(
-                scale: animation.drive(scaleTween),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 320),
-          reverseTransitionDuration: const Duration(milliseconds: 240),
-        );
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) => child,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const curve = Curves.easeOutCubic;
+          var scaleTween = Tween<double>(
+            begin: 0.94,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
+          var fadeTween = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
+          return FadeTransition(
+            opacity: animation.drive(fadeTween),
+            child: ScaleTransition(
+              scale: animation.drive(scaleTween),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+      );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -470,9 +462,7 @@ class _FloatingDustState extends State<FloatingDust>
       widget.count,
       (i) => AnimationController(
         vsync: this,
-        duration: Duration(
-          milliseconds: 8000 + _random.nextInt(12000),
-        ),
+        duration: Duration(milliseconds: 8000 + _random.nextInt(12000)),
       )..repeat(),
     );
   }
@@ -495,8 +485,10 @@ class _FloatingDustState extends State<FloatingDust>
           animation: _controllers[i],
           builder: (_, __) {
             final t = _controllers[i].value;
-            final x = (math.sin(t * math.pi * 2 + seed) * 0.4 + 0.5) * size.width;
-            final y = (math.cos(t * math.pi * 2 + seed * 0.7) * 0.3 + t * 0.4) *
+            final x =
+                (math.sin(t * math.pi * 2 + seed) * 0.4 + 0.5) * size.width;
+            final y =
+                (math.cos(t * math.pi * 2 + seed * 0.7) * 0.3 + t * 0.4) *
                 size.height;
             final opacity =
                 (math.sin(t * math.pi * 2 + seed * 2) + 1) / 2 * 0.3;
@@ -511,8 +503,9 @@ class _FloatingDustState extends State<FloatingDust>
                   height: particleSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: (widget.color ?? AppColors.accent)
-                        .withValues(alpha: 0.5),
+                    color: (widget.color ?? AppColors.accent).withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                 ),
               ),
@@ -554,10 +547,8 @@ class _BreathingGlowState extends State<BreathingGlow>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    )..repeat(reverse: true);
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..repeat(reverse: true);
   }
 
   @override
@@ -607,7 +598,11 @@ class RotatingGradientBorder extends StatefulWidget {
     super.key,
     required this.child,
     this.borderWidth = 1.5,
-    this.colors = const [AppColors.accent, AppColors.accentSoft, AppColors.accent],
+    this.colors = const [
+      AppColors.accent,
+      AppColors.accentSoft,
+      AppColors.accent,
+    ],
     this.borderRadius = 16,
     this.duration = const Duration(seconds: 4),
     this.animate = true,
@@ -624,10 +619,7 @@ class _RotatingGradientBorderState extends State<RotatingGradientBorder>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
     if (widget.animate) _controller.repeat();
   }
 
@@ -696,8 +688,7 @@ class StaggeredFadeList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      direction:
-          direction == Axis.horizontal ? Axis.horizontal : Axis.vertical,
+      direction: direction == Axis.horizontal ? Axis.horizontal : Axis.vertical,
       spacing: spacing,
       runSpacing: spacing,
       children: List.generate(children.length, (i) {
@@ -737,15 +728,18 @@ class _StaggeredFadeItemState extends State<_StaggeredFadeItem>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slide = Tween<Offset>(begin: const Offset(0, 16), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _scale = Tween<double>(begin: 0.96, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _opacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 16),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _scale = Tween<double>(
+      begin: 0.96,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
     });
@@ -766,10 +760,7 @@ class _StaggeredFadeItemState extends State<_StaggeredFadeItem>
           opacity: _opacity.value,
           child: Transform.translate(
             offset: _slide.value,
-            child: Transform.scale(
-              scale: _scale.value,
-              child: child,
-            ),
+            child: Transform.scale(scale: _scale.value, child: child),
           ),
         );
       },
@@ -801,8 +792,7 @@ class PulseRing extends StatefulWidget {
   State<PulseRing> createState() => _PulseRingState();
 }
 
-class _PulseRingState extends State<PulseRing>
-    with TickerProviderStateMixin {
+class _PulseRingState extends State<PulseRing> with TickerProviderStateMixin {
   late final List<AnimationController> _controllers;
 
   @override
@@ -810,14 +800,14 @@ class _PulseRingState extends State<PulseRing>
     super.initState();
     _controllers = List.generate(
       widget.ringCount,
-      (i) => AnimationController(
-        vsync: this,
-        duration: widget.duration,
-      ),
+      (i) => AnimationController(vsync: this, duration: widget.duration),
     );
     for (var i = 0; i < _controllers.length; i++) {
       Future.delayed(
-        Duration(milliseconds: (widget.duration.inMilliseconds ~/ widget.ringCount) * i),
+        Duration(
+          milliseconds:
+              (widget.duration.inMilliseconds ~/ widget.ringCount) * i,
+        ),
         () {
           if (mounted) _controllers[i].repeat();
         },
@@ -895,10 +885,7 @@ class _SpringAnimationState extends State<SpringAnimation>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
     });

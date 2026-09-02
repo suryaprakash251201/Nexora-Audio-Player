@@ -1,5 +1,7 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import '../theme.dart';
 
 /// An enhanced glassmorphism container with backdrop blur,
@@ -38,13 +40,15 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: shadows ?? [
-          BoxShadow(
-            color: AppColors.shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow:
+            shadows ??
+            [
+              BoxShadow(
+                color: AppColors.shadowColor,
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -53,12 +57,14 @@ class GlassContainer extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: (backgroundColor ?? AppColors.glassBase)
-                  .withValues(alpha: 0.7),
+              color: (backgroundColor ?? AppColors.glassBase).withValues(
+                alpha: 0.7,
+              ),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: (borderColor ?? AppColors.glassBorder)
-                    .withValues(alpha: 0.3),
+                color: (borderColor ?? AppColors.glassBorder).withValues(
+                  alpha: 0.3,
+                ),
                 width: borderWidth,
               ),
             ),
@@ -117,13 +123,11 @@ class _GlassCardState extends State<GlassCard>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: AppColors.durFast,
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _controller = AnimationController(duration: AppColors.durFast, vsync: this);
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -188,10 +192,11 @@ class _GlassCardState extends State<GlassCard>
                       color: AppColors.glassBase.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(widget.borderRadius),
                       border: Border.all(
-                        color: (widget.isActive
-                                ? AppColors.accent
-                                : AppColors.glassBorder)
-                            .withValues(alpha: widget.isActive ? 0.5 : 0.2),
+                        color:
+                            (widget.isActive
+                                    ? AppColors.accent
+                                    : AppColors.glassBorder)
+                                .withValues(alpha: widget.isActive ? 0.5 : 0.2),
                         width: widget.isActive ? 1.2 : 0.5,
                       ),
                     ),

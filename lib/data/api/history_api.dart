@@ -37,7 +37,11 @@ class HistoryApi {
   }
 
   /// Artwork URL so history cards show real cover art.
-  Future<String> _artworkUrl(String rootId, String path, {int size = 512}) async {
+  Future<String> _artworkUrl(
+    String rootId,
+    String path, {
+    int size = 512,
+  }) async {
     final token = Uri.encodeComponent(await _storage.getToken() ?? '');
     final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesThumbnail}'

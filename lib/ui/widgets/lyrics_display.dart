@@ -63,13 +63,11 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
 
     final itemHeight = 56.0;
     final viewportHeight = _scrollController.position.viewportDimension;
-    final targetOffset = (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+    final targetOffset =
+        (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
 
     _scrollController.animateTo(
-      targetOffset.clamp(
-        0.0,
-        _scrollController.position.maxScrollExtent,
-      ),
+      targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
     );
@@ -153,11 +151,7 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.lyrics_outlined,
-            size: 48,
-            color: AppColors.textDim,
-          ),
+          Icon(Icons.lyrics_outlined, size: 48, color: AppColors.textDim),
           const SizedBox(height: 16),
           Text(
             'No lyrics available',
@@ -170,10 +164,7 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
           const SizedBox(height: 8),
           Text(
             'Lyrics will appear here when available',
-            style: TextStyle(
-              color: AppColors.textDim,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: AppColors.textDim, fontSize: 13),
           ),
         ],
       ),
@@ -198,27 +189,21 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 32,
-              vertical: 14,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 300),
               style: TextStyle(
                 color: isCurrent
                     ? AppColors.text
                     : isPast
-                        ? AppColors.textDim
-                        : AppColors.textMuted.withValues(alpha: 0.6),
+                    ? AppColors.textDim
+                    : AppColors.textMuted.withValues(alpha: 0.6),
                 fontSize: isCurrent ? 20 : 17,
                 fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
                 height: 1.5,
                 letterSpacing: isCurrent ? -0.2 : 0,
               ),
-              child: Text(
-                line.text,
-                textAlign: TextAlign.center,
-              ),
+              child: Text(line.text, textAlign: TextAlign.center),
             ),
           ),
         );
@@ -236,10 +221,7 @@ class LyricLine {
   final String text;
   final Duration? timestamp;
 
-  const LyricLine({
-    required this.text,
-    this.timestamp,
-  });
+  const LyricLine({required this.text, this.timestamp});
 
   /// Parse LRC format lyrics.
   /// Format: [mm:ss.xx]Lyric text
@@ -256,14 +238,16 @@ class LyricLine {
         final text = match.group(4)!.trim();
 
         if (text.isNotEmpty) {
-          lines.add(LyricLine(
-            text: text,
-            timestamp: Duration(
-              minutes: minutes,
-              seconds: seconds,
-              milliseconds: millis,
+          lines.add(
+            LyricLine(
+              text: text,
+              timestamp: Duration(
+                minutes: minutes,
+                seconds: seconds,
+                milliseconds: millis,
+              ),
             ),
-          ));
+          );
         }
       } else if (line.trim().isNotEmpty && !line.trim().startsWith('[')) {
         // Plain text line without timestamp
@@ -293,11 +277,7 @@ class LyricsButton extends StatelessWidget {
   final bool hasLyrics;
   final VoidCallback onTap;
 
-  const LyricsButton({
-    super.key,
-    required this.hasLyrics,
-    required this.onTap,
-  });
+  const LyricsButton({super.key, required this.hasLyrics, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

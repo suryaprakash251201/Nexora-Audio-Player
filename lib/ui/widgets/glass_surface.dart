@@ -40,8 +40,7 @@ class GlassSurface extends StatelessWidget {
         borderRadius: radius,
         color: AppColors.surface,
         gradient: gradient,
-        border:
-            border ?? Border.all(color: AppColors.border, width: 0.6),
+        border: border ?? Border.all(color: AppColors.border, width: 0.6),
       ),
       child: ClipRRect(borderRadius: radius, child: child),
     );
@@ -69,8 +68,7 @@ class GlassChip extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(8);
     return Container(
       padding:
-          padding ??
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
         borderRadius: radius,
@@ -110,7 +108,10 @@ class GlassCard extends StatelessWidget {
         color: AppColors.surface,
         border: Border.all(color: AppColors.border, width: 0.6),
       ),
-      child: ClipRRect(borderRadius: radius, child: Padding(padding: padding ?? EdgeInsets.zero, child: child)),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+      ),
     );
     if (onTap == null) return card;
     return GestureDetector(onTap: onTap, child: card);

@@ -112,12 +112,10 @@ class SettingsScreen extends ConsumerWidget {
                 icon: ref.watch(themeModeProvider) == AppThemePreference.dark
                     ? Icons.dark_mode_outlined
                     : ref.watch(themeModeProvider) == AppThemePreference.light
-                        ? Icons.light_mode_outlined
-                        : Icons.brightness_auto_rounded,
+                    ? Icons.light_mode_outlined
+                    : Icons.brightness_auto_rounded,
                 title: 'Theme',
-                subtitle: _themeLabel(
-                  ref.watch(themeModeProvider),
-                ),
+                subtitle: _themeLabel(ref.watch(themeModeProvider)),
                 onTap: () => _showThemePicker(context, ref),
               ),
               Consumer(
@@ -180,8 +178,7 @@ class SettingsScreen extends ConsumerWidget {
               _SettingTile(
                 icon: Icons.code_rounded,
                 title: 'Open source',
-                subtitle:
-                    'github.com/suryaprakash251201/Nexora-Audio-Player',
+                subtitle: 'github.com/suryaprakash251201/Nexora-Audio-Player',
               ),
             ],
           ),
@@ -249,9 +246,9 @@ class SettingsScreen extends ConsumerWidget {
               description: _themeDescription(AppThemePreference.values[i]),
               selected: AppThemePreference.values[i] == current,
               onTap: () {
-                ref.read(themeModeProvider.notifier).set(
-                      AppThemePreference.values[i],
-                    );
+                ref
+                    .read(themeModeProvider.notifier)
+                    .set(AppThemePreference.values[i]);
                 Navigator.pop(context);
               },
             ),
@@ -277,8 +274,7 @@ class SettingsScreen extends ConsumerWidget {
               index: i,
               icon: _playerStyleIcon(PlayerVisualMode.values[i]),
               title: PlayerVisualMode.values[i].label,
-              description:
-                  _playerStyleDescription(PlayerVisualMode.values[i]),
+              description: _playerStyleDescription(PlayerVisualMode.values[i]),
               selected: PlayerVisualMode.values[i] == current,
               onTap: () {
                 ref

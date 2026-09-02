@@ -63,8 +63,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       final failure = Failure.fromException(e);
       final code = failure.code != null ? ' [${failure.code}]' : '';
-      final status =
-          failure.statusCode != null ? ' (${failure.statusCode})' : '';
+      final status = failure.statusCode != null
+          ? ' (${failure.statusCode})'
+          : '';
       const detail = 'Server: configured above';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,9 +75,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                      '${failure.message}$code$status',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
+                  '${failure.message}$code$status',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 4),
                 const Text(
                   detail,
@@ -117,10 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       color: AppColors.surfaceRaised,
-                      border: Border.all(
-                        color: AppColors.border,
-                        width: 0.6,
-                      ),
+                      border: Border.all(color: AppColors.border, width: 0.6),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
@@ -187,9 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextField(
                     controller: _userController,
                     style: TextStyle(color: AppColors.text),
-                    decoration: const InputDecoration(
-                      hintText: 'admin',
-                    ),
+                    decoration: const InputDecoration(hintText: 'admin'),
                   ),
                   const SizedBox(height: 20),
                   _Label(text: 'PASSWORD'),
@@ -208,8 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: AppColors.textDim,
                           size: 18,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscure = !_obscure),
+                        onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
                   ),
@@ -291,8 +286,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ? null
                         : () async {
                             try {
-                              final storage =
-                                  ref.read(secureStorageProvider);
+                              final storage = ref.read(secureStorageProvider);
                               await storage.deleteToken();
                               await storage.deleteServerUrl();
                               if (mounted) {

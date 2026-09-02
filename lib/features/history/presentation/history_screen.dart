@@ -49,9 +49,8 @@ class HistoryScreen extends ConsumerWidget {
                         ref.watch(playerProvider).currentTrack?.id == s?.id;
                     return InkWell(
                       onTap: s != null
-                          ? () => ref
-                              .read(playerProvider.notifier)
-                              .playSongs([s])
+                          ? () =>
+                                ref.read(playerProvider.notifier).playSongs([s])
                           : null,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -76,14 +75,11 @@ class HistoryScreen extends ConsumerWidget {
                                 children: [
                                   Container(
                                     decoration: BoxDecoration(
-                                      borderRadius:
-                                          BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(6),
                                       color: AppColors.surfaceRaised,
                                       image: s?.coverUrl != null
                                           ? DecorationImage(
-                                              image: NetworkImage(
-                                                s!.coverUrl!,
-                                              ),
+                                              image: NetworkImage(s!.coverUrl!),
                                               fit: BoxFit.cover,
                                             )
                                           : null,
@@ -99,10 +95,10 @@ class HistoryScreen extends ConsumerWidget {
                                   if (isCurrent)
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.5),
-                                        borderRadius:
-                                            BorderRadius.circular(6),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: const Icon(
                                         Icons.equalizer_rounded,

@@ -130,9 +130,10 @@ class _AnimatedGlassCardState extends State<AnimatedGlassCard>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _scale = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -193,8 +194,7 @@ class StaggeredList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      direction:
-          direction == Axis.horizontal ? Axis.horizontal : Axis.vertical,
+      direction: direction == Axis.horizontal ? Axis.horizontal : Axis.vertical,
       spacing: spacing,
       runSpacing: spacing,
       children: List.generate(children.length, (i) {
@@ -232,13 +232,14 @@ class _StaggeredItemState extends State<_StaggeredItem>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slide =
-        Tween<Offset>(begin: const Offset(0, 12), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _opacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
     });
@@ -257,10 +258,7 @@ class _StaggeredItemState extends State<_StaggeredItem>
       builder: (_, child) {
         return Opacity(
           opacity: _opacity.value,
-          child: Transform.translate(
-            offset: _slide.value,
-            child: child,
-          ),
+          child: Transform.translate(offset: _slide.value, child: child),
         );
       },
       child: widget.child,
@@ -381,12 +379,14 @@ class _SlideInAnimationState extends State<SlideInAnimation>
         begin = const Offset(-8, 0);
         break;
     }
-    _slide = Tween<Offset>(begin: begin, end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _slide = Tween<Offset>(
+      begin: begin,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _opacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
     });
@@ -405,10 +405,7 @@ class _SlideInAnimationState extends State<SlideInAnimation>
       builder: (_, _) {
         return Opacity(
           opacity: _opacity.value,
-          child: Transform.translate(
-            offset: _slide.value,
-            child: widget.child,
-          ),
+          child: Transform.translate(offset: _slide.value, child: widget.child),
         );
       },
     );
@@ -441,10 +438,7 @@ class _ScaleBounceState extends State<ScaleBounce>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _scale = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
     });

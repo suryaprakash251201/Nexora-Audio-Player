@@ -22,13 +22,11 @@ class NexoraSliverAppBarBackground extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: (isDark ? Colors.black : Colors.white)
-                .withValues(alpha: 0.32),
+            color: (isDark ? Colors.black : Colors.white).withValues(
+              alpha: 0.32,
+            ),
             border: Border(
-              bottom: BorderSide(
-                color: AppColors.hairline,
-                width: 0.5,
-              ),
+              bottom: BorderSide(color: AppColors.hairline, width: 0.5),
             ),
           ),
         ),

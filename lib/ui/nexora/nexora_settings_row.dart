@@ -28,8 +28,7 @@ class NexoraSettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor =
-        destructive ? AppColors.error : AppColors.text;
+    final titleColor = destructive ? AppColors.error : AppColors.text;
     final row = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: NexoraSpacing.s20,
@@ -108,9 +107,7 @@ class NexoraGroupedList extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       items.add(children[i]);
       if (i != children.length - 1) {
-        items.add(
-          const NexoraDivider(indent: NexoraSpacing.s20, endIndent: 0),
-        );
+        items.add(const NexoraDivider(indent: NexoraSpacing.s20, endIndent: 0));
       }
     }
     return Padding(
@@ -122,7 +119,10 @@ class NexoraGroupedList extends StatelessWidget {
           border: Border.all(color: AppColors.border, width: 0.6),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: items,
+        ),
       ),
     );
   }

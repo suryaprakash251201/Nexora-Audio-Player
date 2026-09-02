@@ -126,10 +126,7 @@ class SkeletonBox extends StatelessWidget {
 class SongTileSkeleton extends StatelessWidget {
   final bool isLoading;
 
-  const SongTileSkeleton({
-    super.key,
-    this.isLoading = true,
-  });
+  const SongTileSkeleton({super.key, this.isLoading = true});
 
   @override
   Widget build(BuildContext context) {
@@ -186,11 +183,7 @@ class AlbumCardSkeleton extends StatelessWidget {
   final double size;
   final bool isLoading;
 
-  const AlbumCardSkeleton({
-    super.key,
-    this.size = 140,
-    this.isLoading = true,
-  });
+  const AlbumCardSkeleton({super.key, this.size = 140, this.isLoading = true});
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +229,7 @@ class AlbumCardSkeleton extends StatelessWidget {
 class HeroCardSkeleton extends StatelessWidget {
   final bool isLoading;
 
-  const HeroCardSkeleton({
-    super.key,
-    this.isLoading = true,
-  });
+  const HeroCardSkeleton({super.key, this.isLoading = true});
 
   @override
   Widget build(BuildContext context) {
@@ -343,10 +333,7 @@ class HorizontalRowSkeleton extends StatelessWidget {
 class FullPlayerSkeleton extends StatelessWidget {
   final bool isLoading;
 
-  const FullPlayerSkeleton({
-    super.key,
-    this.isLoading = true,
-  });
+  const FullPlayerSkeleton({super.key, this.isLoading = true});
 
   @override
   Widget build(BuildContext context) {

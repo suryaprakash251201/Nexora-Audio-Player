@@ -77,25 +77,23 @@ final folderContentProvider = FutureProvider.autoDispose
     });
 
 /// Lazily resolves a folder cover.
-final folderCoverProvider =
-    FutureProvider.autoDispose.family<String?, String>((ref, folderId) async {
-      final api = ref.watch(filesApiProvider);
-      final idx = folderId.indexOf('|');
-      if (idx <= 0) return null;
-      final rootId = folderId.substring(0, idx);
-      final path = folderId.substring(idx + 1);
-      return api.folderCoverUrl(rootId, path);
-    });
+final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
+  ref,
+  folderId,
+) async {
+  final api = ref.watch(filesApiProvider);
+  final idx = folderId.indexOf('|');
+  if (idx <= 0) return null;
+  final rootId = folderId.substring(0, idx);
+  final path = folderId.substring(idx + 1);
+  return api.folderCoverUrl(rootId, path);
+});
 
 /// Hi-Fi album/folder browser — editorial layout, large artwork at top.
 class FolderBrowserScreen extends ConsumerWidget {
   final String rootId;
   final String path;
-  const FolderBrowserScreen({
-    super.key,
-    required this.rootId,
-    this.path = '',
-  });
+  const FolderBrowserScreen({super.key, required this.rootId, this.path = ''});
 
   String get _folderName {
     if (path.isEmpty) return 'Library';
@@ -210,10 +208,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                                     [...content.songs]..shuffle(),
                                     initialIndex: 0,
                                   ),
-                              icon: const Icon(
-                                Icons.shuffle_rounded,
-                                size: 18,
-                              ),
+                              icon: const Icon(Icons.shuffle_rounded, size: 18),
                               label: const Text('Shuffle'),
                             ),
                           ),
@@ -237,11 +232,11 @@ class FolderBrowserScreen extends ConsumerWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.82,
-                        ),
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.82,
+                            ),
                         itemCount: content.folders.length,
                         itemBuilder: (c, i) =>
                             _FolderCard(folder: content.folders[i]),
@@ -271,10 +266,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                         isCurrent: isCurrent,
                         onTap: () => ref
                             .read(playerProvider.notifier)
-                            .playSongs(
-                              content.songs.cast(),
-                              initialIndex: i,
-                            ),
+                            .playSongs(content.songs.cast(), initialIndex: i),
                         onMore: () => _showSongMenu(context, ref, s),
                       );
                     }),
@@ -288,11 +280,7 @@ class FolderBrowserScreen extends ConsumerWidget {
     );
   }
 
-  void _showSongMenu(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic song,
-  ) {
+  void _showSongMenu(BuildContext context, WidgetRef ref, dynamic song) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -361,11 +349,7 @@ class _FolderHero extends ConsumerWidget {
         ? content.songs.first.coverUrl as String?
         : null;
     final url = coverAsync.value ?? firstSongCover;
-    return ArtworkImage(
-      url: url,
-      borderRadius: 8,
-      showShadow: true,
-    );
+    return ArtworkImage(url: url, borderRadius: 8, showShadow: true);
   }
 }
 
@@ -386,10 +370,7 @@ class _FolderCard extends ConsumerWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: ArtworkImage(
-              url: coverAsync.value,
-              borderRadius: 6,
-            ),
+            child: ArtworkImage(url: coverAsync.value, borderRadius: 6),
           ),
           const SizedBox(height: 8),
           Text(
@@ -482,9 +463,7 @@ class _SongRow extends StatelessWidget {
                     style: TextStyle(
                       color: titleColor,
                       fontSize: 15,
-                      fontWeight: isCurrent
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -493,10 +472,7 @@ class _SongRow extends StatelessWidget {
                     song.artist ?? song.album ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                 ],
               ),
@@ -504,10 +480,7 @@ class _SongRow extends StatelessWidget {
             if (song.codec != null) ...[
               Container(
                 margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(

@@ -60,8 +60,7 @@ class AppColors {
   // ── Text ───────────────────────────────────────────────────
   static const Color _textDark = Color(0xFFE6EAF0);
   static const Color _textLight = Color(0xFF0F172A);
-  static Color get text =>
-      mode == AppThemeMode.dark ? _textDark : _textLight;
+  static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
 
   static const Color _textMutedDark = Color(0xFF8A9AB8);
   static const Color _textMutedLight = Color(0xFF5A6B8A);
@@ -124,10 +123,9 @@ class AppColors {
   static Color get glowColor => accent.withValues(alpha: 0.3);
 
   /// Shadow colors for elevated cards
-  static Color get shadowColor =>
-      mode == AppThemeMode.dark
-          ? const Color(0xFF000000).withValues(alpha: 0.4)
-          : const Color(0xFF000000).withValues(alpha: 0.1);
+  static Color get shadowColor => mode == AppThemeMode.dark
+      ? const Color(0xFF000000).withValues(alpha: 0.4)
+      : const Color(0xFF000000).withValues(alpha: 0.1);
 
   /// Premium surface for featured content
   static Color get premiumSurface {
@@ -165,10 +163,12 @@ class AppColors {
   static const Duration durPage = Duration(milliseconds: 420);
 
   /// Shimmer colors for loading skeletons
-  static Color get shimmerBase =>
-      mode == AppThemeMode.dark ? const Color(0xFF0F141E) : const Color(0xFFE8EEF6);
-  static Color get shimmerHighlight =>
-      mode == AppThemeMode.dark ? const Color(0xFF1A2335) : const Color(0xFFF0F3F8);
+  static Color get shimmerBase => mode == AppThemeMode.dark
+      ? const Color(0xFF0F141E)
+      : const Color(0xFFE8EEF6);
+  static Color get shimmerHighlight => mode == AppThemeMode.dark
+      ? const Color(0xFF1A2335)
+      : const Color(0xFFF0F3F8);
 
   /// Editorially tuned gradients (very subtle, used rarely).
   static const LinearGradient subtleVerticalFade = LinearGradient(
@@ -184,7 +184,9 @@ class AppTypography {
   AppTypography._();
 
   static TextTheme build({required bool isDark}) {
-    final base = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
+    final base = isDark
+        ? ThemeData.dark().textTheme
+        : ThemeData.light().textTheme;
     final tx = GoogleFonts.interTextTheme(base);
     // AppColors.mode is already set to `isDark ? dark : light` by
     // AppTheme.themeFor before this is called, so these getters return the
@@ -372,9 +374,7 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.85),
@@ -411,7 +411,9 @@ class AppTheme {
           disabledBackgroundColor: AppColors.surfaceHigh,
           disabledForegroundColor: AppColors.textDim,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           textStyle: const TextStyle(
             fontSize: 14,
@@ -424,7 +426,9 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.text,
           side: BorderSide(color: AppColors.border, width: 0.6),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           textStyle: const TextStyle(
             fontSize: 14,

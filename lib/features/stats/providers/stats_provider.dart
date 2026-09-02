@@ -51,13 +51,13 @@ class ListeningStats {
   final int topTrackPlays;
 
   factory ListeningStats.empty() => ListeningStats(
-        totalPlays: 0,
-        totalSeconds: 0,
-        uniqueTracks: 0,
-        topArtists: const <ArtistListening>[],
-        playsByHour: List<int>.filled(24, 0),
-        dayStreak: 0,
-      );
+    totalPlays: 0,
+    totalSeconds: 0,
+    uniqueTracks: 0,
+    topArtists: const <ArtistListening>[],
+    playsByHour: List<int>.filled(24, 0),
+    dayStreak: 0,
+  );
 
   factory ListeningStats.fromHistory(List<PlaybackHistoryItem> items) {
     final artistTallies = <String, _Tally>{};
@@ -80,8 +80,7 @@ class ListeningStats {
       final artist = (song.artist ?? '').trim().isEmpty
           ? 'Unknown Artist'
           : song.artist!.trim();
-      final artistTally =
-          artistTallies.putIfAbsent(artist, () => _Tally());
+      final artistTally = artistTallies.putIfAbsent(artist, () => _Tally());
       artistTally.plays += 1;
       artistTally.seconds += seconds;
 
@@ -91,16 +90,17 @@ class ListeningStats {
       trackLookup.putIfAbsent(song.id, () => song);
     }
 
-    final topArtists = artistTallies.entries
-        .map(
-          (e) => ArtistListening(
-            name: e.key,
-            plays: e.value.plays,
-            seconds: e.value.seconds,
-          ),
-        )
-        .toList()
-      ..sort((a, b) => b.seconds.compareTo(a.seconds));
+    final topArtists =
+        artistTallies.entries
+            .map(
+              (e) => ArtistListening(
+                name: e.key,
+                plays: e.value.plays,
+                seconds: e.value.seconds,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.seconds.compareTo(a.seconds));
 
     String? topTrackId;
     var topTrackPlays = 0;
@@ -126,8 +126,7 @@ class ListeningStats {
   double get totalHours => totalSeconds / 3600;
 
   /// Highest value in [playsByHour], or 0 when there is no history.
-  int get peakHourPlays =>
-      playsByHour.isEmpty ? 0 : playsByHour.reduce(_max);
+  int get peakHourPlays => playsByHour.isEmpty ? 0 : playsByHour.reduce(_max);
 
   /// Hour of day (0–23) with the most plays; -1 when there is no history.
   int get peakHour =>

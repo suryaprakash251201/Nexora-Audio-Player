@@ -72,10 +72,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               ),
             ),
             const SizedBox(height: NexoraSpacing.s12),
-            _SegmentedTabs(
-              controller: _tab,
-              tabs: _tabs,
-            ),
+            _SegmentedTabs(controller: _tab, tabs: _tabs),
             Expanded(
               child: TabBarView(
                 controller: _tab,
@@ -195,8 +192,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
       final repo = ref.read(songsRepositoryProvider);
       final p = await repo.getSongs(page: _page, limit: 20);
       if (!mounted) return;
-      final combined =
-          SongsRepository.deduplicateById([..._songs, ...p.data]);
+      final combined = SongsRepository.deduplicateById([..._songs, ...p.data]);
       setState(() {
         _songs
           ..clear()
@@ -229,9 +225,13 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
     return RefreshIndicator(
       onRefresh: () => _load(refresh: true),
       child: ListView.separated(
-        padding: const EdgeInsets.only(top: 8, bottom: NexoraSpacing.dockBottomReserve),
+        padding: const EdgeInsets.only(
+          top: 8,
+          bottom: NexoraSpacing.dockBottomReserve,
+        ),
         itemCount: _songs.length + (_hasMore ? 1 : 0),
-        separatorBuilder: (_, __) => const NexoraDivider(indent: 64, endIndent: 0),
+        separatorBuilder: (_, __) =>
+            const NexoraDivider(indent: 64, endIndent: 0),
         itemBuilder: (c, i) {
           if (i >= _songs.length) {
             if (!_loading && !_loadingMore && _hasMore) {
@@ -247,7 +247,8 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           return NexoraTrackRow(
             artworkUrl: s.coverUrl,
             title: s.title,
-            subtitle: '${s.artist ?? 'Unknown'} • ${s.album ?? 'Unknown Album'}',
+            subtitle:
+                '${s.artist ?? 'Unknown'} • ${s.album ?? 'Unknown Album'}',
             duration: formatDuration(s.durationDuration),
             indexLabel: (i + 1).toString().padLeft(2, '0'),
             isCurrent: isCurrent,
@@ -290,7 +291,10 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
               ),
               ListTile(
                 leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
-                title: Text('Play next', style: TextStyle(color: AppColors.text)),
+                title: Text(
+                  'Play next',
+                  style: TextStyle(color: AppColors.text),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(playerProvider.notifier).playNext(song);
@@ -298,7 +302,10 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
               ),
               ListTile(
                 leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
-                title: Text('Add to queue', style: TextStyle(color: AppColors.text)),
+                title: Text(
+                  'Add to queue',
+                  style: TextStyle(color: AppColors.text),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(playerProvider.notifier).addToQueue(song);
@@ -342,7 +349,12 @@ class _AlbumsTab extends ConsumerWidget {
               icon: Icons.album_outlined,
             )
           : GridView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, NexoraSpacing.dockBottomReserve),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                NexoraSpacing.dockBottomReserve,
+              ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 168,
                 mainAxisSpacing: NexoraSpacing.s24,
@@ -392,14 +404,18 @@ class _ArtistsTab extends ConsumerWidget {
               icon: Icons.person_outline_rounded,
             )
           : ListView.separated(
-              padding: const EdgeInsets.only(top: 4, bottom: NexoraSpacing.dockBottomReserve),
+              padding: const EdgeInsets.only(
+                top: 4,
+                bottom: NexoraSpacing.dockBottomReserve,
+              ),
               itemCount: artists.length,
               separatorBuilder: (_, __) =>
                   const NexoraDivider(indent: 88, endIndent: 0),
               itemBuilder: (c, i) => NexoraArtistRow(
                 artworkUrl: artists[i].artworkUrl,
                 name: artists[i].name,
-                subtitle: '${artists[i].albumCount ?? 0} albums • ${artists[i].trackCount ?? 0} tracks',
+                subtitle:
+                    '${artists[i].albumCount ?? 0} albums • ${artists[i].trackCount ?? 0} tracks',
                 onTap: () => context.push(
                   '/artist/${Uri.encodeComponent(artists[i].id)}',
                   extra: artists[i],
@@ -425,11 +441,7 @@ class _PlaylistsTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.queue_music_rounded,
-              color: AppColors.textDim,
-              size: 28,
-            ),
+            Icon(Icons.queue_music_rounded, color: AppColors.textDim, size: 28),
             const SizedBox(height: NexoraSpacing.s12),
             Text(
               'Playlists live in their own section.',
@@ -492,8 +504,10 @@ final _musicRootProvider = FutureProvider<String?>((ref) async {
   return api.musicRootId();
 });
 
-final _foldersProvider =
-    FutureProvider.family<List<FolderEntry>, String>((ref, rootId) async {
+final _foldersProvider = FutureProvider.family<List<FolderEntry>, String>((
+  ref,
+  rootId,
+) async {
   final api = ref.watch(filesApiProvider);
   final items = await api.list(rootId, '', limit: 500);
   return [
@@ -527,7 +541,12 @@ class _FolderGrid extends ConsumerWidget {
               icon: Icons.folder_open,
             )
           : GridView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, NexoraSpacing.dockBottomReserve),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                NexoraSpacing.dockBottomReserve,
+              ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 168,
                 mainAxisSpacing: NexoraSpacing.s24,

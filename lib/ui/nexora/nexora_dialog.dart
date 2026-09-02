@@ -39,16 +39,14 @@ Future<T?> showNexoraFloatingDialog<T>({
       ),
     ),
     transitionBuilder: (ctx, anim, secondaryAnim, child) {
-      final curved =
-          CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
-      final scaleTween = Tween<double>(begin: 0.92, end: 1.0)
-          .chain(CurveTween(curve: Curves.easeOutCubic));
+      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+      final scaleTween = Tween<double>(
+        begin: 0.92,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOutCubic));
       return FadeTransition(
         opacity: curved,
-        child: ScaleTransition(
-          scale: scaleTween.animate(curved),
-          child: child,
-        ),
+        child: ScaleTransition(scale: scaleTween.animate(curved), child: child),
       );
     },
   );
@@ -118,8 +116,11 @@ class NexoraFloatingCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close_rounded,
-                      color: AppColors.textMuted, size: 20),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textMuted,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Close',
                 ),
@@ -180,13 +181,14 @@ class _NexoraFloatingOptionState extends State<NexoraFloatingOption>
       vsync: this,
       duration: const Duration(milliseconds: 360),
     );
-    _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
-    );
-    _slide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
-        .animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _opacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     // Staggered entrance
     Future.delayed(Duration(milliseconds: 60 * widget.index), () {
       if (mounted) _ctrl.forward();
@@ -220,8 +222,7 @@ class _NexoraFloatingOptionState extends State<NexoraFloatingOption>
               duration: NexoraDuration.short,
               curve: Curves.easeOutCubic,
               margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: widget.selected
                     ? AppColors.accent.withValues(alpha: 0.10)

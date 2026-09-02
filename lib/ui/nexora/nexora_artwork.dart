@@ -36,10 +36,8 @@ class NexoraArtwork extends StatelessWidget {
                 width: size,
                 height: size,
                 fit: fit,
-                errorBuilder: (_, __, ___) => _Placeholder(
-                  size: size,
-                  icon: placeholderIcon,
-                ),
+                errorBuilder: (_, __, ___) =>
+                    _Placeholder(size: size, icon: placeholderIcon),
                 loadingBuilder: (c, child, progress) {
                   if (progress == null) return child;
                   return _Placeholder(
@@ -70,9 +68,7 @@ class _Placeholder extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: AppColorTokens.surfaceRaised,
-      ),
+      decoration: BoxDecoration(color: AppColorTokens.surfaceRaised),
       alignment: Alignment.center,
       child: loading
           ? SizedBox(
@@ -80,11 +76,7 @@ class _Placeholder extends StatelessWidget {
               height: size * 0.18,
               child: const CircularProgressIndicator(strokeWidth: 1.4),
             )
-          : Icon(
-              icon,
-              size: size * 0.32,
-              color: AppColorTokens.textDim,
-            ),
+          : Icon(icon, size: size * 0.32, color: AppColorTokens.textDim),
     );
   }
 }

@@ -18,11 +18,7 @@ import '../../player/providers/player_provider.dart';
 class AlbumDetailScreen extends ConsumerStatefulWidget {
   final String albumId;
   final Album? initial;
-  const AlbumDetailScreen({
-    super.key,
-    required this.albumId,
-    this.initial,
-  });
+  const AlbumDetailScreen({super.key, required this.albumId, this.initial});
 
   @override
   ConsumerState<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
@@ -53,7 +49,9 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
       final tracks = await api.getAlbumTracks(widget.albumId);
       String? cover;
       try {
-        cover = await ref.read(filesApiProvider).thumbnailUrl(
+        cover = await ref
+            .read(filesApiProvider)
+            .thumbnailUrl(
               NexoraFiles.parseRootId(widget.albumId),
               NexoraFiles.parsePath(widget.albumId),
               size: 600,
@@ -146,44 +144,38 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                   bottom: NexoraSpacing.dockBottomReserve,
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (c, i) {
-                      final s = _tracks[i];
-                      final isCurrent = ref
-                          .watch(playerProvider)
-                          .currentTrack
-                          ?.id ==
-                          s.id;
-                      return Column(
-                        children: [
-                          NexoraTrackRow(
-                            artworkUrl: s.coverUrl,
-                            title: s.title,
-                            subtitle:
-                                '${s.artist ?? album.artist ?? 'Unknown'} • ${album.title}',
-                            duration:
-                                formatDuration(Duration(seconds: s.duration ?? 0)),
-                            indexLabel:
-                                (s.trackNumber ?? (i + 1)).toString().padLeft(2, '0'),
-                            isCurrent: isCurrent,
-                            isPlaying:
-                                isCurrent &&
-                                ref.watch(playerProvider).isPlaying,
-                            isFavorite: s.isFavorite,
-                            isDownloaded: s.isDownloaded,
-                            onTap: () => ref
-                                .read(playerProvider.notifier)
-                                .playSongs(_tracks, initialIndex: i),
-                            onMore: () {},
+                  delegate: SliverChildBuilderDelegate((c, i) {
+                    final s = _tracks[i];
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                    return Column(
+                      children: [
+                        NexoraTrackRow(
+                          artworkUrl: s.coverUrl,
+                          title: s.title,
+                          subtitle:
+                              '${s.artist ?? album.artist ?? 'Unknown'} • ${album.title}',
+                          duration: formatDuration(
+                            Duration(seconds: s.duration ?? 0),
                           ),
-                          if (i != _tracks.length - 1)
-                            const NexoraDivider(
-                                indent: 64, endIndent: 0),
-                        ],
-                      );
-                    },
-                    childCount: _tracks.length,
-                  ),
+                          indexLabel: (s.trackNumber ?? (i + 1))
+                              .toString()
+                              .padLeft(2, '0'),
+                          isCurrent: isCurrent,
+                          isPlaying:
+                              isCurrent && ref.watch(playerProvider).isPlaying,
+                          isFavorite: s.isFavorite,
+                          isDownloaded: s.isDownloaded,
+                          onTap: () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs(_tracks, initialIndex: i),
+                          onMore: () {},
+                        ),
+                        if (i != _tracks.length - 1)
+                          const NexoraDivider(indent: 64, endIndent: 0),
+                      ],
+                    );
+                  }, childCount: _tracks.length),
                 ),
               ),
           ],
@@ -194,10 +186,9 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
 
   Widget _hero(Album album) {
     final totalSec = _tracks.fold<int>(0, (s, t) => s + (t.duration ?? 0));
-    final year = _tracks.map((t) => t.year).firstWhere(
-          (y) => y != null,
-          orElse: () => null,
-        );
+    final year = _tracks
+        .map((t) => t.year)
+        .firstWhere((y) => y != null, orElse: () => null);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
@@ -262,8 +253,8 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
-                      .read(playerProvider.notifier)
-                      .playSongs(_tracks, initialIndex: 0),
+                        .read(playerProvider.notifier)
+                        .playSongs(_tracks, initialIndex: 0),
             ),
           ),
           const SizedBox(width: NexoraSpacing.s12),
@@ -273,10 +264,9 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               icon: Icons.shuffle_rounded,
               onTap: _tracks.isEmpty
                   ? null
-                  : () => ref.read(playerProvider.notifier).playSongs(
-                        [..._tracks]..shuffle(),
-                        initialIndex: 0,
-                      ),
+                  : () => ref
+                        .read(playerProvider.notifier)
+                        .playSongs([..._tracks]..shuffle(), initialIndex: 0),
             ),
           ),
         ],

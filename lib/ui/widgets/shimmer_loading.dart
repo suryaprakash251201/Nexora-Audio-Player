@@ -72,9 +72,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
                 AppColors.shimmerBase,
               ],
               stops: const [0.0, 0.5, 1.0],
-              transform: _SlideGradientTransform(
-                percent: _controller.value,
-              ),
+              transform: _SlideGradientTransform(percent: _controller.value),
             ).createShader(bounds);
           },
           child: widget.child,
@@ -91,11 +89,7 @@ class _SlideGradientTransform extends GradientTransform {
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    return Matrix4.translationValues(
-      bounds.width * 2 * (percent - 0.5),
-      0,
-      0,
-    );
+    return Matrix4.translationValues(bounds.width * 2 * (percent - 0.5), 0, 0);
   }
 }
 
@@ -104,11 +98,7 @@ class ShimmerPlaceholders {
   ShimmerPlaceholders._();
 
   /// A shimmer block with customizable dimensions and radius.
-  static Widget block({
-    double? width,
-    double? height,
-    double radius = 8,
-  }) {
+  static Widget block({double? width, double? height, double radius = 8}) {
     return ShimmerLoading(
       child: Container(
         width: width,

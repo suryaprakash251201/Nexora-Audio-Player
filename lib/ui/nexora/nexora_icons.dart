@@ -216,8 +216,7 @@ class _GlyphPainter extends CustomPainter {
   void _drawStats(Canvas canvas, Size size, Paint paint) {
     const heights = <double>[0.38, 0.66, 1.0];
     final gap = size.width * 0.12;
-    final barWidth =
-        (size.width - gap * (heights.length - 1)) / heights.length;
+    final barWidth = (size.width - gap * (heights.length - 1)) / heights.length;
     for (var i = 0; i < heights.length; i++) {
       final barHeight = size.height * heights[i];
       final x = i * (barWidth + gap);
@@ -353,8 +352,8 @@ class _NexoraEqualizerBarsState extends State<NexoraEqualizerBars>
   Widget _bar(double t, int index, Color color) {
     final phase = t * math.pi * 2 + index * 1.7;
     final amplitude = (math.sin(phase) + 1) / 2;
-    final height = widget.minHeight +
-        (widget.maxHeight - widget.minHeight) * amplitude;
+    final height =
+        widget.minHeight + (widget.maxHeight - widget.minHeight) * amplitude;
     return Container(
       width: widget.barWidth,
       height: height,

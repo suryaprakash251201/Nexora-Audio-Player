@@ -82,27 +82,33 @@ class _AuroraPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = background,
-    );
+    canvas.drawRect(Offset.zero & size, Paint()..color = background);
 
     final shortest = size.shortestSide;
     final blobs = <_Blob>[
       _Blob(
-        center: Offset(size.width * (0.18 + 0.06 * progress), size.height * 0.16),
+        center: Offset(
+          size.width * (0.18 + 0.06 * progress),
+          size.height * 0.16,
+        ),
         radius: shortest * 1.05,
         color: tint,
         alpha: 0.20,
       ),
       _Blob(
-        center: Offset(size.width * (0.88 - 0.08 * progress), size.height * 0.34),
+        center: Offset(
+          size.width * (0.88 - 0.08 * progress),
+          size.height * 0.34,
+        ),
         radius: shortest * 0.85,
         color: AppColors.accentSoft,
         alpha: 0.13,
       ),
       _Blob(
-        center: Offset(size.width * (0.5 + 0.05 * progress), size.height * 0.94),
+        center: Offset(
+          size.width * (0.5 + 0.05 * progress),
+          size.height * 0.94,
+        ),
         radius: shortest * 0.95,
         color: tint,
         alpha: 0.09,
@@ -116,14 +122,15 @@ class _AuroraPainter extends CustomPainter {
         blob.center,
         blob.radius,
         Paint()
-          ..shader = RadialGradient(
-            colors: [
-              blob.color.withValues(alpha: effectiveAlpha),
-              blob.color.withValues(alpha: 0),
-            ],
-          ).createShader(
-            Rect.fromCircle(center: blob.center, radius: blob.radius),
-          ),
+          ..shader =
+              RadialGradient(
+                colors: [
+                  blob.color.withValues(alpha: effectiveAlpha),
+                  blob.color.withValues(alpha: 0),
+                ],
+              ).createShader(
+                Rect.fromCircle(center: blob.center, radius: blob.radius),
+              ),
       );
     }
   }
@@ -258,8 +265,10 @@ class NexoraHiResBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4),
-        border:
-            Border.all(color: AppColors.accent.withValues(alpha: 0.5), width: 0.8),
+        border: Border.all(
+          color: AppColors.accent.withValues(alpha: 0.5),
+          width: 0.8,
+        ),
         color: AppColors.accent.withValues(alpha: 0.10),
       ),
       child: Row(

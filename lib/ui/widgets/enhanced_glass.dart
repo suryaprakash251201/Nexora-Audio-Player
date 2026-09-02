@@ -46,8 +46,7 @@ class EnhancedGlassSurface extends StatelessWidget {
         borderRadius: radius,
         color: AppColors.surface,
         gradient: gradient,
-        border:
-            border ?? Border.all(color: AppColors.border, width: 0.6),
+        border: border ?? Border.all(color: AppColors.border, width: 0.6),
         boxShadow: shadows,
       ),
       child: ClipRRect(borderRadius: radius, child: child),
@@ -92,9 +91,10 @@ class _GlassCardState extends State<GlassCard>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -115,7 +115,10 @@ class _GlassCardState extends State<GlassCard>
       ),
       child: ClipRRect(
         borderRadius: radius,
-        child: Padding(padding: widget.padding ?? EdgeInsets.zero, child: widget.child),
+        child: Padding(
+          padding: widget.padding ?? EdgeInsets.zero,
+          child: widget.child,
+        ),
       ),
     );
 
@@ -156,8 +159,7 @@ class GlassChip extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(8);
     return Container(
       padding:
-          padding ??
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
         borderRadius: radius,
@@ -188,15 +190,11 @@ class GlassBottomSheet extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(borderRadius)),
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 0.6),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
       ),
       child: ClipRRect(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
         child: SafeArea(top: false, child: child),
       ),
     );
@@ -227,9 +225,8 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        toolbarHeight + (bottom?.preferredSize.height ?? 0),
-      );
+  Size get preferredSize =>
+      Size.fromHeight(toolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
   Widget build(BuildContext context) {
@@ -323,11 +320,7 @@ class GlassDialog extends StatelessWidget {
   final Widget child;
   final double borderRadius;
 
-  const GlassDialog({
-    super.key,
-    required this.child,
-    this.borderRadius = 16,
-  });
+  const GlassDialog({super.key, required this.child, this.borderRadius = 16});
 
   @override
   Widget build(BuildContext context) {

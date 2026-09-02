@@ -38,10 +38,7 @@ class PlaylistCover extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (urls.isEmpty)
-            _FlatPlate(
-              icon: emptyIcon,
-              iconSize: emptyIconSize,
-            )
+            _FlatPlate(icon: emptyIcon, iconSize: emptyIconSize)
           else if (urls.length == 1)
             _CoverImage(url: urls.first)
           else
@@ -64,10 +61,7 @@ class _CoverImage extends StatelessWidget {
       errorBuilder: (_, __, ___) => Container(
         color: AppColors.surfaceRaised,
         child: Center(
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: AppColors.textDim,
-          ),
+          child: Icon(Icons.broken_image_outlined, color: AppColors.textDim),
         ),
       ),
     );
@@ -120,10 +114,7 @@ class _FlatPlate extends StatelessWidget {
   final IconData icon;
   final double iconSize;
 
-  const _FlatPlate({
-    required this.icon,
-    required this.iconSize,
-  });
+  const _FlatPlate({required this.icon, required this.iconSize});
 
   @override
   Widget build(BuildContext context) {

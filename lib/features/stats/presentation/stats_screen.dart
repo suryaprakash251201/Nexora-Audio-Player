@@ -73,8 +73,7 @@ class _StatsBody extends StatelessWidget {
             child: NexoraEmptyState(
               icon: Icons.insights_outlined,
               title: 'No listening history yet',
-              subtitle:
-                  'Play a few tracks and your habits — total time, peak hours and top artists — will show up here.',
+              subtitle: 'Play a few tracks and your habits — total time, peak hours and top artists — will show up here.',
             ),
           ),
         ],
@@ -119,28 +118,28 @@ class _StatsBody extends StatelessWidget {
   }
 
   SliverAppBar _appBar(BuildContext context) => SliverAppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        pinned: true,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        toolbarHeight: 60,
-        flexibleSpace: const NexoraSliverAppBarBackground(),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
-          tooltip: 'Back',
-        ),
-        title: Text(
-          'Your stats',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.6,
-          ),
-        ),
-      );
+    backgroundColor: Colors.transparent,
+    surfaceTintColor: Colors.transparent,
+    pinned: true,
+    elevation: 0,
+    scrolledUnderElevation: 0,
+    toolbarHeight: 60,
+    flexibleSpace: const NexoraSliverAppBarBackground(),
+    leading: IconButton(
+      icon: const Icon(Icons.arrow_back_rounded),
+      onPressed: () => Navigator.of(context).maybePop(),
+      tooltip: 'Back',
+    ),
+    title: Text(
+      'Your stats',
+      style: TextStyle(
+        color: AppColors.text,
+        fontSize: 26,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+      ),
+    ),
+  );
 }
 
 /// The one figure that matters: total time spent listening.
@@ -577,8 +576,7 @@ class _TopTrackCard extends ConsumerWidget {
 
     return NexoraGradientCard(
       padding: const EdgeInsets.all(12),
-      onTap: () =>
-          ref.read(playerProvider.notifier).playSongs(<Song>[track]),
+      onTap: () => ref.read(playerProvider.notifier).playSongs(<Song>[track]),
       child: Row(
         children: [
           ArtworkImage(
@@ -610,10 +608,7 @@ class _TopTrackCard extends ConsumerWidget {
                   '${stats.topTrackPlays == 1 ? 'play' : 'plays'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ],
             ),

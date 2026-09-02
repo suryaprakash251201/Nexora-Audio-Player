@@ -38,9 +38,7 @@ class HomeScreen extends ConsumerWidget {
       body: Stack(
         children: [
           // Ambient light. Sits behind everything and never intercepts taps.
-          const Positioned.fill(
-            child: NexoraAurora(intensity: 0.5),
-          ),
+          const Positioned.fill(child: NexoraAurora(intensity: 0.5)),
           Positioned.fill(
             child: RefreshIndicator(
               onRefresh: () async {
@@ -355,8 +353,10 @@ class _ContinueListening extends ConsumerWidget {
 
     final progress = state.duration.inMilliseconds == 0
         ? 0.0
-        : (state.position.inMilliseconds / state.duration.inMilliseconds)
-            .clamp(0.0, 1.0);
+        : (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          );
     final lossless = track.extras?['lossless'] as bool? ?? false;
 
     return NexoraGradientCard(
@@ -432,7 +432,10 @@ class _ContinueListening extends ConsumerWidget {
                         ),
                         if (lossless) ...[
                           const SizedBox(width: 8),
-                          const NexoraHiResBadge(label: 'LOSSLESS', compact: true),
+                          const NexoraHiResBadge(
+                            label: 'LOSSLESS',
+                            compact: true,
+                          ),
                         ],
                       ],
                     ),
@@ -611,9 +614,9 @@ class _RecentlyPlayedRow extends ConsumerWidget {
             separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, i) => _SmallSongCard(
               song: songs[i] as Song,
-              onTap: () => ref
-                  .read(playerProvider.notifier)
-                  .playSongs([songs[i] as Song]),
+              onTap: () => ref.read(playerProvider.notifier).playSongs([
+                songs[i] as Song,
+              ]),
             ),
           ),
         );
@@ -643,7 +646,11 @@ class _AlbumsGrid extends ConsumerWidget {
 
     return asyncAlbums.when(
       data: (list) {
-        if (list.isEmpty) return const _EmptyHint(icon: Icons.album_outlined, text: 'No albums yet');
+        if (list.isEmpty)
+          return const _EmptyHint(
+            icon: Icons.album_outlined,
+            text: 'No albums yet',
+          );
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -712,10 +719,7 @@ class _SongCard extends StatelessWidget {
               song.displayArtist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
@@ -761,10 +765,7 @@ class _SmallSongCard extends StatelessWidget {
               song.displayArtist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11),
             ),
           ],
         ),
@@ -810,10 +811,7 @@ class _AlbumCard extends StatelessWidget {
             '${album.artist ?? 'Album'} • ${album.trackCount ?? '—'} tracks',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -862,10 +860,7 @@ class _EmptyHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
           ),
         ],

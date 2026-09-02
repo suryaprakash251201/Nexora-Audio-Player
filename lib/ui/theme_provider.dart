@@ -20,8 +20,8 @@ final themeModeProvider = NotifierProvider<ThemeNotifier, AppThemePreference>(
 /// Player visual style (persisted).
 final playerVisualStyleProvider =
     NotifierProvider<PlayerVisualStyleNotifier, PlayerVisualStyle>(
-  PlayerVisualStyleNotifier.new,
-);
+      PlayerVisualStyleNotifier.new,
+    );
 
 class ThemeNotifier extends Notifier<AppThemePreference> {
   static const _key = 'app_theme_mode';
