@@ -682,7 +682,10 @@ class _ArtworkStage extends StatelessWidget {
       },
       layoutBuilder: (current, previous) => Stack(
         alignment: Alignment.center,
-        children: [...previous, current],
+        children: [
+          ...previous,
+          if (current != null) current,
+        ],
       ),
       child: KeyedSubtree(
         key: ValueKey(mode),
@@ -968,6 +971,7 @@ class _SecondaryActions extends StatelessWidget {
       children: [
         _Pill(
           icon: Icons.queue_music_rounded,
+          active: false,
           onTap: onQueue,
           tooltip: 'Queue',
         ),
@@ -1069,7 +1073,7 @@ class _VisualModeTile extends StatelessWidget {
       case PlayerVisualMode.vinyl:
         return Icons.album_rounded;
       case PlayerVisualMode.cassette:
-        return Icons.cassette_rounded;
+        return Icons.audiotrack_rounded;
       case PlayerVisualMode.minimal:
         return Icons.minimize_rounded;
     }

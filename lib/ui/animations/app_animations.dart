@@ -14,7 +14,7 @@ class AnimatedGradientBg extends StatelessWidget {
 
   const AnimatedGradientBg({
     super.key,
-    this.colors = const [AppColors.background, AppColors.background],
+    this.colors = const [AppColors.accent, AppColors.accent],
     this.blur = 0,
     required this.child,
     this.enableOrbs = false,

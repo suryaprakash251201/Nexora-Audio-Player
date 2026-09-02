@@ -121,7 +121,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _controller,
-                    style: const TextStyle(color: AppColors.text),
+                    style: TextStyle(color: AppColors.text),
                     decoration: const InputDecoration(
                       hintText:
                           'http://192.168.1.5  or  https://music.example.com',

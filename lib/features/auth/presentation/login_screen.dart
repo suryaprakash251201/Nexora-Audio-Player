@@ -161,10 +161,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _serverController,
-                    style: const TextStyle(color: AppColors.text),
+                    style: TextStyle(color: AppColors.text),
                     decoration: InputDecoration(
                       hintText: 'https://music.example.com',
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         color: AppColors.textDim,
                         fontSize: 14,
                       ),
@@ -186,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _userController,
-                    style: const TextStyle(color: AppColors.text),
+                    style: TextStyle(color: AppColors.text),
                     decoration: const InputDecoration(
                       hintText: 'admin',
                     ),
@@ -197,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextField(
                     controller: _passController,
                     obscureText: _obscure,
-                    style: const TextStyle(color: AppColors.text),
+                    style: TextStyle(color: AppColors.text),
                     decoration: InputDecoration(
                       hintText: '••••••••',
                       suffixIcon: IconButton(

@@ -33,7 +33,7 @@ class ErrorView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Something went wrong',
               style: TextStyle(
                 color: AppColors.text,
@@ -46,7 +46,7 @@ class ErrorView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 13,
                 height: 1.4,
@@ -99,7 +99,7 @@ class EmptyView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -111,7 +111,7 @@ class EmptyView extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
                   height: 1.4,
@@ -148,7 +148,7 @@ class LoadingView extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               message!,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+              style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
           ],
         ],
@@ -163,7 +163,7 @@ class OfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(
           bottom: BorderSide(color: AppColors.border, width: 0.5),

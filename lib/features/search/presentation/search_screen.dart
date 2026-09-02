@@ -46,10 +46,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
-                      style: const TextStyle(color: AppColors.text),
+                      style: TextStyle(color: AppColors.text),
                       decoration: InputDecoration(
                         hintText: 'Songs, albums, artists, playlists',
-                        hintStyle: const TextStyle(
+                        hintStyle: TextStyle(
                           color: AppColors.textDim,
                           fontSize: 14,
                         ),

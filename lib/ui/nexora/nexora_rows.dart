@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'nexora_artwork.dart';
 import 'nexora_tokens.dart';
 import 'nexora_primitives.dart';
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/dto/file_dto.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/api/files_api.dart';
 import '../../../domain/entities/playlist.dart';
@@ -87,7 +88,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.border, width: 0.6),
+          side: BorderSide(color: AppColors.border, width: 0.6),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -95,7 +96,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'NEW PLAYLIST',
                 style: TextStyle(
                   color: AppColors.textDim,
@@ -108,7 +109,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
               TextField(
                 controller: controller,
                 autofocus: true,
-                style: const TextStyle(color: AppColors.text),
+                style: TextStyle(color: AppColors.text),
                 decoration: const InputDecoration(
                   hintText: 'Playlist name',
                 ),

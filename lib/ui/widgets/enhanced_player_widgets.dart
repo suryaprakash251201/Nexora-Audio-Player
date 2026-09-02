@@ -472,7 +472,7 @@ class GlassMiniPlayer extends StatelessWidget {
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
                       onPressed: onPlayPause,
-                      accent: true,
+                      isAccent: true,
                     ),
                     const SizedBox(width: 2),
                     _MiniIconButton(

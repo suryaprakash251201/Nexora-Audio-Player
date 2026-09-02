@@ -321,7 +321,7 @@ class SettingsScreen extends ConsumerWidget {
       case AppThemePreference.dark:
         return Icons.dark_mode_outlined;
       case AppThemePreference.system:
-        return Icons.brightness_auto_outlined_rounded;
+        return Icons.brightness_auto_rounded;
     }
   }
 
@@ -554,7 +554,7 @@ class _ThemeOption extends StatelessWidget {
       case AppThemePreference.dark:
         return Icons.dark_mode_outlined;
       case AppThemePreference.system:
-        return Icons.brightness_auto_outlined_rounded;
+        return Icons.brightness_auto_rounded;
     }
   }
 }
@@ -623,7 +623,7 @@ class _PlayerStyleOption extends StatelessWidget {
       case PlayerVisualStyle.vinyl:
         return Icons.album_rounded;
       case PlayerVisualStyle.cassette:
-        return Icons.cassette_outlined;
+        return Icons.audiotrack_outlined;
       case PlayerVisualStyle.minimal:
         return Icons.minimize_outlined;
     }

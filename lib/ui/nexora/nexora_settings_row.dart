@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'nexora_primitives.dart';
 import 'nexora_tokens.dart';
 
 /// Editorial settings row used by Settings and detail pages.

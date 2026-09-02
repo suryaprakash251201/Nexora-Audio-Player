@@ -56,7 +56,7 @@ class ArtworkImage extends ConsumerWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(color: AppColors.surfaceRaised),
+        decoration: BoxDecoration(color: AppColors.surfaceRaised),
         child: Image.network(
           url!,
           key: ValueKey(imageKey),

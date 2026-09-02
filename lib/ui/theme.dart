@@ -21,51 +21,48 @@ class AppColors {
   static AppThemeMode mode = AppThemeMode.dark;
 
   // ── Backgrounds ─────────────────────────────────────────────
+  // NOTE: These are `const` (not getters) so they can be used inside `const`
+  // constructors (e.g. `const TextStyle(color: AppColors.text)`). The previous
+  // `mode`-aware getters broke every `const` usage in release/AOT. Light mode
+  // is still handled via `ThemeData` overrides; the raw tokens stay on the
+  // dark Hi-Fi palette (the primary experience).
   static const Color _backgroundDark = Color(0xFF080808);
   static const Color _backgroundLight = Color(0xFFF5F4F0);
-  static Color get background =>
-      mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
+  static const Color background = _backgroundDark;
 
   static const Color _surfaceDark = Color(0xFF111111);
   static const Color _surfaceLight = Color(0xFFFFFFFF);
-  static Color get surface =>
-      mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
+  static const Color surface = _surfaceDark;
 
   static const Color _surfaceRaisedDark = Color(0xFF171717);
   static const Color _surfaceRaisedLight = Color(0xFFEFEDE6);
-  static Color get surfaceRaised =>
-      mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
+  static const Color surfaceRaised = _surfaceRaisedDark;
 
   static const Color _surfaceHighDark = Color(0xFF1E1E1E);
   static const Color _surfaceHighLight = Color(0xFFE6E3DA);
-  static Color get surfaceHigh =>
-      mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
+  static const Color surfaceHigh = _surfaceHighDark;
 
   // ── Borders ────────────────────────────────────────────────
   static const Color _borderDark = Color(0xFF242424);
   static const Color _borderLight = Color(0xFFE0DDD2);
-  static Color get border =>
-      mode == AppThemeMode.dark ? _borderDark : _borderLight;
+  static const Color border = _borderDark;
 
   static const Color _hairlineDark = Color(0xFF1B1B1B);
   static const Color _hairlineLight = Color(0xFFEAE7DD);
-  static Color get hairline =>
-      mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
+  static const Color hairline = _hairlineDark;
 
   // ── Text ───────────────────────────────────────────────────
   static const Color _textDark = Color(0xFFF5F5F2);
   static const Color _textLight = Color(0xFF141414);
-  static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
+  static const Color text = _textDark;
 
   static const Color _textMutedDark = Color(0xFFA8A8A3);
   static const Color _textMutedLight = Color(0xFF6A6A65);
-  static Color get textMuted =>
-      mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
+  static const Color textMuted = _textMutedDark;
 
   static const Color _textDimDark = Color(0xFF6F6F6A);
   static const Color _textDimLight = Color(0xFF8C8C86);
-  static Color get textDim =>
-      mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
+  static const Color textDim = _textDimDark;
 
   // ── Accent (use sparingly) ─────────────────────────────────
   static const Color accent = Color(0xFFD8B56A);
@@ -98,13 +95,10 @@ class AppColors {
   static const Color secondaryLight = accent;
   static const Color tertiary = accent;
 
-  // These getters alias the mode-aware colors so callers can still write
-  // AppColors.glassBase without breaking. They are NOT const because the
-  // underlying values switch on [AppColors.mode].
-  static Color get glassBase => surface;
-  static Color get glassHighlight => surfaceHigh;
-  static Color get glassBorder => border;
-  static Color get glassBorderStrong => border;
+  static const Color glassBase = surface;
+  static const Color glassHighlight = surfaceHigh;
+  static const Color glassBorder = border;
+  static const Color glassBorderStrong = border;
 
   /// Spacing scale used throughout the app.
   static const double s4 = 4;
