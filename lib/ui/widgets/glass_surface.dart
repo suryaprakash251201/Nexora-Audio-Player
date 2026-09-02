@@ -1,11 +1,11 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Premium glassmorphism surface with layered blur, gradient tint,
-/// border shimmer, and optional inner glow — Apple Music / iOS-style.
+/// Hi-Fi replacement for the original glassmorphism surface.
+///
+/// Renders a flat surface card with a hairline border, minimal elevation
+/// and no blur/glass sheen — keeping the editorial calm of the redesign.
 class GlassSurface extends StatelessWidget {
   final Widget child;
   final double blur;
@@ -21,8 +21,8 @@ class GlassSurface extends StatelessWidget {
   const GlassSurface({
     super.key,
     required this.child,
-    this.blur = 25.0,
-    this.opacity = 0.5,
+    this.blur = 0,
+    this.opacity = 1,
     this.borderRadius,
     this.border,
     this.gradient,
@@ -34,76 +34,21 @@ class GlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(20);
-
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            gradient:
-                gradient ??
-                LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.glassBase.withOpacity(opacity),
-                    AppColors.glassBase.withOpacity(opacity * 0.6),
-                  ],
-                ),
-            border:
-                border ??
-                Border.all(
-                  color: showInnerGlow
-                      ? (glowColor ?? AppColors.primary).withValues(alpha: 0.35)
-                      : AppColors.glassBorder,
-                  width: showInnerGlow ? 1.0 : 0.5,
-                ),
-            boxShadow: [
-              if (showInnerGlow)
-                BoxShadow(
-                  color: (glowColor ?? AppColors.primary).withValues(
-                    alpha: 0.15,
-                  ),
-                  blurRadius: glowRadius ?? 30,
-                  spreadRadius: -8,
-                ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Top shimmer highlight
-              if (showShimmer)
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: radius,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.06),
-                          Colors.white.withValues(alpha: 0.0),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                        stops: const [0.0, 0.3, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-              // Inner content
-              child,
-            ],
-          ),
-        ),
+    final radius = borderRadius ?? BorderRadius.circular(12);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        color: AppColors.surface,
+        gradient: gradient,
+        border:
+            border ?? Border.all(color: AppColors.border, width: 0.6),
       ),
+      child: ClipRRect(borderRadius: radius, child: child),
     );
   }
 }
 
-/// A smaller glass chip for badges, tags, and inline labels.
+/// Subdued chip replacement — minimal padding, hairline border, accent ink.
 class GlassChip extends StatelessWidget {
   final Widget child;
   final Color? color;
@@ -120,31 +65,23 @@ class GlassChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(10);
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding:
-              padding ??
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: (color ?? AppColors.primary).withValues(alpha: 0.12),
-            borderRadius: radius,
-            border: Border.all(
-              color: (color ?? AppColors.primary).withValues(alpha: 0.2),
-              width: 0.5,
-            ),
-          ),
-          child: child,
-        ),
+    final accent = color ?? AppColors.accent;
+    final radius = borderRadius ?? BorderRadius.circular(8);
+    return Container(
+      padding:
+          padding ??
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: radius,
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 0.6),
       ),
+      child: child,
     );
   }
 }
 
-/// Glass card with a subtle animated shimmer border on hover/tap.
+/// Card replacement: flat, hairline-bordered, no shadow / blur.
 class GlassCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -159,49 +96,23 @@ class GlassCard extends StatelessWidget {
     this.onTap,
     this.padding,
     this.margin,
-    this.borderRadius = 20,
+    this.borderRadius = 12,
     this.elevated = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(borderRadius);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: margin,
-        child: ClipRRect(
-          borderRadius: radius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: padding,
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.glassBase.withOpacity(0.7),
-                    AppColors.glassBase.withOpacity(0.4),
-                  ],
-                ),
-                border: Border.all(color: AppColors.glassBorder, width: 0.5),
-                boxShadow: [
-                  if (elevated)
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
-                ],
-              ),
-              child: child,
-            ),
-          ),
-        ),
+    final card = Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border, width: 0.6),
       ),
+      child: ClipRRect(borderRadius: radius, child: Padding(padding: padding ?? EdgeInsets.zero, child: child)),
     );
+    if (onTap == null) return card;
+    return GestureDetector(onTap: onTap, child: card);
   }
 }

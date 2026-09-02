@@ -5,19 +5,18 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../ui/theme.dart';
-import '../../../ui/widgets/glass_surface.dart';
-import '../../../ui/widgets/premium_widgets.dart';
 
 class ServerConfigScreen extends ConsumerStatefulWidget {
   const ServerConfigScreen({super.key});
   @override
-  ConsumerState<ServerConfigScreen> createState() => _ServerConfigScreenState();
+  ConsumerState<ServerConfigScreen> createState() =>
+      _ServerConfigScreenState();
 }
 
 class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
   final _controller = TextEditingController();
   bool _testing = false;
-  String? _status; // null | success | error
+  String? _status;
   String? _msg;
 
   @override
@@ -52,8 +51,8 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     if (ok) {
       try {
         final probe = await api.probeServer(url);
-        final version =
-            probe['/healthz'] is Map && (probe['/healthz']['body'] is Map)
+        final version = probe['/healthz'] is Map &&
+                (probe['/healthz']['body'] is Map)
             ? (probe['/healthz']['body']['version'] ?? 'ok')
             : 'ok';
         details = '\nVersion: $version\nNormalized: ${probe['normalized']}';
@@ -79,16 +78,16 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter server URL')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter server URL')),
+      );
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Server saved: $url')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Server saved: $url')),
+    );
     context.pop();
   }
 
@@ -96,153 +95,126 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Server Configuration'),
-        backgroundColor: Colors.transparent,
-      ),
-      body: Stack(
-        children: [
-          AnimatedGradientBg(
-            colors: const [
-              AppColors.primary,
-              AppColors.secondary,
-              AppColors.tertiary,
-            ],
-            blur: 80,
-            child: const SizedBox.expand(),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: GlassSurface(
-                opacity: 0.55,
-                blur: 40,
-                borderRadius: BorderRadius.circular(28),
-                showShimmer: true,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.dns_rounded,
-                          size: 32,
-                          color: AppColors.text,
+      appBar: AppBar(title: const Text('Server')),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Label('NEXORA SERVER'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Self-hosted or LAN server',
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const _Label('SERVER URL'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _controller,
+                    style: const TextStyle(color: AppColors.text),
+                    decoration: const InputDecoration(
+                      hintText:
+                          'http://192.168.1.5  or  https://music.example.com',
+                    ),
+                  ),
+                  if (_status != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: (_status == 'success'
+                                ? AppColors.success
+                                : AppColors.error)
+                            .withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _status == 'success'
+                              ? AppColors.success
+                              : AppColors.error,
+                          width: 0.6,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Nexora Server',
-                        textAlign: TextAlign.center,
+                      child: Text(
+                        _msg ?? '',
                         style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.text,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Self-hosted or LAN server',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: _controller,
-                        style: TextStyle(color: AppColors.text),
-                        decoration: InputDecoration(
-                          hintText:
-                              'http://192.168.1.5  or  https://music.example.com',
-                          hintStyle: TextStyle(
-                            color: AppColors.textDim,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.link_rounded,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_status != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                (_status == 'success'
-                                        ? AppColors.success
-                                        : AppColors.error)
-                                    .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _status == 'success'
-                                  ? AppColors.success
-                                  : AppColors.error,
-                            ),
-                          ),
-                          child: Text(
-                            _msg ?? '',
-                            style: TextStyle(
                               color: _status == 'success'
                                   ? AppColors.success
                                   : AppColors.error,
                               fontSize: 13,
                               height: 1.4,
                             ),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _testing ? null : _test,
-                        icon: _testing
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.wifi_tethering_rounded),
-                        label: const Text('Test Connection'),
                       ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _save,
-                        child: const Text('Save & Connect'),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
-                        style: TextStyle(
-                          color: AppColors.textDim,
-                          fontSize: 11,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _testing ? null : _test,
+                      icon: _testing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.wifi_tethering_rounded),
+                      label: const Text('Test Connection'),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      child: const Text('Save & Connect'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
+                    style: TextStyle(
+                      color: AppColors.textDim,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textDim,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
       ),
     );
   }

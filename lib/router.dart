@@ -14,11 +14,16 @@ import 'features/library/presentation/folder_browser_screen.dart';
 import 'features/player/presentation/full_player_screen.dart';
 import 'features/player/presentation/mini_player.dart';
 import 'features/settings/presentation/settings_screen.dart';
+import 'features/settings/presentation/downloads_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/favorites/presentation/favorites_screen.dart';
 import 'features/equalizer/presentation/equalizer_screen.dart';
+import 'features/albums/presentation/album_detail_screen.dart';
+import 'features/artists/presentation/artist_detail_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/player/providers/player_provider.dart';
+import 'domain/entities/album.dart';
+import 'domain/entities/artist.dart';
 import 'domain/entities/playlist.dart';
 import 'ui/widgets/enhanced_player_widgets.dart';
 
@@ -90,6 +95,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
+            path: '/album/:id',
+            builder: (c, s) {
+              final id = s.pathParameters['id']!;
+              final extra = s.extra as Album?;
+              return AlbumDetailScreen(albumId: id, initial: extra);
+            },
+          ),
+          GoRoute(
+            path: '/artist/:id',
+            builder: (c, s) {
+              final id = s.pathParameters['id']!;
+              final extra = s.extra as Artist?;
+              return ArtistDetailScreen(artistId: id, initial: extra);
+            },
+          ),
+          GoRoute(
             path: '/folder',
             builder: (c, s) {
               final rootId =
@@ -104,6 +125,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (c, s) => const FavoritesScreen(),
           ),
           GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
+          GoRoute(path: '/downloads', builder: (c, s) => const DownloadsScreen()),
           GoRoute(
             path: '/equalizer',
             builder: (c, s) => const EqualizerScreen(),

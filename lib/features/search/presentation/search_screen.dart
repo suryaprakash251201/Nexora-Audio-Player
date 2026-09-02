@@ -1,13 +1,12 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
-import '../../../ui/widgets/enhanced_glass.dart';
-import '../../../ui/widgets/bright_icons.dart';
-import '../../../ui/widgets/enhanced_player_widgets.dart';
-import '../../../ui/animations/app_animations.dart';
+import '../../../core/utils/formatters.dart';
 import '../providers/search_provider.dart';
 import '../../../data/repositories/search_repository.dart';
 import '../../player/providers/player_provider.dart';
@@ -35,57 +34,48 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: AuroraBackground(
+      body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: EnhancedGlassSurface(
-                        opacity: 0.5,
-                        blur: 25,
-                        borderRadius: BorderRadius.circular(18),
-                        showShimmer: true,
-                        child: TextField(
-                          controller: _controller,
-                          style: TextStyle(color: AppColors.text),
-                          decoration: InputDecoration(
-                            hintText: 'Songs, albums, artists, playlists',
-                            hintStyle: TextStyle(color: AppColors.textDim),
-                            prefixIcon: const Icon(
-                              Icons.search_rounded,
-                              color: AppColors.primary,
-                            ),
-                            suffixIcon: query.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(
-                                      Icons.close_rounded,
-                                      color: AppColors.textMuted,
-                                    ),
-                                    onPressed: () {
-                                      _controller.clear();
-                                      ref.read(searchQueryProvider.notifier).state = '';
-                                    },
-                                  )
-                                : null,
-                            filled: false,
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                          ),
-                          onChanged: (v) =>
-                              ref.read(searchQueryProvider.notifier).state = v,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      style: const TextStyle(color: AppColors.text),
+                      decoration: InputDecoration(
+                        hintText: 'Songs, albums, artists, playlists',
+                        hintStyle: const TextStyle(
+                          color: AppColors.textDim,
+                          fontSize: 14,
                         ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                        ),
+                        suffixIcon: query.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _controller.clear();
+                                  ref.read(searchQueryProvider.notifier).state =
+                                      '';
+                                },
+                              )
+                            : null,
                       ),
+                      onChanged: (v) =>
+                          ref.read(searchQueryProvider.notifier).state = v,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             if (query.isEmpty)
@@ -93,45 +83,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: recent.when(
                   data: (list) => list.isEmpty
                       ? const EmptyView(
-                          title: 'Search Nexora',
-                          subtitle: 'Type to search across your library',
+                          title: 'Search your library',
+                          subtitle: 'Find songs, albums, artists, playlists',
                           icon: Icons.search_rounded,
                         )
                       : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.primary.withValues(alpha: 0.15),
-                                        AppColors.secondary.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.primary.withValues(alpha: 0.2),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.history_rounded,
-                                    size: 20,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Recent searches',
+                                const Text(
+                                  'RECENT SEARCHES',
                                   style: TextStyle(
-                                    color: AppColors.text,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 17,
+                                    color: AppColors.textDim,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.2,
                                   ),
                                 ),
                                 const Spacer(),
@@ -142,50 +109,52 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         .clearRecent();
                                     ref.invalidate(recentSearchesProvider);
                                   },
-                                  child: const Text('Clear'),
+                                  child: const Text(
+                                    'Clear',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            ...list.map(
-                              (q) => SlideInAnimation(
-                                child: GlassCard(
-                                  borderRadius: 16,
-                                  margin: const EdgeInsets.only(bottom: 8),
+                            const SizedBox(height: 8),
+                            for (final q in list)
+                              InkWell(
+                                onTap: () {
+                                  _controller.text = q;
+                                  ref
+                                      .read(searchQueryProvider.notifier)
+                                      .state = q;
+                                },
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
                                     vertical: 12,
                                   ),
-                                  onTap: () {
-                                    _controller.text = q;
-                                    ref.read(searchQueryProvider.notifier).state = q;
-                                  },
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: AppColors.hairline,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                  ),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceRaised,
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(
-                                            color: AppColors.border,
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.history_rounded,
-                                          size: 18,
-                                          color: AppColors.primary,
-                                        ),
+                                      const Icon(
+                                        Icons.history_rounded,
+                                        size: 16,
+                                        color: AppColors.textDim,
                                       ),
-                                      const SizedBox(width: 14),
+                                      const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           q,
-                                          style: TextStyle(color: AppColors.text),
+                                          style: const TextStyle(
+                                            color: AppColors.text,
+                                            fontSize: 15,
+                                          ),
                                         ),
                                       ),
-                                      Icon(
+                                      const Icon(
                                         Icons.north_west_rounded,
                                         size: 16,
                                         color: AppColors.textDim,
@@ -194,7 +163,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                   loading: () => const LoadingView(),
@@ -205,120 +173,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Expanded(
                 child: results.when(
                   data: (res) {
-                    if (res == null || res.isEmpty)
+                    if (res == null || res.isEmpty) {
                       return const EmptyView(
                         title: 'No results',
                         subtitle: 'Try a different query',
                         icon: Icons.search_off_rounded,
                       );
+                    }
                     return ListView(
                       padding: const EdgeInsets.only(bottom: 140),
                       children: [
                         if (res.songs.isNotEmpty) ...[
-                          _resultHeader('Songs', Icons.music_note_rounded, BrightIconTone.violet),
+                          _resultHeader('Songs'),
                           ...res.songs.map(
-                            (s) => SlideInAnimation(
-                              child: _SongResultTile(
-                                song: s,
-                                onTap: () => ref
-                                    .read(playerProvider.notifier)
-                                    .playSongs(
-                                      res.songs,
-                                      initialIndex: res.songs.indexOf(s),
-                                    ),
-                              ),
+                            (s) => _SongResultTile(
+                              song: s,
+                              onTap: () => ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs(
+                                    res.songs,
+                                    initialIndex: res.songs.indexOf(s),
+                                  ),
                             ),
                           ),
                         ],
                         if (res.albums.isNotEmpty) ...[
-                          _resultHeader('Albums', Icons.album_rounded, BrightIconTone.pink),
-                          ...res.albums.map((a) => SlideInAnimation(
-                            child: _AlbumResultTile(album: a),
-                          )),
+                          _resultHeader('Albums'),
+                          ...res.albums.map((a) => _AlbumResultTile(album: a)),
                         ],
                         if (res.artists.isNotEmpty) ...[
-                          _resultHeader('Artists', Icons.person_rounded, BrightIconTone.cyan),
-                          ...res.artists.map(
-                            (ar) => SlideInAnimation(
-                              child: GlassCard(
-                                borderRadius: 18,
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 4,
-                                ),
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    const GlassBrightIcon(
-                                      icon: Icons.person_rounded,
-                                      tone: BrightIconTone.cyan,
-                                      size: 44,
-                                      iconSize: 22,
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Text(
-                                        ar.name,
-                                        style: TextStyle(
-                                          color: AppColors.text,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          _resultHeader('Artists'),
+                          ...res.artists.map((a) => _ArtistResultTile(artist: a)),
                         ],
                         if (res.playlists.isNotEmpty) ...[
-                          _resultHeader('Playlists', Icons.queue_music_rounded, BrightIconTone.emerald),
-                          ...res.playlists.map(
-                            (p) => SlideInAnimation(
-                              child: GlassCard(
-                                borderRadius: 18,
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 4,
-                                ),
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    const GlassBrightIcon(
-                                      icon: Icons.queue_music_rounded,
-                                      tone: BrightIconTone.emerald,
-                                      size: 44,
-                                      iconSize: 22,
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            p.name,
-                                            style: TextStyle(
-                                              color: AppColors.text,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${p.trackCount ?? 0} tracks',
-                                            style: TextStyle(
-                                              color: AppColors.textMuted,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          _resultHeader('Playlists'),
+                          ...res.playlists.map((p) => _PlaylistResultTile(playlist: p)),
                         ],
                       ],
                     );
@@ -333,30 +222,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _resultHeader(String title, IconData icon, [BrightIconTone tone = BrightIconTone.violet]) {
+  Widget _resultHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-      child: Row(
-        children: [
-          GlassBrightIcon(
-            icon: icon,
-            tone: tone,
-            size: 38,
-            iconSize: 18,
-            active: true,
-            showGlow: true,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              letterSpacing: -0.3,
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.textDim,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
@@ -365,19 +241,91 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 class _SongResultTile extends ConsumerWidget {
   final dynamic song;
   final VoidCallback onTap;
-
   const _SongResultTile({required this.song, required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPlaying = ref.watch(playerProvider).currentTrack?.id == song.id;
-    return GlassSongTile(
-      artworkUrl: song.coverUrl,
-      title: song.title,
-      subtitle: song.artist ?? '',
-      isCurrent: isPlaying,
-      isPlaying: isPlaying && ref.watch(playerProvider).isPlaying,
+    final isPlaying =
+        ref.watch(playerProvider).currentTrack?.id == song.id;
+    return InkWell(
       onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: AppColors.surfaceRaised,
+                image: song.coverUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(song.coverUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: song.coverUrl == null
+                  ? const Icon(
+                      Icons.music_note_rounded,
+                      color: AppColors.textDim,
+                      size: 20,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isPlaying ? AppColors.accent : AppColors.text,
+                      fontWeight: isPlaying
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      fontSize: 15,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    song.artist ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (song.duration != null)
+              Text(
+                formatDuration(
+                  Duration(seconds: song.duration as int? ?? 0),
+                ),
+                style: const TextStyle(
+                  color: AppColors.textDim,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -388,25 +336,153 @@ class _AlbumResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      borderRadius: 16,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+        ),
+      ),
       child: Row(
         children: [
-          ArtworkImage(url: album.coverUrl, size: 48, borderRadius: 10),
-          const SizedBox(width: 14),
+          ArtworkImage(
+            url: album.coverUrl,
+            size: 48,
+            borderRadius: 6,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   album.title,
-                  style: TextStyle(color: AppColors.text),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.1,
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   album.artist ?? '',
-                  style: TextStyle(color: AppColors.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArtistResultTile extends StatelessWidget {
+  final dynamic artist;
+  const _ArtistResultTile({required this.artist});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.surfaceRaised,
+              border: Border.all(color: AppColors.border, width: 0.6),
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              size: 20,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              artist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaylistResultTile extends StatelessWidget {
+  final dynamic playlist;
+  const _PlaylistResultTile({required this.playlist});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: AppColors.surfaceRaised,
+            ),
+            child: const Icon(
+              Icons.queue_music_rounded,
+              size: 20,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  playlist.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${playlist.trackCount ?? 0} tracks',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

@@ -1,15 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'bright_icons.dart';
 
-// ═══════════════════════════════════════════════════════════════
-// ENHANCED PLAY BUTTON — With rotating gradient ring
-// ═══════════════════════════════════════════════════════════════
-
+/// Hi-Fi primary play/pause button. Single accent fill, calm press scale.
 class EnhancedPlayButton extends StatefulWidget {
   final bool isPlaying;
   final VoidCallback onPressed;
@@ -20,8 +15,8 @@ class EnhancedPlayButton extends StatefulWidget {
     super.key,
     required this.isPlaying,
     required this.onPressed,
-    this.size = 80,
-    this.showGlow = true,
+    this.size = 72,
+    this.showGlow = false,
   });
 
   @override
@@ -30,20 +25,19 @@ class EnhancedPlayButton extends StatefulWidget {
 
 class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 180),
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.92,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _scale = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
   }
 
   @override
@@ -62,62 +56,50 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
       },
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppColors.primaryGradient,
-                // Optimized glow — single soft halo only when playing.
-                boxShadow: widget.showGlow
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.28),
-                          blurRadius: 22,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    widget.isPlaying
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                    key: ValueKey(widget.isPlaying),
-                    color: Colors.white,
-                    size: widget.size * 0.46,
-                  ),
-                ),
+        animation: _scale,
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.accent,
+          ),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: Icon(
+                widget.isPlaying
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded,
+                key: ValueKey(widget.isPlaying),
+                color: AppColors.onAccent,
+                size: widget.size * 0.46,
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ROTATING ALBUM ART — With spinning vinyl effect
-// ═══════════════════════════════════════════════════════════════
-
+/// Album artwork that rotates gently when playing. Square by default — the
+/// Hi-Fi redesign keeps album artwork crisp and square rather than the
+/// circular treatment used in the previous design.
 class RotatingAlbumArt extends StatefulWidget {
   final String? imageUrl;
   final bool isPlaying;
   final double size;
+  final double borderRadius;
 
   const RotatingAlbumArt({
     super.key,
     this.imageUrl,
     required this.isPlaying,
     this.size = 280,
+    this.borderRadius = 8,
   });
 
   @override
@@ -126,7 +108,7 @@ class RotatingAlbumArt extends StatefulWidget {
 
 class _RotatingAlbumArtState extends State<RotatingAlbumArt>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -146,9 +128,6 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
     } else {
       _controller.stop();
     }
-    if (oldWidget.size != widget.size) {
-      // No-op, controller duration is independent of size.
-    }
   }
 
   @override
@@ -159,90 +138,57 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
 
   @override
   Widget build(BuildContext context) {
-    final isLight = AppColors.mode == AppThemeMode.light;
-    return Container(
+    final radius = BorderRadius.circular(widget.borderRadius);
+    return SizedBox(
       width: widget.size,
       height: widget.size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        // Soft optimized disc shadow — single subtle halo, no box glow.
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.32),
-            blurRadius: isLight ? 24 : 36,
-            spreadRadius: isLight ? 0 : 2,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Hairline rim for definition
           Container(
-            width: widget.size + 2,
-            height: widget.size + 2,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.glassBorderStrong.withValues(alpha: 0.5),
-                width: 0.7,
-              ),
+              borderRadius: radius,
+              color: AppColors.surfaceRaised,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
             ),
           ),
-          // Artwork — subtle slow drift only when playing (60s per rev)
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              final angle = widget.isPlaying
-                  ? _controller.value * 2 * math.pi
-                  : 0.0;
-              return Transform.rotate(
-                angle: angle,
-                child: Container(
-                  width: widget.size,
-                  height: widget.size,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: widget.imageUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(widget.imageUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    gradient: widget.imageUrl == null
-                        ? LinearGradient(
-                            colors: [
-                              AppColors.surfaceRaised,
-                              AppColors.surfaceHigh,
-                            ],
-                          )
-                        : null,
-                  ),
-                  child: widget.imageUrl == null
-                      ? Center(
-                          child: Icon(
+          ClipRRect(
+            borderRadius: radius,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (_, _) {
+                return Transform.scale(
+                  scale: widget.isPlaying
+                      ? 1.0 +
+                          0.012 *
+                              math.sin(_controller.value * 2 * math.pi)
+                      : 1.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      image: widget.imageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(widget.imageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: widget.imageUrl == null
+                        ? Icon(
                             Icons.music_note_rounded,
                             size: widget.size * 0.3,
                             color: AppColors.textDim,
-                          ),
-                        )
-                      : null,
-                ),
-              );
-            },
-          ),
-          // Center hole (vinyl style) — subtle matte dot
-          Container(
-            width: widget.size * 0.12,
-            height: widget.size * 0.12,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.background,
-              border: Border.all(
-                color: AppColors.glassBorderStrong,
-                width: 1.2,
-              ),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -251,10 +197,7 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ENHANCED SEEK BAR — Modern thin audiophile slider
-// ═══════════════════════════════════════════════════════════════
-
+/// Audiophile seek bar: thin track, hairline thumb, tabular numerals.
 class EnhancedSeekBar extends StatelessWidget {
   final double progress;
   final Duration position;
@@ -273,7 +216,7 @@ class EnhancedSeekBar extends StatelessWidget {
     this.onChangeEnd,
   });
 
-  String _formatDuration(Duration d) {
+  String _format(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
@@ -281,21 +224,19 @@ class EnhancedSeekBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = AppColors.mode == AppThemeMode.light;
     return Column(
       children: [
         SliderTheme(
           data: SliderThemeData(
-            trackHeight: 3,
-            activeTrackColor: isLight ? AppColors.text : Colors.white,
-            inactiveTrackColor: AppColors.textDim.withValues(alpha: 0.14),
-            thumbColor: isLight ? AppColors.text : Colors.white,
-            overlayColor: AppColors.primary.withValues(alpha: 0.10),
-            thumbShape: const RoundSliderThumbShape(
-              enabledThumbRadius: 7,
-              elevation: 2,
-            ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            trackHeight: 2,
+            activeTrackColor: AppColors.text,
+            inactiveTrackColor: AppColors.surfaceHigh,
+            thumbColor: AppColors.text,
+            overlayColor: AppColors.accent.withValues(alpha: 0.10),
+            thumbShape:
+                const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape:
+                const RoundSliderOverlayShape(overlayRadius: 14),
             trackShape: const RoundedRectSliderTrackShape(),
           ),
           child: Slider(
@@ -311,21 +252,23 @@ class EnhancedSeekBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _formatDuration(position),
-                style: TextStyle(
+                _format(position),
+                style: const TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                  letterSpacing: 0.4,
                 ),
               ),
               Text(
-                _formatDuration(duration),
-                style: TextStyle(
+                _format(duration),
+                style: const TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                  letterSpacing: 0.4,
                 ),
               ),
             ],
@@ -336,10 +279,9 @@ class EnhancedSeekBar extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// VISUALIZER BARS — Audio reactive animation
-// ═══════════════════════════════════════════════════════════════
-
+/// Equalizer-style animated bars — replaced with a calm still indicator.
+/// (Preserved as a public class for compatibility; pulses gently only when
+/// the user has it as the active visualizer.)
 class VisualizerBars extends StatefulWidget {
   final bool isPlaying;
   final int barCount;
@@ -350,7 +292,7 @@ class VisualizerBars extends StatefulWidget {
     super.key,
     required this.isPlaying,
     this.barCount = 20,
-    this.color = AppColors.primary,
+    this.color = AppColors.accent,
     this.height = 40,
   });
 
@@ -360,8 +302,8 @@ class VisualizerBars extends StatefulWidget {
 
 class _VisualizerBarsState extends State<VisualizerBars>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late List<double> _barHeights;
+  late final AnimationController _controller;
+  late final List<double> _barHeights;
 
   @override
   void initState() {
@@ -394,15 +336,13 @@ class _VisualizerBarsState extends State<VisualizerBars>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, _) {
-        // Generate pseudo-random bar heights based on animation value
+      builder: (_, _) {
         for (var i = 0; i < widget.barCount; i++) {
           final phase = _controller.value * math.pi * 4 + i * 0.5;
           _barHeights[i] = widget.isPlaying
               ? 0.2 + 0.8 * ((math.sin(phase) + 1) / 2)
               : 0.1;
         }
-
         return SizedBox(
           height: widget.height,
           child: Row(
@@ -415,14 +355,7 @@ class _VisualizerBarsState extends State<VisualizerBars>
                 margin: const EdgeInsets.symmetric(horizontal: 1.5),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      widget.color.withValues(alpha: 0.8),
-                      widget.color.withValues(alpha: 0.3),
-                    ],
-                  ),
+                  color: AppColors.accent.withValues(alpha: 0.7),
                 ),
               );
             }),
@@ -433,10 +366,7 @@ class _VisualizerBarsState extends State<VisualizerBars>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS MINI PLAYER — Enhanced with animations
-// ═══════════════════════════════════════════════════════════════
-
+/// Hi-Fi mini player: calm, album-first, tactile controls.
 class GlassMiniPlayer extends StatelessWidget {
   final String? artworkUrl;
   final String title;
@@ -463,277 +393,152 @@ class GlassMiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = AppColors.mode == AppThemeMode.light;
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 14),
+        margin: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: isLight
-              ? Colors.white.withValues(alpha: 0.92)
-              : AppColors.glassBase.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: isLight ? AppColors.hairline : AppColors.glassBorderStrong,
-            width: 0.6,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.28),
-              blurRadius: isLight ? 18 : 26,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 0.6),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
-                  child: Row(
-                    children: [
-                      // Round artwork disc
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          image: artworkUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(artworkUrl!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                          gradient: artworkUrl == null
-                              ? LinearGradient(
-                                  colors: [
-                                    AppColors.surfaceRaised,
-                                    AppColors.surfaceHigh,
-                                  ],
-                                )
-                              : null,
-                        ),
-                        child: artworkUrl == null
-                            ? Icon(
-                                Icons.music_note_rounded,
-                                color: AppColors.textDim,
-                                size: 22,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
+                child: Row(
+                  children: [
+                    // Square artwork with hairline rim.
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        image: artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(artworkUrl!),
+                                fit: BoxFit.cover,
                               )
                             : null,
+                        color: AppColors.surfaceRaised,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                      child: artworkUrl == null
+                          ? Icon(
+                            Icons.music_note_rounded,
+                            color: AppColors.textDim,
+                            size: 20,
+                          )
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          if (artist != null) ...[
+                            const SizedBox(height: 2),
                             Text(
-                              title,
+                              artist!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: AppColors.text,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13.5,
-                                letterSpacing: -0.1,
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            if (artist != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                artist!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
-                      // Round play button (filled when playing)
-                      _MiniPlayButton(
-                        isPlaying: isPlaying,
-                        onPressed: onPlayPause,
-                      ),
+                    ),
+                    _MiniIconButton(
+                      icon: isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      onPressed: onPlayPause,
+                      accent: true,
+                    ),
+                    const SizedBox(width: 2),
+                    _MiniIconButton(
+                      icon: Icons.skip_next_rounded,
+                      onPressed: onNext,
+                    ),
+                    if (onDismiss != null) ...[
                       const SizedBox(width: 2),
-                      _GlassIconButton(
-                        icon: Icons.skip_next_rounded,
-                        tone: BrightIconTone.sky,
-                        isActive: true,
-                        onPressed: onNext,
+                      _MiniIconButton(
+                        icon: Icons.close_rounded,
+                        onPressed: onDismiss!,
                       ),
-                      if (onDismiss != null) ...[
-                        const SizedBox(width: 2),
-                        _GlassIconButton(
-                          icon: Icons.close_rounded,
-                          tone: BrightIconTone.rose,
-                          onPressed: onDismiss!,
-                        ),
-                      ],
                     ],
-                  ),
-                ),
-                // Glowing gradient inline progress line
-                Stack(
-                  children: [
-                    Container(
-                      height: 2.5,
-                      color: AppColors.textDim.withValues(alpha: 0.12),
-                    ),
-                    FractionallySizedBox(
-                      widthFactor: progress.clamp(0.0, 1.0),
-                      child: Container(
-                        height: 2.5,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.6),
-                              blurRadius: 6,
-                              spreadRadius: 0.5,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniPlayButton extends StatefulWidget {
-  final bool isPlaying;
-  final VoidCallback onPressed;
-  const _MiniPlayButton({required this.isPlaying, required this.onPressed});
-
-  @override
-  State<_MiniPlayButton> createState() => _MiniPlayButtonState();
-}
-
-class _MiniPlayButtonState extends State<_MiniPlayButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _c;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 140),
-    );
-    _scale = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),
-    );
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _c.forward(),
-      onTapUp: (_) {
-        _c.reverse();
-        widget.onPressed();
-      },
-      onTapCancel: () => _c.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          width: 38,
-          height: 38,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: AppColors.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.45),
-                blurRadius: 14,
-                spreadRadius: -1,
-                offset: const Offset(0, 3),
+              ),
+              // Thin progress line
+              Container(
+                height: 2,
+                color: AppColors.surfaceHigh,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: progress.clamp(0.0, 1.0),
+                    child: Container(color: AppColors.accent),
+                  ),
+                ),
               ),
             ],
           ),
-          child: Icon(
-            widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            color: Colors.white,
-            size: 22,
-          ),
         ),
       ),
     );
   }
 }
 
-class _GlassIconButton extends StatelessWidget {
+class _MiniIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
-  final bool isActive;
-  final BrightIconTone tone;
+  final bool isAccent;
 
-  const _GlassIconButton({
+  const _MiniIconButton({
     required this.icon,
     required this.onPressed,
-    this.isActive = false,
-    this.tone = BrightIconTone.violet,
+    this.isAccent = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isActive
-              ? tone.base.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.06),
-          border: Border.all(
-            color: isActive
-                ? tone.base.withValues(alpha: 0.35)
-                : Colors.white.withValues(alpha: 0.12),
-            width: 0.6,
-          ),
-        ),
-        child: Center(
-          child: BrightIcon(
-            icon: icon,
-            size: 20,
-            tone: tone,
-            active: isActive,
-          ),
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        iconSize: 20,
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          color: isAccent ? AppColors.accent : AppColors.text,
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ENHANCED NAVIGATION BAR — Glass floating dock
-// ═══════════════════════════════════════════════════════════════
-
+/// Hi-Fi navigation bar — flat dock, hairline borders, accent for selection.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -744,96 +549,51 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  /// Total space the bar occupies (bar height + bottom margin). The scroll
-  /// dock uses this to position the mini player above it.
-  /// Bottom margin reduced so the bar sits a little lower, near the edge.
-  static const double height = 64;
+  static const double height = 60;
   static const double bottomMargin = 6;
   static const double totalHeight = height + bottomMargin;
 
-  /// Each destination: outline icon, filled icon, label and its bright tone.
   static const _destinations = [
-    (Icons.home_outlined, Icons.home_rounded, 'Home', BrightIconTone.violet),
-    (
-      Icons.search_outlined,
-      Icons.search_rounded,
-      'Search',
-      BrightIconTone.cyan,
-    ),
+    (Icons.home_outlined, Icons.home_rounded, 'Home'),
+    (Icons.search_outlined, Icons.search_rounded, 'Search'),
     (
       Icons.library_music_outlined,
       Icons.library_music_rounded,
       'Library',
-      BrightIconTone.pink,
     ),
     (
       Icons.queue_music_outlined,
       Icons.queue_music_rounded,
       'Playlists',
-      BrightIconTone.emerald,
     ),
-    (
-      Icons.settings_outlined,
-      Icons.settings_rounded,
-      'Settings',
-      BrightIconTone.amber,
-    ),
+    (Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Centered dock — same 14px horizontal as mini player, lowered to edge.
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, bottomMargin),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, bottomMargin),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 34,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 0.6),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.glassBase.withValues(alpha: 0.78),
-                  AppColors.glassBase.withValues(alpha: 0.52),
-                ],
-              ),
-              border: Border.all(
-                color: AppColors.glassBorderStrong,
-                width: 0.6,
-              ),
-            ),
-            child: Container(
-              height: height,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(_destinations.length, (i) {
-                  final (icon, selIcon, label, tone) = _destinations[i];
-                  final selected = i == selectedIndex;
-                  return _NavItem(
-                    icon: icon,
-                    selectedIcon: selIcon,
-                    label: label,
-                    tone: tone,
-                    selected: selected,
-                    onTap: () => onSelect(i),
-                  );
-                }),
-              ),
-            ),
-          ),
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(_destinations.length, (i) {
+            final (icon, selIcon, label) = _destinations[i];
+            final selected = i == selectedIndex;
+            return _NavItem(
+              icon: icon,
+              selectedIcon: selIcon,
+              label: label,
+              selected: selected,
+              onTap: () => onSelect(i),
+            );
+          }),
         ),
       ),
     );
@@ -844,7 +604,6 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
-  final BrightIconTone tone;
   final bool selected;
   final VoidCallback onTap;
 
@@ -852,61 +611,42 @@ class _NavItem extends StatelessWidget {
     required this.icon,
     required this.selectedIcon,
     required this.label,
-    required this.tone,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = tone.stops;
+    final color = selected ? AppColors.accent : AppColors.textDim;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 280),
+        duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colors.first.withValues(alpha: 0.3),
-                    colors.last.withValues(alpha: 0.08),
-                  ],
-                )
-              : null,
-          borderRadius: BorderRadius.circular(22),
-          border: selected
-              ? Border.all(
-                  color: colors.first.withValues(alpha: 0.35),
-                  width: 0.6,
-                )
-              : null,
+          color: selected
+              ? AppColors.accent.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedScale(
-              scale: selected ? 1.12 : 1.0,
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOutBack,
-              child: BrightIcon(
-                icon: selected ? selectedIcon : icon,
-                size: 23,
-                tone: tone,
-                active: selected,
-              ),
+            Icon(
+              selected ? selectedIcon : icon,
+              color: color,
+              size: 22,
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 2),
             AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 280),
+              duration: const Duration(milliseconds: 220),
               style: TextStyle(
-                color: selected ? colors.first : AppColors.textDim,
-                fontSize: 9.5,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                color: color,
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
               ),
               child: Text(label),
             ),
@@ -917,10 +657,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS SONG LIST TILE
-// ═══════════════════════════════════════════════════════════════
-
+/// Editorial track row used across lists. Subtle separators, no glass.
 class GlassSongTile extends StatelessWidget {
   final String? artworkUrl;
   final String title;
@@ -945,137 +682,120 @@ class GlassSongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final textColor = isCurrent ? AppColors.accent : AppColors.text;
+    return InkWell(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isCurrent
-                ? [
-                    AppColors.primary.withValues(alpha: 0.12),
-                    AppColors.primary.withValues(alpha: 0.04),
-                  ]
-                : [
-                    AppColors.glassBase.withValues(alpha: 0.3),
-                    AppColors.glassBase.withValues(alpha: 0.1),
-                  ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isCurrent
-                ? AppColors.primary.withValues(alpha: 0.2)
-                : AppColors.glassBorder,
-            width: 0.5,
+          border: Border(
+            bottom: BorderSide(color: AppColors.hairline, width: 0.5),
           ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 4,
-              ),
-              leading: Stack(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 50,
-                    height: 50,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       image: artworkUrl != null
                           ? DecorationImage(
                               image: NetworkImage(artworkUrl!),
                               fit: BoxFit.cover,
                             )
                           : null,
-                      gradient: artworkUrl == null
-                          ? LinearGradient(
-                              colors: [
-                                AppColors.surfaceRaised,
-                                AppColors.surfaceHigh,
-                              ],
-                            )
-                          : null,
+                      color: AppColors.surfaceRaised,
                     ),
                     child: artworkUrl == null
                         ? Icon(
                             Icons.music_note_rounded,
                             color: AppColors.textDim,
-                            size: 24,
+                            size: 20,
                           )
                         : null,
                   ),
                   if (isPlaying)
                     Container(
-                      width: 50,
-                      height: 50,
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Center(
-                        child: _MiniVisualizer(color: AppColors.primary),
+                        child: _MiniBars(color: AppColors.accent),
                       ),
                     ),
                 ],
               ),
-              title: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isCurrent ? AppColors.primaryLight : AppColors.text,
-                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: subtitle != null
-                  ? Text(
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight:
+                          isCurrent ? FontWeight.w600 : FontWeight.w500,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
+                        fontWeight: FontWeight.w400,
                       ),
-                    )
-                  : null,
-              trailing:
-                  trailing ??
-                  (onMore != null
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.more_vert_rounded,
-                            color: AppColors.textDim,
-                            size: 20,
-                          ),
-                          onPressed: onMore,
-                        )
-                      : null),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
+            if (trailing != null)
+              trailing!
+            else if (onMore != null)
+              IconButton(
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: AppColors.textDim,
+                  size: 20,
+                ),
+                onPressed: onMore,
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _MiniVisualizer extends StatefulWidget {
+class _MiniBars extends StatefulWidget {
   final Color color;
-
-  const _MiniVisualizer({required this.color});
+  const _MiniBars({required this.color});
 
   @override
-  State<_MiniVisualizer> createState() => _MiniVisualizerState();
+  State<_MiniBars> createState() => _MiniBarsState();
 }
 
-class _MiniVisualizerState extends State<_MiniVisualizer>
+class _MiniBarsState extends State<_MiniBars>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -1096,15 +816,17 @@ class _MiniVisualizerState extends State<_MiniVisualizer>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, _) {
+      builder: (_, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(3, (i) {
             final h =
                 4 +
-                8 *
-                    ((math.sin(_controller.value * math.pi * 2 + i * 1.5) + 1) /
+                    8 *
+                        ((math.sin(_controller.value * math.pi * 2 +
+                                i * 1.5) +
+                            1) /
                         2);
             return Container(
               width: 3,

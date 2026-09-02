@@ -1,14 +1,10 @@
-import 'dart:math' as math;
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-// ═══════════════════════════════════════════════════════════════
-// ENHANCED GLASS SURFACE — Multi-layer glassmorphism
-// ═══════════════════════════════════════════════════════════════
-
+/// Hi-Fi replacement for [EnhancedGlassSurface]. Renders a clean, flat
+/// surface with hairline borders and minimal elevation. No backdrop blur,
+/// no shimmer, no glow orbs.
 class EnhancedGlassSurface extends StatelessWidget {
   final Widget child;
   final double blur;
@@ -26,12 +22,12 @@ class EnhancedGlassSurface extends StatelessWidget {
   const EnhancedGlassSurface({
     super.key,
     required this.child,
-    this.blur = 30.0,
-    this.opacity = 0.5,
+    this.blur = 0,
+    this.opacity = 1,
     this.borderRadius,
     this.border,
     this.gradient,
-    this.showShimmer = true,
+    this.showShimmer = false,
     this.showInnerGlow = false,
     this.glowColor,
     this.glowRadius,
@@ -41,100 +37,23 @@ class EnhancedGlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(24);
-    final isLight = AppColors.mode == AppThemeMode.light;
-
+    final radius = borderRadius ?? BorderRadius.circular(12);
     return Container(
+      padding: padding,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: shadows ?? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.28),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-          if (showInnerGlow)
-            BoxShadow(
-              color: (glowColor ?? AppColors.primary).withValues(
-                alpha: isLight ? 0.15 : 0.22,
-              ),
-              blurRadius: glowRadius ?? 48,
-              spreadRadius: -4,
-            ),
-        ],
+        color: AppColors.surface,
+        gradient: gradient,
+        border:
+            border ?? Border.all(color: AppColors.border, width: 0.6),
+        boxShadow: shadows,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              gradient:
-                  gradient ??
-                  LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isLight
-                        ? [
-                            Colors.white.withValues(alpha: 0.88),
-                            Colors.white.withValues(alpha: 0.65),
-                          ]
-                        : [
-                            AppColors.glassBase.withValues(alpha: opacity),
-                            AppColors.glassBase.withValues(alpha: opacity * 0.6),
-                          ],
-                  ),
-              border:
-                  border ??
-                  Border.all(
-                    color: showInnerGlow
-                        ? (glowColor ?? AppColors.primary).withValues(
-                            alpha: 0.45,
-                          )
-                        : (isLight ? AppColors.glassBorder : AppColors.glassBorderStrong),
-                    width: showInnerGlow ? 1.0 : 0.6,
-                  ),
-            ),
-            child: Stack(
-              children: [
-                // Specular top highlight bevel
-                if (showShimmer)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: radius,
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.white.withValues(alpha: isLight ? 0.25 : 0.12),
-                              Colors.white.withValues(alpha: 0.0),
-                              Colors.white.withValues(alpha: 0.0),
-                            ],
-                            stops: const [0.0, 0.35, 1.0],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                // Inner content
-                child,
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: ClipRRect(borderRadius: radius, child: child),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS CARD — Interactive with press animation
-// ═══════════════════════════════════════════════════════════════
-
+/// Flat press-responsive card with subtle scale animation.
 class GlassCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -150,7 +69,7 @@ class GlassCard extends StatefulWidget {
     this.onTap,
     this.padding,
     this.margin,
-    this.borderRadius = 24,
+    this.borderRadius = 12,
     this.elevated = false,
     this.animated = true,
   });
@@ -161,8 +80,8 @@ class GlassCard extends StatefulWidget {
 
 class _GlassCardState extends State<GlassCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
@@ -171,7 +90,7 @@ class _GlassCardState extends State<GlassCard>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
+    _scale = Tween<double>(begin: 1.0, end: 0.98).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
   }
@@ -185,66 +104,36 @@ class _GlassCardState extends State<GlassCard>
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(widget.borderRadius);
-
-    Widget card = Container(
+    final card = Container(
       margin: widget.margin,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: [
-          if (widget.elevated)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 28,
-              offset: const Offset(0, 14),
-            ),
-        ],
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border, width: 0.6),
       ),
       child: ClipRRect(
         borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            padding: widget.padding,
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.glassBase.withValues(alpha: 0.65),
-                  AppColors.glassBase.withValues(alpha: 0.35),
-                ],
-              ),
-              border: Border.all(color: AppColors.glassBorder, width: 0.5),
-            ),
-            child: widget.child,
-          ),
-        ),
+        child: Padding(padding: widget.padding ?? EdgeInsets.zero, child: widget.child),
       ),
     );
 
     if (!widget.animated || widget.onTap == null) return card;
-
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(scale: _scaleAnimation.value, child: child);
-        },
+        animation: _scale,
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
         child: card,
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS CHIP — Small glass badge
-// ═══════════════════════════════════════════════════════════════
-
+/// Compact badge / pill — minimal padding, hairline border, accent ink.
 class GlassChip extends StatelessWidget {
   final Widget child;
   final Color? color;
@@ -261,34 +150,24 @@ class GlassChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(12);
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding:
-              padding ??
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: (color ?? AppColors.primary).withValues(alpha: 0.12),
-            borderRadius: radius,
-            border: Border.all(
-              color: (color ?? AppColors.primary).withValues(alpha: 0.22),
-              width: 0.5,
-            ),
-          ),
-          child: child,
-        ),
+    final accent = color ?? AppColors.accent;
+    final radius = borderRadius ?? BorderRadius.circular(8);
+    return Container(
+      padding:
+          padding ??
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: radius,
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 0.6),
       ),
+      child: child,
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS BOTTOM SHEET
-// ═══════════════════════════════════════════════════════════════
-
+/// Bottom sheet wrapper — flat surface, no glass blur. Kept as
+/// `GlassBottomSheet` so call sites compile.
 class GlassBottomSheet extends StatelessWidget {
   final Widget child;
   final double? height;
@@ -298,7 +177,7 @@ class GlassBottomSheet extends StatelessWidget {
     super.key,
     required this.child,
     this.height,
-    this.borderRadius = 28,
+    this.borderRadius = 16,
   });
 
   @override
@@ -306,36 +185,24 @@ class GlassBottomSheet extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.surfaceHigh.withValues(alpha: 0.85),
-            AppColors.surface.withValues(alpha: 0.9),
-          ],
-        ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        color: AppColors.surface,
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(borderRadius)),
         border: Border(
-          top: BorderSide(color: AppColors.glassBorderStrong, width: 0.5),
+          top: BorderSide(color: AppColors.border, width: 0.6),
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(borderRadius),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: SafeArea(top: false, child: child),
-        ),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        child: SafeArea(top: false, child: child),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS APP BAR
-// ═══════════════════════════════════════════════════════════════
-
+/// App bar — kept as `GlassAppBar` so legacy call sites compile. The new
+/// design uses a clean AppBar directly.
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final List<Widget>? actions;
@@ -351,62 +218,40 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBottom = false,
     this.bottom,
-    this.blur = 25,
+    this.blur = 0,
   });
 
   @override
   Size get preferredSize => Size.fromHeight(
-    kToolbarHeight + (bottom?.preferredSize.height ?? 0),
-  );
+        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+      );
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.background.withValues(alpha: 0.85),
-                AppColors.background.withValues(alpha: 0.6),
-                AppColors.background.withValues(alpha: 0.0),
-              ],
-              stops: const [0.0, 0.6, 1.0],
-            ),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            surfaceTintColor: Colors.transparent,
-            leading: leading,
-            title: title != null
-                ? Text(
-                    title!,
-                    style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
-                  )
-                : null,
-            actions: actions,
-            bottom: bottom,
-          ),
-        ),
-      ),
+    return AppBar(
+      backgroundColor: AppColors.background,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: leading,
+      title: title != null
+          ? Text(
+              title!,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
+            )
+          : null,
+      actions: actions,
+      bottom: bottom,
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GLASS FLOATING ACTION BUTTON
-// ═══════════════════════════════════════════════════════════════
-
+/// FAB replacement. Single accent fill, no glow.
 class GlassFAB extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
@@ -416,180 +261,45 @@ class GlassFAB extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.child,
-    this.size = 60,
+    this.size = 56,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.8),
-              AppColors.primaryDark.withValues(alpha: 0.9),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
-              blurRadius: 24,
-              spreadRadius: 2,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: Center(child: child),
-            ),
-          ),
-        ),
+    return SizedBox(
+      width: size,
+      height: size,
+      child: FloatingActionButton(
+        onPressed: onPressed,
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        elevation: 1,
+        shape: const CircleBorder(),
+        child: child,
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// AURORA BACKGROUND — Animated flowing gradient
-// ═══════════════════════════════════════════════════════════════
-
-class AuroraBackground extends StatefulWidget {
+/// Aurora background — replaced with a solid background. Kept as a class so
+/// legacy call sites still compile.
+class AuroraBackground extends StatelessWidget {
   final Widget child;
   final List<Color> colors;
 
   const AuroraBackground({
     super.key,
     required this.child,
-    this.colors = const [
-      AppColors.primary,
-      AppColors.secondary,
-      AppColors.tertiary,
-      Color(0xFF7C3AED),
-    ],
+    this.colors = const [AppColors.accent, AppColors.accent],
   });
 
   @override
-  State<AuroraBackground> createState() => _AuroraBackgroundState();
-}
-
-class _AuroraBackgroundState extends State<AuroraBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(color: AppColors.background),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return CustomPaint(
-              size: MediaQuery.of(context).size,
-              painter: _AuroraPainter(
-                t: _controller.value,
-                colors: widget.colors,
-              ),
-            );
-          },
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.background.withValues(alpha: 0.0),
-                AppColors.background.withValues(alpha: 0.5),
-                AppColors.background.withValues(alpha: 0.85),
-              ],
-              stops: const [0.0, 0.4, 1.0],
-            ),
-          ),
-        ),
-        widget.child,
-      ],
-    );
+    return ColoredBox(color: AppColors.background, child: child);
   }
 }
 
-class _AuroraPainter extends CustomPainter {
-  final double t;
-  final List<Color> colors;
-
-  _AuroraPainter({required this.t, required this.colors});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 100);
-
-    // Create flowing aurora bands
-    for (var band = 0; band < 3; band++) {
-      final path = Path();
-      final baseY = size.height * (0.15 + band * 0.25);
-      final amplitude = size.height * 0.08;
-      final frequency = 0.003 + band * 0.001;
-      final speed = t * math.pi * 2 + band * 2.0;
-
-      path.moveTo(0, baseY);
-
-      for (double x = 0; x <= size.width; x += 10) {
-        final y = baseY +
-            math.sin(x * frequency + speed) * amplitude +
-            math.sin(x * frequency * 2.3 + speed * 1.5) * amplitude * 0.5;
-        path.lineTo(x, y);
-      }
-
-      path.lineTo(size.width, size.height);
-      path.lineTo(0, size.height);
-      path.close();
-
-      final colorIndex = band % colors.length;
-      paint.color = colors[colorIndex].withValues(alpha: 0.06 + band * 0.02);
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _AuroraPainter old) => t != old.t;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// GLASS DIALOG
-// ═══════════════════════════════════════════════════════════════
-
+/// Glass dialog replacement — flat surface, hairline border.
 class GlassDialog extends StatelessWidget {
   final Widget child;
   final double borderRadius;
@@ -597,53 +307,29 @@ class GlassDialog extends StatelessWidget {
   const GlassDialog({
     super.key,
     required this.child,
-    this.borderRadius = 28,
+    this.borderRadius = 16,
   });
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+        side: BorderSide(color: AppColors.border, width: 0.6),
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.glassBase.withValues(alpha: 0.7),
-                  AppColors.glassBase.withValues(alpha: 0.4),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(
-                color: AppColors.glassBorderStrong,
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 40,
-                  offset: const Offset(0, 20),
-                ),
-              ],
-            ),
-            child: child,
-          ),
-        ),
+        child: child,
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NEON GLOW BUTTON
-// ═══════════════════════════════════════════════════════════════
-
+/// Neon glow button — replaced by a calm, single-accent fill button with
+/// scale-on-press.
 class NeonGlowButton extends StatefulWidget {
   final String label;
   final IconData? icon;
@@ -656,8 +342,8 @@ class NeonGlowButton extends StatefulWidget {
     required this.label,
     this.icon,
     required this.onPressed,
-    this.color = AppColors.primary,
-    this.height = 56,
+    this.color = AppColors.accent,
+    this.height = 52,
   });
 
   @override
@@ -666,14 +352,14 @@ class NeonGlowButton extends StatefulWidget {
 
 class _NeonGlowButtonState extends State<NeonGlowButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 140),
     );
   }
 
@@ -685,6 +371,10 @@ class _NeonGlowButtonState extends State<NeonGlowButton>
 
   @override
   Widget build(BuildContext context) {
+    final bg = widget.color;
+    final fg = widget.color == AppColors.error
+        ? AppColors.text
+        : AppColors.onAccent;
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -694,71 +384,37 @@ class _NeonGlowButtonState extends State<NeonGlowButton>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (context, _) {
-          final scale = 1.0 - _controller.value * 0.03;
-          return Transform.scale(
-            scale: scale,
-            child: Container(
-              height: widget.height,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    widget.color,
-                    widget.color.withValues(alpha: 0.8),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 8),
-                  ),
+        builder: (_, child) => Transform.scale(
+          scale: 1.0 - _controller.value * 0.02,
+          child: child,
+        ),
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, color: fg, size: 20),
+                  const SizedBox(width: 10),
                 ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (widget.icon != null) ...[
-                            Icon(
-                              widget.icon,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 10),
-                          ],
-                          Text(
-                            widget.label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
                   ),
                 ),
-              ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

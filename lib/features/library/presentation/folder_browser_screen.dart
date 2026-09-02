@@ -1,3 +1,5 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +9,6 @@ import '../../../data/dto/file_dto.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
-import '../../../ui/widgets/premium_widgets.dart';
 import '../../player/providers/player_provider.dart';
 
 /// A folder in the Nexora Music root, with a lazily resolved cover.
@@ -37,7 +38,7 @@ class FolderContent {
 List<(String, String)> breadcrumbSegments(String path) {
   final segs = path.split('/').where((s) => s.isNotEmpty).toList();
   final out = <(String, String)>[]; // (label, path)
-  out.add(('Music', ''));
+  out.add(('Library', ''));
   var acc = '';
   for (final s in segs) {
     acc = acc.isEmpty ? s : '$acc/$s';
@@ -75,29 +76,29 @@ final folderContentProvider = FutureProvider.autoDispose
       return FolderContent(folders: folders, songs: songs);
     });
 
-/// Lazily resolves a folder cover (cover.jpeg/cover.png, else first audio
-/// file's thumbnail).
-final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
-  ref,
-  folderId,
-) async {
-  final api = ref.watch(filesApiProvider);
-  final idx = folderId.indexOf('|');
-  if (idx <= 0) return null;
-  final rootId = folderId.substring(0, idx);
-  final path = folderId.substring(idx + 1);
-  return api.folderCoverUrl(rootId, path);
-});
+/// Lazily resolves a folder cover.
+final folderCoverProvider =
+    FutureProvider.autoDispose.family<String?, String>((ref, folderId) async {
+      final api = ref.watch(filesApiProvider);
+      final idx = folderId.indexOf('|');
+      if (idx <= 0) return null;
+      final rootId = folderId.substring(0, idx);
+      final path = folderId.substring(idx + 1);
+      return api.folderCoverUrl(rootId, path);
+    });
 
-/// Apple Music style folder browser: breadcrumb, folder grid with covers,
-/// song list with covers, and a Play All action.
+/// Hi-Fi album/folder browser — editorial layout, large artwork at top.
 class FolderBrowserScreen extends ConsumerWidget {
   final String rootId;
   final String path;
-  const FolderBrowserScreen({super.key, required this.rootId, this.path = ''});
+  const FolderBrowserScreen({
+    super.key,
+    required this.rootId,
+    this.path = '',
+  });
 
   String get _folderName {
-    if (path.isEmpty) return 'Music';
+    if (path.isEmpty) return 'Library';
     return path.split('/').where((s) => s.isNotEmpty).last;
   }
 
@@ -109,39 +110,6 @@ class FolderBrowserScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(_folderName),
-        backgroundColor: Colors.transparent,
-        actions: [
-          contentAsync.maybeWhen(
-            data: (c) => c.songs.isEmpty
-                ? const SizedBox.shrink()
-                : IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha: 0.15),
-                            AppColors.secondary.withValues(alpha: 0.1),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.play_circle_outline_rounded,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    tooltip: 'Play all',
-                    onPressed: () => ref
-                        .read(playerProvider.notifier)
-                        .playSongs(c.songs.cast(), initialIndex: 0),
-                  ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ],
-      ),
       body: contentAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
@@ -150,206 +118,169 @@ class FolderBrowserScreen extends ConsumerWidget {
             folderContentProvider((rootId: rootId, path: path)),
           ),
         ),
-        data: (content) {
-          final crumbs = breadcrumbSegments(path);
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 120),
-            children: [
-              if (crumbs.length > 1) ...[
-                SizedBox(
-                  height: 44,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: crumbs.length,
-                    separatorBuilder: (_, __) => Icon(
-                      Icons.chevron_right,
-                      size: 16,
-                      color: AppColors.textDim,
-                    ),
-                    itemBuilder: (c, i) {
-                      final (label, p) = crumbs[i];
-                      final isLast = i == crumbs.length - 1;
-                      return Center(
-                        child: InkWell(
-                          onTap: isLast
-                              ? null
-                              : () => context.push(
-                                  '/folder?root=$rootId&path=${Uri.encodeComponent(p)}',
-                                ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: isLast
-                                  ? AppColors.text
-                                  : AppColors.primary,
-                              fontSize: 13,
-                              fontWeight: isLast
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+        data: (content) => CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              backgroundColor: AppColors.background,
+              pinned: true,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              toolbarHeight: 64,
+              title: Text(
+                _folderName,
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
                 ),
-              ],
-              if (content.folders.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: Text(
-                    'Folders',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.text,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 180,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.82,
-                  ),
-                  itemCount: content.folders.length,
-                  itemBuilder: (c, i) =>
-                      _FolderCard(folder: content.folders[i]),
-                ),
-              ],
-              if (content.songs.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
-                  child: Text(
-                    'Songs',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.text,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                ...content.songs.asMap().entries.map((e) {
-                  final i = e.key;
-                  final s = e.value;
-                  final isCurrent =
-                      ref.watch(playerProvider).currentTrack?.id == s.id;
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 2,
-                    ),
-                    leading: isCurrent
-                        ? Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              ArtworkImage(
-                                url: s.coverUrl,
-                                size: 48,
-                                borderRadius: 10,
-                              ),
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Center(
-                                  child: NowPlayingIndicator(
-                                    height: 14,
-                                    width: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : ArtworkImage(
-                            url: s.coverUrl,
-                            size: 48,
-                            borderRadius: 10,
-                          ),
-                    title: Text(
-                      s.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: isCurrent
-                            ? AppColors.primaryLight
-                            : AppColors.text,
-                        fontSize: 15,
-                        fontWeight: isCurrent
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Text(
-                      s.artist ?? s.album ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (s.codec != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Text(
-                              s.codec!.toUpperCase(),
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.more_vert,
-                            color: AppColors.textMuted,
-                            size: 18,
-                          ),
-                          onPressed: () =>
-                              _showSongMenu(context, ref, s, content.songs, i),
-                        ),
-                      ],
-                    ),
-                    onTap: () => ref
+              ),
+              actions: [
+                if (content.songs.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    onPressed: () => ref
                         .read(playerProvider.notifier)
-                        .playSongs(content.songs.cast(), initialIndex: i),
-                  );
-                }),
+                        .playSongs(content.songs.cast(), initialIndex: 0),
+                  ),
               ],
-              if (content.folders.isEmpty && content.songs.isEmpty)
-                const EmptyView(
-                  title: 'Empty folder',
-                  subtitle: 'No songs or sub-folders here',
-                  icon: Icons.folder_open,
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Hero artwork
+                    AspectRatio(
+                      aspectRatio: 1,
+                      child: _FolderHero(
+                        content: content,
+                        rootId: rootId,
+                        path: path,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _folderName,
+                      style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${content.songs.length} ${content.songs.length == 1 ? 'song' : 'songs'}'
+                      '${content.folders.isNotEmpty ? ' • ${content.folders.length} folders' : ''}',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (content.songs.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs(
+                                    content.songs.cast(),
+                                    initialIndex: 0,
+                                  ),
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Play'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs(
+                                    [...content.songs]..shuffle(),
+                                    initialIndex: 0,
+                                  ),
+                              icon: const Icon(
+                                Icons.shuffle_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Shuffle'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (content.folders.isNotEmpty) ...[
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Folders',
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.82,
+                        ),
+                        itemCount: content.folders.length,
+                        itemBuilder: (c, i) =>
+                            _FolderCard(folder: content.folders[i]),
+                      ),
+                    ],
+                    if (content.songs.isNotEmpty) ...[
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Tracks',
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    ...content.songs.asMap().entries.map((e) {
+                      final i = e.key;
+                      final s = e.value;
+                      final isCurrent =
+                          ref.watch(playerProvider).currentTrack?.id == s.id;
+                      return _SongRow(
+                        index: i + 1,
+                        song: s,
+                        isCurrent: isCurrent,
+                        onTap: () => ref
+                            .read(playerProvider.notifier)
+                            .playSongs(
+                              content.songs.cast(),
+                              initialIndex: i,
+                            ),
+                        onMore: () => _showSongMenu(context, ref, s),
+                      );
+                    }),
+                  ],
                 ),
-            ],
-          );
-        },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -358,44 +289,79 @@ class FolderBrowserScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     dynamic song,
-    List<dynamic> allSongs,
-    int index,
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.play_arrow, color: AppColors.text),
-              title: Text('Play next', style: TextStyle(color: AppColors.text)),
-              onTap: () {
-                Navigator.pop(c);
-                ref.read(playerProvider.notifier).playNext(song);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.queue_music, color: AppColors.text),
-              title: Text(
-                'Add to queue',
-                style: TextStyle(color: AppColors.text),
+      backgroundColor: Colors.transparent,
+      builder: (c) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textDim.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              onTap: () {
-                Navigator.pop(c);
-                ref.read(playerProvider.notifier).addToQueue(song);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-              },
-            ),
-          ],
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.play_arrow_rounded),
+                title: const Text('Play next'),
+                onTap: () {
+                  Navigator.pop(c);
+                  ref.read(playerProvider.notifier).playNext(song);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.queue_music_rounded),
+                title: const Text('Add to queue'),
+                onTap: () {
+                  Navigator.pop(c);
+                  ref.read(playerProvider.notifier).addToQueue(song);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to queue')),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _FolderHero extends ConsumerWidget {
+  final FolderContent content;
+  final String rootId;
+  final String path;
+  const _FolderHero({
+    required this.content,
+    required this.rootId,
+    required this.path,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Try folder cover, then first song's cover, then a flat plate.
+    final folderId = '$rootId|$path';
+    final coverAsync = ref.watch(folderCoverProvider(folderId));
+    final firstSongCover = content.songs.isNotEmpty
+        ? content.songs.first.coverUrl as String?
+        : null;
+    final url = coverAsync.value ?? firstSongCover;
+    return ArtworkImage(
+      url: url,
+      borderRadius: 8,
+      showShadow: true,
     );
   }
 }
@@ -407,19 +373,19 @@ class _FolderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coverAsync = ref.watch(folderCoverProvider(folder.id));
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
       onTap: () => context.push(
         '/folder?root=${folder.rootId}&path=${Uri.encodeComponent(folder.path)}',
       ),
+      behavior: HitTestBehavior.opaque,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: coverAsync.when(
-              data: (url) => ArtworkImage(url: url, borderRadius: 16),
-              loading: () => ArtworkImage(url: null, borderRadius: 16),
-              error: (_, __) => ArtworkImage(url: null, borderRadius: 16),
+          AspectRatio(
+            aspectRatio: 1,
+            child: ArtworkImage(
+              url: coverAsync.value,
+              borderRadius: 6,
             ),
           ),
           const SizedBox(height: 8),
@@ -427,13 +393,146 @@ class _FolderCard extends ConsumerWidget {
             folder.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontSize: 14,
+              letterSpacing: -0.2,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SongRow extends StatelessWidget {
+  final int index;
+  final dynamic song;
+  final bool isCurrent;
+  final VoidCallback onTap;
+  final VoidCallback onMore;
+  const _SongRow({
+    required this.index,
+    required this.song,
+    required this.isCurrent,
+    required this.onTap,
+    required this.onMore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final titleColor = isCurrent ? AppColors.accent : AppColors.text;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 28,
+              child: Text(
+                '$index',
+                style: const TextStyle(
+                  color: AppColors.textDim,
+                  fontSize: 12,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: AppColors.surfaceRaised,
+                image: song.coverUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(song.coverUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: song.coverUrl == null
+                  ? const Icon(
+                      Icons.music_note_rounded,
+                      color: AppColors.textDim,
+                      size: 20,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: 15,
+                      fontWeight: isCurrent
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    song.artist ?? song.album ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (song.codec != null) ...[
+              Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.35),
+                    width: 0.6,
+                  ),
+                ),
+                child: Text(
+                  song.codec!.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+            IconButton(
+              icon: const Icon(
+                Icons.more_horiz_rounded,
+                size: 20,
+                color: AppColors.textDim,
+              ),
+              onPressed: onMore,
+            ),
+          ],
+        ),
       ),
     );
   }

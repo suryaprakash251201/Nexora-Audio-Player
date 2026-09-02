@@ -1,126 +1,44 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-// ═══════════════════════════════════════════════════════════════
-// ANIMATED GRADIENT BACKGROUND
-// ═══════════════════════════════════════════════════════════════
-
-/// Slow-moving gradient orbs that create a living, organic background.
-class AnimatedGradientBg extends StatefulWidget {
+/// Animated gradient background — replaced with a flat solid background.
+/// Kept as a class so legacy call sites compile.
+class AnimatedGradientBg extends StatelessWidget {
   final List<Color> colors;
   final double blur;
   final Widget child;
+  final bool enableOrbs;
 
   const AnimatedGradientBg({
     super.key,
-    this.colors = const [
-      AppColors.primary,
-      AppColors.secondary,
-      AppColors.tertiary,
-    ],
-    this.blur = 60,
+    this.colors = const [AppColors.accent, AppColors.accent],
+    this.blur = 0,
     required this.child,
+    this.enableOrbs = true,
   });
 
   @override
-  State<AnimatedGradientBg> createState() => _AnimatedGradientBgState();
-}
-
-class _AnimatedGradientBgState extends State<AnimatedGradientBg>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 12),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Dark base
-        Container(color: AppColors.background),
-        // Animated blurred orbs
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final t = _controller.value;
-            return CustomPaint(
-              size: MediaQuery.of(context).size,
-              painter: _OrbPainter(
-                t: t,
-                colors: widget.colors,
-                blur: widget.blur,
-              ),
-            );
-          },
-        ),
-        // Content
-        widget.child,
-      ],
-    );
+    return ColoredBox(color: AppColors.background, child: child);
   }
 }
 
-class _OrbPainter extends CustomPainter {
-  final double t;
-  final List<Color> colors;
-  final double blur;
-
-  _OrbPainter({required this.t, required this.colors, required this.blur});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..maskFilter = MaskFilter.blur(BlurStyle.normal, blur);
-
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final maxR = math.min(size.width, size.height) * 0.35;
-
-    for (var i = 0; i < colors.length; i++) {
-      final angle = t * 2 * math.pi + (i * 2 * math.pi / colors.length);
-      final offset = maxR * 0.4;
-      final ox = cx + math.cos(angle) * offset;
-      final oy = cy + math.sin(angle * 0.7) * offset * 0.6;
-      paint.color = colors[i].withValues(alpha: 0.12);
-      canvas.drawCircle(Offset(ox, oy), maxR, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _OrbPainter oldDelegate) => t != oldDelegate.t;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// GLOW DOT — Animated pulsing indicator
-// ═══════════════════════════════════════════════════════════════
-
+/// Calm pulsing dot — used for status indicators. Replaces the bright
+/// pulsing [GlowDot] of the previous design.
 class GlowDot extends StatefulWidget {
   final double size;
   final Color color;
-  const GlowDot({super.key, this.size = 8, this.color = AppColors.primary});
+  const GlowDot({super.key, this.size = 6, this.color = AppColors.accent});
 
   @override
   State<GlowDot> createState() => _GlowDotState();
 }
 
 class _GlowDotState extends State<GlowDot> with SingleTickerProviderStateMixin {
-  late AnimationController _c;
+  late final AnimationController _c;
 
   @override
   void initState() {
@@ -141,21 +59,13 @@ class _GlowDotState extends State<GlowDot> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (context, child) {
-        final v = _c.value;
+      builder: (_, child) {
         return Container(
           width: widget.size,
           height: widget.size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: widget.color,
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withValues(alpha: 0.4 + 0.3 * v),
-                blurRadius: widget.size * (0.8 + 0.5 * v),
-                spreadRadius: widget.size * 0.1 * v,
-              ),
-            ],
           ),
         );
       },
@@ -163,10 +73,7 @@ class _GlowDotState extends State<GlowDot> with SingleTickerProviderStateMixin {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SHIMMER LOADING PLACEHOLDER
-// ═══════════════════════════════════════════════════════════════
-
+/// Shimmer loading placeholder — calm horizontal sweep.
 class ShimmerWidget extends StatefulWidget {
   final double width;
   final double height;
@@ -175,7 +82,7 @@ class ShimmerWidget extends StatefulWidget {
     super.key,
     required this.width,
     required this.height,
-    this.borderRadius = 12,
+    this.borderRadius = 8,
   });
 
   @override
@@ -184,7 +91,7 @@ class ShimmerWidget extends StatefulWidget {
 
 class _ShimmerWidgetState extends State<ShimmerWidget>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -205,7 +112,7 @@ class _ShimmerWidgetState extends State<ShimmerWidget>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
+      builder: (_, _) {
         return Container(
           width: widget.width,
           height: widget.height,
@@ -227,10 +134,8 @@ class _ShimmerWidgetState extends State<ShimmerWidget>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SECTION HEADER — with gradient accent bar
-// ═══════════════════════════════════════════════════════════════
-
+/// Editorial section header. Letter-spaced small-caps title, optional
+/// see-all. No icons that compete with content.
 class SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback? onSeeAll;
@@ -254,38 +159,41 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           if (leadingIcon != null) ...[
-            Icon(leadingIcon, size: 18, color: AppColors.primary),
-            const SizedBox(width: 10),
+            Icon(leadingIcon, size: 16, color: AppColors.textMuted),
+            const SizedBox(width: 8),
           ],
-          Text(
-            title,
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
             ),
           ),
-          const Spacer(),
           if (trailing != null) trailing!,
           if (onSeeAll != null)
             GestureDetector(
               onTap: onSeeAll,
+              behavior: HitTestBehavior.opaque,
               child: Row(
                 children: [
                   Text(
                     seeAllText ?? 'See all',
                     style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 13,
+                      color: AppColors.textMuted,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
                     ),
                   ),
                   const SizedBox(width: 2),
                   const Icon(
                     Icons.chevron_right,
                     size: 16,
-                    color: AppColors.primary,
+                    color: AppColors.textMuted,
                   ),
                 ],
               ),
@@ -296,10 +204,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PLAY BUTTON — Premium circular with glow
-// ═══════════════════════════════════════════════════════════════
-
+/// Calm primary play/pause button — single accent fill, no glow.
 class PlayButton extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPressed;
@@ -309,7 +214,7 @@ class PlayButton extends StatelessWidget {
     super.key,
     required this.isPlaying,
     required this.onPressed,
-    this.size = 64,
+    this.size = 56,
   });
 
   @override
@@ -319,31 +224,22 @@ class PlayButton extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: AppColors.primaryGradient,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
-              blurRadius: 24,
-              spreadRadius: 2,
-            ),
-          ],
+          color: AppColors.accent,
         ),
         child: Icon(
           isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          color: AppColors.text,
-          size: size * 0.5,
+          color: AppColors.onAccent,
+          size: size * 0.46,
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GRADIENT BADGE — For codec / quality labels
-// ═══════════════════════════════════════════════════════════════
-
+/// Small uppercase label. Used for codec / quality marks. Sits inside a
+/// hairline-bordered pill rather than a glowy gradient badge.
 class GradientBadge extends StatelessWidget {
   final String text;
   final Color? color;
@@ -358,21 +254,16 @@ class GradientBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.primary;
+    final c = color ?? AppColors.accent;
     return Container(
       margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            c.withValues(alpha: selected ? 0.25 : 0.12),
-            c.withValues(alpha: selected ? 0.15 : 0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(10),
+        color: selected ? c.withValues(alpha: 0.18) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: c.withValues(alpha: selected ? 0.4 : 0.2),
-          width: 0.5,
+          color: c.withValues(alpha: selected ? 0.55 : 0.35),
+          width: 0.6,
         ),
       ),
       child: Text(
@@ -381,26 +272,23 @@ class GradientBadge extends StatelessWidget {
           color: c,
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+          letterSpacing: 0.6,
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NOW PLAYING INDICATOR — Animated equalizer bars
-// ═══════════════════════════════════════════════════════════════
-
+/// Animated equalizer indicator — small, used in song rows when playing.
 class NowPlayingIndicator extends StatefulWidget {
   final double height;
   final double width;
   final Color color;
   const NowPlayingIndicator({
     super.key,
-    this.height = 16,
-    this.width = 16,
-    this.color = AppColors.primary,
+    this.height = 14,
+    this.width = 14,
+    this.color = AppColors.accent,
   });
 
   @override
@@ -409,7 +297,7 @@ class NowPlayingIndicator extends StatefulWidget {
 
 class _NowPlayingIndicatorState extends State<NowPlayingIndicator>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -430,7 +318,7 @@ class _NowPlayingIndicatorState extends State<NowPlayingIndicator>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, _) {
+      builder: (_, _) {
         return CustomPaint(
           size: Size(widget.width, widget.height),
           painter: _EqualizerPainter(
@@ -446,7 +334,6 @@ class _NowPlayingIndicatorState extends State<NowPlayingIndicator>
 class _EqualizerPainter extends CustomPainter {
   final double progress;
   final Color color;
-
   _EqualizerPainter({required this.progress, required this.color});
 
   @override
@@ -478,10 +365,8 @@ class _EqualizerPainter extends CustomPainter {
       progress != old.progress;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// APP GRADIENT SCAFFOLD — Background with animated orbs
-// ═══════════════════════════════════════════════════════════════
-
+/// AppScaffold — kept for compatibility; renders a clean Scaffold with
+/// the flat Hi-Fi background.
 class AppScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? appBar;
@@ -504,7 +389,7 @@ class AppScaffold extends StatelessWidget {
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       appBar: appBar,
-      body: showGradientBg ? AnimatedGradientBg(child: body) : body,
+      body: body,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
     );

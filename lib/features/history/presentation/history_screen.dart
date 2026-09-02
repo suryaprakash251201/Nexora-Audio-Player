@@ -4,10 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/history_repository.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
-import '../../../ui/widgets/enhanced_glass.dart';
-import '../../../ui/widgets/enhanced_player_widgets.dart';
-import '../../../ui/widgets/bright_icons.dart';
-import '../../../ui/animations/app_animations.dart';
 import '../../player/providers/player_provider.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -18,71 +14,148 @@ class HistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          'History',
-          style: TextStyle(
-            color: AppColors.text,
-            fontWeight: FontWeight.w800,
-            fontSize: 24,
-            letterSpacing: -0.4,
+        toolbarHeight: 64,
+        title: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'History',
+            style: TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              letterSpacing: -0.6,
+            ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const GlassBrightIcon(
-              icon: Icons.delete_outline_rounded,
-              tone: BrightIconTone.rose,
-              size: 38,
-              iconSize: 20,
-              active: true,
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
-      body: AuroraBackground(
-        child: historyAsync.when(
-          data: (items) => items.isEmpty
-              ? const EmptyView(
-                  title: 'No history',
-                  subtitle: 'Played songs will appear here',
-                  icon: Icons.history_rounded,
-                )
-              : RefreshIndicator(
-                  onRefresh: () async => ref.invalidate(_historyProvider),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 140),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 4),
-                    itemBuilder: (c, i) {
-                      final h = items[i];
-                      final s = h.song;
-                      final isCurrent =
-                          ref.watch(playerProvider).currentTrack?.id == s?.id;
-                      return SlideInAnimation(
-                        delay: Duration(milliseconds: (i % 10) * 40),
-                        child: GlassSongTile(
-                          artworkUrl: s?.coverUrl,
-                          title: s?.title ?? h.songId,
-                          subtitle: '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
-                          isCurrent: isCurrent,
-                          isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
-                          onTap: s != null
-                              ? () => ref.read(playerProvider.notifier).playSongs([s])
-                              : () {},
+      body: historyAsync.when(
+        data: (items) => items.isEmpty
+            ? const EmptyView(
+                title: 'No history',
+                subtitle: 'Played songs will appear here',
+                icon: Icons.history_rounded,
+              )
+            : RefreshIndicator(
+                onRefresh: () async => ref.invalidate(_historyProvider),
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 4, bottom: 140),
+                  itemCount: items.length,
+                  itemBuilder: (c, i) {
+                    final h = items[i];
+                    final s = h.song;
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s?.id;
+                    return InkWell(
+                      onTap: s != null
+                          ? () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs([s])
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
-                      );
-                    },
-                  ),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppColors.hairline,
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(6),
+                                      color: AppColors.surfaceRaised,
+                                      image: s?.coverUrl != null
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                s!.coverUrl!,
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                    ),
+                                    child: s?.coverUrl == null
+                                        ? const Icon(
+                                            Icons.music_note_rounded,
+                                            color: AppColors.textDim,
+                                            size: 20,
+                                          )
+                                        : null,
+                                  ),
+                                  if (isCurrent)
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.5),
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                      ),
+                                      child: const Icon(
+                                        Icons.equalizer_rounded,
+                                        size: 18,
+                                        color: AppColors.accent,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    s?.title ?? h.songId,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isCurrent
+                                          ? AppColors.accent
+                                          : AppColors.text,
+                                      fontSize: 15,
+                                      fontWeight: isCurrent
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      letterSpacing: -0.1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-          loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(
-            message: e.toString(),
-            onRetry: () => ref.invalidate(_historyProvider),
-          ),
+              ),
+        loading: () => const LoadingView(),
+        error: (e, _) => ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(_historyProvider),
         ),
       ),
     );

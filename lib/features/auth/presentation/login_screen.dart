@@ -6,9 +6,6 @@ import '../../../core/errors/failures.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/config/app_config.dart';
 import '../../../ui/theme.dart';
-import '../../../ui/widgets/enhanced_glass.dart';
-import '../../../ui/widgets/bright_icons.dart';
-import '../../../ui/animations/app_animations.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -66,8 +63,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       final failure = Failure.fromException(e);
       final code = failure.code != null ? ' [${failure.code}]' : '';
-      final status = failure.statusCode != null ? ' (${failure.statusCode})' : '';
-      final detail = 'Server: $effectiveServer';
+      final status =
+          failure.statusCode != null ? ' (${failure.statusCode})' : '';
+      const detail = 'Server: configured above';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -76,20 +74,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${failure.message}$code$status',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                      '${failure.message}$code$status',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                 const SizedBox(height: 4),
-                Text(
+                const Text(
                   detail,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
                 ),
-                if (failure.message.toLowerCase().contains('invalid') ||
-                    failure.message.toLowerCase().contains('unauthorized'))
-                  const Text(
-                    'Hint: For Nexora, username is "admin" and check password. Ensure server is http://192.168.1.5',
-                    style: TextStyle(fontSize: 11, color: Colors.white70),
-                  ),
               ],
             ),
             backgroundColor: AppColors.error,
@@ -107,369 +99,252 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = auth.isLoading;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Animated aurora background
-          AuroraBackground(
-            colors: const [
-              AppColors.primary,
-              AppColors.secondary,
-              Color(0xFF7C3AED),
-              AppColors.tertiary,
-            ],
-            child: const SizedBox.expand(),
-          ),
-          // Floating particles
-          const FloatingParticles(particleCount: 25, maxSize: 4),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ScaleBounce(
-                  child: EnhancedGlassSurface(
-                    opacity: 0.6,
-                    blur: 40,
-                    borderRadius: BorderRadius.circular(32),
-                    showShimmer: true,
-                    showInnerGlow: true,
-                    glowColor: AppColors.primary,
-                    glowRadius: 60,
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Brand mark — calm square logo.
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.surfaceRaised,
+                      border: Border.all(
+                        color: AppColors.border,
+                        width: 0.6,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/icon.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.graphic_eq_rounded,
+                          size: 26,
+                          color: AppColors.text,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'NEXORA',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Your music.\nYour control.',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _Label(text: 'SERVER URL'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _serverController,
+                    style: const TextStyle(color: AppColors.text),
+                    decoration: InputDecoration(
+                      hintText: 'https://music.example.com',
+                      hintStyle: const TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  if (_savedServerUrl != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Saved: $_savedServerUrl',
+                      style: const TextStyle(
+                        color: AppColors.success,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  _Label(text: 'USERNAME'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _userController,
+                    style: const TextStyle(color: AppColors.text),
+                    decoration: const InputDecoration(
+                      hintText: 'admin',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _Label(text: 'PASSWORD'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _passController,
+                    obscureText: _obscure,
+                    style: const TextStyle(color: AppColors.text),
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: AppColors.textDim,
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscure = !_obscure),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => context.push('/server-setup'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Test Connection',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _handleLogin,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.onAccent,
+                              ),
+                            )
+                          : const Text('Sign in'),
+                    ),
+                  ),
+                  if (auth.hasError) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.35),
+                          width: 0.6,
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          // Logo with breathing glow
-                          BreathingGlow(
-                            color: AppColors.primary,
-                            maxBlur: 40,
-                            child: Container(
-                              width: 92,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        AppColors.primary.withValues(alpha: 0.45),
-                                    blurRadius: 32,
-                                    spreadRadius: -2,
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/icon.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    decoration: const BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          AppColors.primary,
-                                          Color(0xFF7C3AED)
-                                        ],
-                                      ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.graphic_eq_rounded,
-                                      size: 44,
-                                      color: AppColors.text,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            size: 16,
+                            color: AppColors.error,
                           ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Nexora',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.text,
-                                  fontSize: 34,
-                                  letterSpacing: -0.5,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Audiophile Player',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              letterSpacing: 1.5,
-                              fontSize: 14,
-                            ),
-                          ),
-                          if (_savedServerUrl != null) ...[
-                            const SizedBox(height: 12),
-                            GlassChip(
-                              color: AppColors.success,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 14,
-                                    color: AppColors.success,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      'Saved: $_savedServerUrl',
-                                      style: const TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 28),
-                          _field(
-                            controller: _serverController,
-                            hint: 'http://192.168.1.5',
-                            icon: Icons.dns_outlined,
-                            helper:
-                                'LAN: http://192.168.1.5  •  Leave empty to use saved',
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              TextButton.icon(
-                                onPressed: () => context.push('/server-setup'),
-                                icon: const Icon(
-                                  Icons.settings_outlined,
-                                  size: 16,
-                                ),
-                                label: const Text(
-                                  'Configure Server',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: () => context.push('/server-setup'),
-                                child: const Text(
-                                  'Test Connection',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          _field(
-                            controller: _userController,
-                            hint: 'Username (admin)',
-                            icon: Icons.person_outline_rounded,
-                            tone: BrightIconTone.violet,
-                          ),
-                          const SizedBox(height: 12),
-                          EnhancedGlassSurface(
-                            opacity: 0.35,
-                            blur: 18,
-                            borderRadius: BorderRadius.circular(16),
-                            child: TextField(
-                              controller: _passController,
-                              obscureText: _obscure,
-                              style: TextStyle(color: AppColors.text),
-                              decoration: InputDecoration(
-                                hintText: 'Password',
-                                hintStyle: TextStyle(color: AppColors.textDim),
-                                prefixIcon: const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: BrightIcon(
-                                    icon: Icons.lock_outline_rounded,
-                                    tone: BrightIconTone.pink,
-                                    size: 20,
-                                    active: true,
-                                  ),
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscure
-                                        ? Icons.visibility_off_rounded
-                                        : Icons.visibility_rounded,
-                                    color: AppColors.textMuted,
-                                    size: 20,
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _obscure = !_obscure),
-                                ),
-                                filled: false,
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              'Try admin / amma@123 for testing',
-                              style: TextStyle(
-                                color: AppColors.textDim,
-                                fontSize: 11,
+                              Failure.fromException(auth.error!).message,
+                              style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 12,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          NeonGlowButton(
-                            label: 'Connect & Login',
-                            icon: Icons.login_rounded,
-                            onPressed: isLoading ? () {} : _handleLogin,
-                            height: 56,
-                          ),
-                          const SizedBox(height: 16),
-                          if (auth.hasError)
-                            EnhancedGlassSurface(
-                              opacity: 0.4,
-                              blur: 15,
-                              borderRadius: BorderRadius.circular(12),
-                              glowColor: AppColors.error,
-                              showInnerGlow: true,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline_rounded,
-                                      size: 18,
-                                      color: AppColors.error,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        Failure.fromException(auth.error!).message,
-                                        style: const TextStyle(
-                                          color: AppColors.error,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Self-hosted • LAN supported • Offline ready\nIf login fails, check server is http://192.168.1.5 and both devices on same Wi-Fi.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.textDim,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            key: const Key('clear-stored-session'),
-                            onPressed: isLoading
-                                ? null
-                                : () async {
-                                    try {
-                                      final storage = ref.read(
-                                        secureStorageProvider,
-                                      );
-                                      await storage.deleteToken();
-                                      await storage.deleteServerUrl();
-                                      if (mounted) {
-                                        setState(() {
-                                          _savedServerUrl = null;
-                                          _serverController.clear();
-                                        });
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Stored session & server cleared. Re-enter server URL and log in.',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Clear failed: $e'),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                            icon: const Icon(Icons.cleaning_services, size: 14),
-                            label: const Text(
-                              'Clear stored session',
-                              style: TextStyle(fontSize: 11),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ],
+                  const SizedBox(height: 24),
+                  TextButton(
+                    key: const Key('clear-stored-session'),
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            try {
+                              final storage =
+                                  ref.read(secureStorageProvider);
+                              await storage.deleteToken();
+                              await storage.deleteServerUrl();
+                              if (mounted) {
+                                setState(() {
+                                  _savedServerUrl = null;
+                                  _serverController.clear();
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Stored session & server cleared.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Clear failed: $e')),
+                                );
+                              }
+                            }
+                          },
+                    child: const Text(
+                      'Clear stored session',
+                      style: TextStyle(fontSize: 11),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    BrightIconTone tone = BrightIconTone.sky,
-    String? helper,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        EnhancedGlassSurface(
-          opacity: 0.35,
-          blur: 18,
-          borderRadius: BorderRadius.circular(16),
-          child: TextField(
-            controller: controller,
-            style: TextStyle(color: AppColors.text),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: AppColors.textDim, fontSize: 13),
-              prefixIcon: Padding(
-                padding: const EdgeInsets.all(12),
-                child: BrightIcon(
-                  icon: icon,
-                  tone: tone,
-                  size: 20,
-                  active: true,
-                ),
-              ),
-              filled: false,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
+                ],
               ),
             ),
           ),
         ),
-        if (helper != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            helper,
-            style: TextStyle(color: AppColors.textDim, fontSize: 10),
-          ),
-        ],
-      ],
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textDim,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,17 +8,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/audio/audio_handler.dart';
 import '../../../core/audio/equalizer_bridge.dart';
+import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_settings_row.dart';
+import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
-import '../../../ui/widgets/bright_icons.dart';
-import '../../../ui/widgets/enhanced_glass.dart';
 
 /// Gain range (dB) for every band and for the preamp.
 const double kMinDb = -12;
 const double kMaxDb = 12;
 
-/// Frequency grid that presets are authored against. Presets are interpolated
-/// onto whatever band layout the current platform exposes, which is what makes
-/// the EQ adaptive rather than hard-coded to one band count.
+/// Frequency grid that presets are authored against.
 const List<double> kPresetFreqs = [
   32,
   64,
@@ -37,9 +37,6 @@ class _BandSpec {
   const _BandSpec(this.label, this.freq);
 }
 
-/// Android's `android.media.audiofx.Equalizer` ships a 5-band layout, while
-/// iOS `AVAudioUnitEQ` is typically configured with 10 octave bands. Desktop
-/// and web get a balanced 8-band layout.
 List<_BandSpec> _bandsForPlatform(TargetPlatform platform) {
   switch (platform) {
     case TargetPlatform.android:
@@ -80,137 +77,23 @@ List<_BandSpec> _bandsForPlatform(TargetPlatform platform) {
 
 class _Preset {
   final String name;
-  final IconData icon;
-  final BrightIconTone tone;
   final List<double> gains;
-  const _Preset(this.name, this.icon, this.tone, this.gains);
+  const _Preset(this.name, this.gains);
 }
 
 final List<_Preset> _kPresets = [
-  _Preset('Flat', Icons.horizontal_rule_rounded, BrightIconTone.sky, [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-  ]),
-  _Preset('Rock', Icons.speaker_rounded, BrightIconTone.rose, [
-    5,
-    3,
-    -2,
-    -3,
-    -1,
-    1,
-    3,
-    4,
-    4,
-    3,
-  ]),
-  _Preset('Pop', Icons.celebration_rounded, BrightIconTone.pink, [
-    -1,
-    1,
-    3,
-    4,
-    3,
-    0,
-    -1,
-    -1,
-    -1,
-    -1,
-  ]),
-  _Preset('Jazz', Icons.piano_rounded, BrightIconTone.amber, [
-    3,
-    2,
-    1,
-    2,
-    -1,
-    -1,
-    0,
-    1,
-    2,
-    3,
-  ]),
-  _Preset('Classical', Icons.theater_comedy_rounded, BrightIconTone.indigo, [
-    4,
-    3,
-    2,
-    1,
-    -1,
-    -1,
-    0,
-    2,
-    3,
-    4,
-  ]),
-  _Preset('Bass', Icons.graphic_eq_rounded, BrightIconTone.violet, [
-    6,
-    5,
-    4,
-    2,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-  ]),
-  _Preset('Treble', Icons.trending_up_rounded, BrightIconTone.cyan, [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    2,
-    3,
-    5,
-    6,
-  ]),
-  _Preset('Vocal', Icons.mic_rounded, BrightIconTone.emerald, [
-    -2,
-    -2,
-    0,
-    2,
-    4,
-    4,
-    3,
-    1,
-    0,
-    -1,
-  ]),
-  _Preset('Electronic', Icons.surround_sound_rounded, BrightIconTone.sky, [
-    4,
-    3,
-    1,
-    0,
-    -1,
-    0,
-    1,
-    2,
-    3,
-    4,
-  ]),
-  _Preset('Loudness', Icons.volume_up_rounded, BrightIconTone.rose, [
-    5,
-    4,
-    2,
-    0,
-    -1,
-    0,
-    1,
-    2,
-    4,
-    5,
-  ]),
+  _Preset('Flat', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  _Preset('Rock', [5, 3, -2, -3, -1, 1, 3, 4, 4, 3]),
+  _Preset('Pop', [-1, 1, 3, 4, 3, 0, -1, -1, -1, -1]),
+  _Preset('Jazz', [3, 2, 1, 2, -1, -1, 0, 1, 2, 3]),
+  _Preset('Classical', [4, 3, 2, 1, -1, -1, 0, 2, 3, 4]),
+  _Preset('Bass', [6, 5, 4, 2, 1, 0, 0, 0, 0, 0]),
+  _Preset('Treble', [0, 0, 0, 0, 0, 0, 2, 3, 5, 6]),
+  _Preset('Vocal', [-2, -2, 0, 2, 4, 4, 3, 1, 0, -1]),
+  _Preset('Electronic', [4, 3, 1, 0, -1, 0, 1, 2, 3, 4]),
+  _Preset('Loudness', [5, 4, 2, 0, -1, 0, 1, 2, 4, 5]),
 ];
 
-/// Interpolates a preset authored on [kPresetFreqs] onto an arbitrary band
-/// centre frequency, using log-frequency interpolation.
 double _gainAt(List<double> gains, double freq) {
   final n = kPresetFreqs.length;
   if (freq <= kPresetFreqs.first) return gains.first;
@@ -219,7 +102,8 @@ double _gainAt(List<double> gains, double freq) {
     final f0 = kPresetFreqs[i];
     final f1 = kPresetFreqs[i + 1];
     if (freq >= f0 && freq <= f1) {
-      final t = (math.log(freq) - math.log(f0)) / (math.log(f1) - math.log(f0));
+      final t = (math.log(freq) - math.log(f0)) /
+          (math.log(f1) - math.log(f0));
       return gains[i] + (gains[i + 1] - gains[i]) * t;
     }
   }
@@ -271,9 +155,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
       }
       _preamp = (prefs.getDouble(_keyPreamp) ?? 0).clamp(kMinDb, kMaxDb);
       _enabled = prefs.getBool(_keyEnabled) ?? true;
-    } catch (_) {
-      // Preferences unavailable — fall back to a flat curve.
-    }
+    } catch (_) {}
     if (mounted) setState(() => _loading = false);
     await _applyNative();
   }
@@ -299,9 +181,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
       );
       await prefs.setDouble(_keyPreamp, _preamp);
       await prefs.setBool(_keyEnabled, _enabled);
-    } catch (_) {
-      // Ignore persistence failures; the curve still applies for this session.
-    }
+    } catch (_) {}
   }
 
   @override
@@ -333,201 +213,274 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   String get _platformLabel {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'Android · ${_specs.length}-band';
+        return 'ANDROID · ${_specs.length}-BAND';
       case TargetPlatform.iOS:
-        return 'iOS · ${_specs.length}-band';
+        return 'IOS · ${_specs.length}-BAND';
       case TargetPlatform.macOS:
-        return 'macOS · ${_specs.length}-band';
+        return 'MACOS · ${_specs.length}-BAND';
       case TargetPlatform.windows:
-        return 'Windows · ${_specs.length}-band';
+        return 'WINDOWS · ${_specs.length}-BAND';
       case TargetPlatform.linux:
-        return 'Linux · ${_specs.length}-band';
+        return 'LINUX · ${_specs.length}-BAND';
       case TargetPlatform.fuchsia:
-        return 'Fuchsia · ${_specs.length}-band';
+        return 'FUCHSIA · ${_specs.length}-BAND';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppColors.background,
-        body: const Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: AuroraBackground(
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-            children: [
-              _headerCard(),
-              const SizedBox(height: 16),
-              _curveCard(),
-              const SizedBox(height: 18),
-              _presetsSection(),
-              const SizedBox(height: 20),
-              _bandsSection(),
-              const SizedBox(height: 22),
-              _actionsRow(),
-              const SizedBox(height: 18),
-              _engineNote(),
-            ],
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          'Equalizer',
+          style: TextStyle(
+            color: AppColors.text,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
           ),
         ),
       ),
-    );
-  }
-
-  // ── Header ──────────────────────────────────────────────────────────────
-
-  Widget _headerCard() {
-    final enabled = _enabled;
-    return EnhancedGlassSurface(
-      opacity: 0.3,
-      blur: 30,
-      borderRadius: BorderRadius.circular(26),
-      showInnerGlow: true,
-      glowColor: enabled ? AppColors.secondary : AppColors.textDim,
-      glowRadius: 40,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
           children: [
-            Row(
+            NexoraGroupedList(
+              padding: EdgeInsets.zero,
               children: [
-                GlassBrightIcon(
+                NexoraSettingsRow(
                   icon: Icons.graphic_eq_rounded,
-                  tone: enabled ? BrightIconTone.cyan : BrightIconTone.sky,
-                  size: 44,
-                  iconSize: 24,
-                  active: enabled,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Audiophile EQ',
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _platformLabel,
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                  title: _enabled ? 'Equalizer enabled' : 'Equalizer bypass',
+                  subtitle: _platformLabel,
+                  trailing: Switch.adaptive(
+                    value: _enabled,
+                    onChanged: (v) {
+                      setState(() => _enabled = v);
+                      unawaited(_persist());
+                    },
                   ),
-                ),
-                Switch.adaptive(
-                  value: _enabled,
-                  onChanged: (v) {
-                    setState(() => _enabled = v);
-                    unawaited(_persist());
-                  },
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              'Bands adapt to the platform audio engine. Presets are authored '
-              'on an octave grid and interpolated, so they sound consistent on '
-              'both Android and iOS.',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-                height: 1.4,
+            const SizedBox(height: NexoraSpacing.s24),
+            const NexoraSectionHeader(label: 'Response Curve'),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              padding: const EdgeInsets.all(NexoraSpacing.s16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: NexoraRadius.card,
+                border: Border.all(color: AppColors.border, width: 0.6),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Response curve ──────────────────────────────────────────────────────
-
-  Widget _curveCard() {
-    return EnhancedGlassSurface(
-      opacity: 0.26,
-      blur: 26,
-      borderRadius: BorderRadius.circular(26),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                BrightIcon(
-                  icon: Icons.show_chart_rounded,
-                  size: 18,
-                  tone: BrightIconTone.violet,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Frequency Response',
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _enabled
-                        ? AppColors.secondary.withValues(alpha: 0.14)
-                        : AppColors.textDim.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _enabled ? 'ACTIVE' : 'BYPASS',
-                    style: TextStyle(
-                      color: _enabled
-                          ? AppColors.secondaryLight
-                          : AppColors.textDim,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: AnimatedOpacity(
+                      opacity: _enabled ? 1 : 0.35,
+                      duration: NexoraDuration.short,
+                      child: CustomPaint(
+                        painter: _CurvePainter(
+                          freqs: _specs.map((s) => s.freq).toList(),
+                          gains: _bands,
+                          preamp: _preamp,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: NexoraSpacing.s16),
+                  _preampSlider(),
+                ],
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: NexoraSpacing.s24),
+            const NexoraSectionHeader(label: 'Presets'),
             SizedBox(
-              height: 150,
-              width: double.infinity,
-              child: AnimatedOpacity(
-                opacity: _enabled ? 1 : 0.4,
-                duration: const Duration(milliseconds: 250),
-                child: CustomPaint(
-                  painter: _CurvePainter(
-                    freqs: _specs.map((s) => s.freq).toList(),
-                    gains: _bands,
-                    preamp: _preamp,
+              height: 42,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+                itemCount: _kPresets.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (c, i) {
+                  final p = _kPresets[i];
+                  final selected = _presetName == p.name;
+                  return GestureDetector(
+                    onTap: () => _applyPreset(p),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: NexoraSpacing.s16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.accent.withValues(alpha: 0.12)
+                            : AppColors.surface,
+                        borderRadius: NexoraRadius.button,
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.accent.withValues(alpha: 0.4)
+                              : AppColors.border,
+                          width: 0.6,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        p.name,
+                        style: TextStyle(
+                          color: selected ? AppColors.accent : AppColors.text,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: NexoraSpacing.s24),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Row(
+                children: [
+                  const Text(
+                    'BANDS',
+                    style: TextStyle(
+                      color: AppColors.textDim,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.6,
+                    ),
                   ),
+                  const Spacer(),
+                  Text(
+                    '${_specs.length} BANDS · ${kMinDb.toInt()} TO +${kMaxDb.toInt()} dB',
+                    style: const TextStyle(
+                      color: AppColors.textDim,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              padding: const EdgeInsets.fromLTRB(
+                NexoraSpacing.s16,
+                NexoraSpacing.s20,
+                NexoraSpacing.s16,
+                NexoraSpacing.s16,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: NexoraRadius.card,
+                border: Border.all(color: AppColors.border, width: 0.6),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < _specs.length; i++)
+                    Expanded(
+                      child: _BandSlider(
+                        label: _specs[i].label,
+                        value: _bands[i],
+                        onChanged: (v) {
+                          setState(() {
+                            _bands[i] = v;
+                            _presetName = null;
+                          });
+                          unawaited(_applyNative());
+                        },
+                        onChangeEnd: (_) => _persist(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexoraSpacing.s24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: NexoraTextButton(
+                      label: 'Reset Flat',
+                      icon: Icons.restart_alt_rounded,
+                      onTap: _resetFlat,
+                    ),
+                  ),
+                  const SizedBox(width: NexoraSpacing.s12),
+                  Expanded(
+                    child: NexoraTextButton(
+                      label: 'Save Curve',
+                      icon: Icons.bookmark_add_rounded,
+                      primary: true,
+                      onTap: () {
+                        _persist();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('EQ curve saved on this device'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexoraSpacing.s20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
+              child: Container(
+                padding: const EdgeInsets.all(NexoraSpacing.s16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: NexoraRadius.card,
+                  border: Border.all(color: AppColors.border, width: 0.6),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: AppColors.textDim,
+                    ),
+                    const SizedBox(width: NexoraSpacing.s12),
+                    Expanded(
+                      child: Text(
+                        'Curve is stored locally and routed to the platform audio engine. '
+                        'Android applies it via just_audio\'s session; iOS configures AVAudioUnitEQ '
+                        'when present. If the platform cannot apply DSP, the curve is kept as '
+                        'an unsupported fallback.',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 11.5,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            _preampSlider(),
           ],
         ),
       ),
@@ -537,26 +490,28 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   Widget _preampSlider() {
     return Row(
       children: [
-        SizedBox(
-          width: 58,
+        const SizedBox(
+          width: 60,
           child: Text(
-            'Preamp',
+            'PREAMP',
             style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+              color: AppColors.textDim,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
             ),
           ),
         ),
         Expanded(
           child: SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 4,
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-              thumbColor: Colors.white,
-              overlayColor: AppColors.primary.withValues(alpha: 0.18),
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 2,
+              activeTrackColor: AppColors.accent,
+              inactiveTrackColor: AppColors.surfaceHigh,
+              thumbColor: AppColors.text,
+              overlayColor: AppColors.accent.withValues(alpha: 0.18),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             ),
             child: Slider(
               value: _preamp,
@@ -574,276 +529,29 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
           ),
         ),
         SizedBox(
-          width: 62,
+          width: 64,
           child: Text(
             '${_preamp >= 0 ? '+' : ''}${_preamp.toStringAsFixed(1)} dB',
             textAlign: TextAlign.right,
             style: const TextStyle(
-              color: AppColors.primary,
+              color: AppColors.accent,
               fontWeight: FontWeight.w700,
               fontSize: 12,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  // ── Presets ─────────────────────────────────────────────────────────────
-
-  Widget _presetsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            'Presets',
-            style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 92,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            itemCount: _kPresets.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-            itemBuilder: (c, i) {
-              final p = _kPresets[i];
-              final selected = _presetName == p.name;
-              return _PresetCard(
-                preset: p,
-                selected: selected,
-                onTap: () => _applyPreset(p),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Bands ───────────────────────────────────────────────────────────────
-
-  Widget _bandsSection() {
-    // 3 per row on phones keeps the vertical sliders comfortably thumb-sized.
-    final crossAxisCount = _specs.length <= 5
-        ? 5
-        : (_specs.length <= 8 ? 4 : 5);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Text(
-                'Bands',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_specs.length} bands · ${kMinDb.toInt()} to +${kMaxDb.toInt()} dB',
-                style: TextStyle(color: AppColors.textDim, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.62,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: _specs.length,
-          itemBuilder: (c, i) => _BandCard(
-            label: _specs[i].label,
-            value: _bands[i],
-            onChanged: (v) {
-              setState(() {
-                _bands[i] = v;
-                _presetName = null;
-              });
-              unawaited(_applyNative());
-            },
-            onChangeEnd: (_) => _persist(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Actions ─────────────────────────────────────────────────────────────
-
-  Widget _actionsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: BrightIconChip(
-            icon: Icons.restart_alt_rounded,
-            label: 'Reset Flat',
-            tone: BrightIconTone.sky,
-            onTap: _resetFlat,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: BrightIconChip(
-            icon: Icons.bookmark_add_rounded,
-            label: 'Save Curve',
-            tone: BrightIconTone.emerald,
-            onTap: () {
-              _persist();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('EQ curve saved on this device')),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _engineNote() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textDim),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'This curve is stored by Nexora and sent to the platform bridge. '
-              'Android applies it to just_audio\'s audio session when available. '
-              'iOS configures AVAudioUnitEQ, but just_audio owns a separate '
-              'graph here, so iOS does not claim to DSP playback yet. Desktop '
-              'and web keep the settings as an unsupported fallback.',
-              style: TextStyle(
-                color: AppColors.textDim,
-                fontSize: 12,
-                height: 1.45,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PRESET CARD
-// ═══════════════════════════════════════════════════════════════
-
-class _PresetCard extends StatelessWidget {
-  final _Preset preset;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _PresetCard({
-    required this.preset,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = preset.tone.stops;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        width: 74,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: selected
-                ? [
-                    colors.first.withValues(alpha: 0.3),
-                    colors.last.withValues(alpha: 0.1),
-                  ]
-                : [
-                    AppColors.glassBase.withValues(alpha: 0.35),
-                    AppColors.glassBase.withValues(alpha: 0.14),
-                  ],
-          ),
-          border: Border.all(
-            color: selected
-                ? colors.first.withValues(alpha: 0.5)
-                : AppColors.glassBorder,
-            width: 0.7,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: colors.first.withValues(alpha: 0.3),
-                    blurRadius: 18,
-                    spreadRadius: -4,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrightIcon(
-              icon: preset.icon,
-              size: 24,
-              tone: preset.tone,
-              active: true,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              preset.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: selected ? colors.first : AppColors.text,
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// BAND CARD
-// ═══════════════════════════════════════════════════════════════
-
-class _BandCard extends StatelessWidget {
+class _BandSlider extends StatelessWidget {
   final String label;
   final double value;
   final ValueChanged<double> onChanged;
   final ValueChanged<double>? onChangeEnd;
-
-  const _BandCard({
+  const _BandSlider({
     required this.label,
     required this.value,
     required this.onChanged,
@@ -852,81 +560,56 @@ class _BandCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = value != 0;
-    // Cool below unity, warm above — reads like a real hardware EQ.
-    final tone = value >= 0 ? BrightIconTone.cyan : BrightIconTone.amber;
-    final accent = active ? tone.stops.first : AppColors.textDim;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.glassBase.withValues(alpha: 0.4),
-            AppColors.glassBase.withValues(alpha: 0.16),
-          ],
-        ),
-        border: Border.all(
-          color: active ? accent.withValues(alpha: 0.4) : AppColors.glassBorder,
-          width: 0.6,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: active ? accent : AppColors.text,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 3,
-                  activeTrackColor: accent,
-                  inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-                  thumbColor: Colors.white,
-                  overlayColor: accent.withValues(alpha: 0.18),
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 7,
-                  ),
-                ),
-                child: Slider(
-                  value: value,
-                  min: kMinDb,
-                  max: kMaxDb,
-                  onChanged: onChanged,
-                  onChangeEnd: onChangeEnd,
-                ),
+    final active = value.abs() > 0.05;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 160,
+          child: RotatedBox(
+            quarterTurns: 3,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 2,
+                activeTrackColor: AppColors.accent,
+                inactiveTrackColor: AppColors.surfaceHigh,
+                thumbColor: AppColors.text,
+                overlayColor: AppColors.accent.withValues(alpha: 0.16),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              ),
+              child: Slider(
+                value: value,
+                min: kMinDb,
+                max: kMaxDb,
+                onChanged: onChanged,
+                onChangeEnd: onChangeEnd,
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}',
-            style: TextStyle(
-              color: active ? accent : AppColors.textDim,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: active ? AppColors.accent : AppColors.text,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}',
+          style: TextStyle(
+            color: active ? AppColors.accent : AppColors.textDim,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════
-// RESPONSE CURVE PAINTER
-// ═══════════════════════════════════════════════════════════════
 
 class _CurvePainter extends CustomPainter {
   final List<double> freqs;
@@ -959,20 +642,18 @@ class _CurvePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // ── Grid ──
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
-      ..strokeWidth = 0.6;
+      ..color = AppColors.textDim.withValues(alpha: 0.16)
+      ..strokeWidth = 0.5;
     for (final f in [100, 1000, 10000]) {
       final x = _xFor(f.toDouble(), w);
       canvas.drawLine(Offset(x, 0), Offset(x, h), gridPaint);
     }
     final zeroPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.14)
-      ..strokeWidth = 0.8;
+      ..color = AppColors.textDim.withValues(alpha: 0.35)
+      ..strokeWidth = 0.6;
     canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), zeroPaint);
 
-    // ── Build smoothed points ──
     final pts = <Offset>[];
     pts.add(Offset(0, _yFor(gains.isEmpty ? 0 : gains.first, h)));
     for (var i = 0; i < freqs.length; i++) {
@@ -981,7 +662,6 @@ class _CurvePainter extends CustomPainter {
     pts.add(Offset(w, _yFor(gains.isEmpty ? 0 : gains.last, h)));
 
     final path = Path()..moveTo(pts.first.dx, pts.first.dy);
-    // Catmull-Rom style smoothing between band centres.
     for (var i = 0; i < pts.length - 1; i++) {
       final p0 = pts[i == 0 ? 0 : i - 1];
       final p1 = pts[i];
@@ -998,7 +678,6 @@ class _CurvePainter extends CustomPainter {
       path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p2.dx, p2.dy);
     }
 
-    // ── Fill under curve ──
     final fillPath = Path.from(path)
       ..lineTo(w, h)
       ..lineTo(0, h)
@@ -1008,45 +687,41 @@ class _CurvePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AppColors.primary.withValues(alpha: 0.35),
-          AppColors.secondary.withValues(alpha: 0.10),
+          AppColors.accent.withValues(alpha: 0.22),
+          AppColors.accent.withValues(alpha: 0.05),
           Colors.transparent,
         ],
         stops: const [0.0, 0.55, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawPath(fillPath, fillPaint);
 
-    // ── Stroke ──
     final strokePaint = Paint()
-      ..shader = LinearGradient(
-        colors: [AppColors.secondaryLight, AppColors.primaryLight],
-      ).createShader(Rect.fromLTWH(0, 0, w, h))
+      ..color = AppColors.accent
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 1.2);
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
     canvas.drawPath(path, strokePaint);
 
-    // ── Band nodes ──
     for (var i = 0; i < freqs.length; i++) {
       final x = _xFor(freqs[i], w);
       final y = _yFor(gains[i], h);
       canvas.drawCircle(
         Offset(x, y),
-        3.4,
-        Paint()..color = Colors.white.withValues(alpha: 0.9),
+        4.5,
+        Paint()
+      ..color = AppColors.accent.withValues(alpha: 0.22),
       );
       canvas.drawCircle(
         Offset(x, y),
-        6.5,
-        Paint()
-          ..color = (gains[i] >= 0 ? AppColors.secondary : AppColors.tertiary)
-              .withValues(alpha: 0.25),
+        2.5,
+        Paint()..color = AppColors.text,
       );
     }
   }
 
   @override
   bool shouldRepaint(covariant _CurvePainter old) =>
-      old.gains != gains || old.preamp != preamp || old.freqs != freqs;
+      old.gains != gains ||
+      old.preamp != preamp ||
+      old.freqs != freqs;
 }

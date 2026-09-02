@@ -1,9 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'glass_surface.dart';
 
 class ErrorView extends StatelessWidget {
   final String message;
@@ -15,63 +12,55 @@ class ErrorView extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: GlassSurface(
-          opacity: 0.4,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    border: Border.all(
-                      color: AppColors.error.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.error_outline_rounded,
-                    size: 32,
-                    color: AppColors.error,
-                  ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.error.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.35),
+                  width: 0.6,
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'Something went wrong',
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-                if (onRetry != null) ...[
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: onRetry,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Try Again'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ],
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 24,
+                color: AppColors.error,
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+            const Text(
+              'Something went wrong',
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -98,35 +87,31 @@ class EmptyView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.08),
-                    AppColors.secondary.withValues(alpha: 0.05),
-                  ],
-                ),
-                border: Border.all(color: AppColors.border, width: 1),
+                color: AppColors.surfaceRaised,
+                border: Border.all(color: AppColors.border, width: 0.6),
               ),
-              child: Icon(icon, size: 36, color: AppColors.textDim),
+              child: Icon(icon, size: 28, color: AppColors.textDim),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.text,
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
                   height: 1.4,
@@ -151,19 +136,19 @@ class LoadingView extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 36,
-            height: 36,
+            width: 28,
+            height: 28,
             child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: AppColors.primary,
-              backgroundColor: AppColors.surfaceRaised,
+              strokeWidth: 2,
+              color: AppColors.accent,
+              backgroundColor: AppColors.surfaceHigh,
             ),
           ),
           if (message != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               message!,
-              style: TextStyle(color: AppColors.textDim, fontSize: 13),
+              style: const TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
           ],
         ],
@@ -176,41 +161,29 @@ class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.warning.withValues(alpha: 0.1),
-                AppColors.warning.withValues(alpha: 0.05),
-              ],
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: AppColors.warning.withValues(alpha: 0.15),
-                width: 0.5,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: const Row(
-            children: [
-              Icon(Icons.wifi_off_rounded, size: 16, color: AppColors.warning),
-              SizedBox(width: 10),
-              Text(
-                'Offline — showing cached content',
-                style: TextStyle(
-                  color: AppColors.warning,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          bottom: BorderSide(color: AppColors.border, width: 0.5),
         ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: const [
+          Icon(Icons.wifi_off_rounded, size: 14, color: AppColors.warning),
+          SizedBox(width: 8),
+          Text(
+            'Offline — showing cached content',
+            style: TextStyle(
+              color: AppColors.warning,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

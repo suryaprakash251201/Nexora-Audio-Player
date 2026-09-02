@@ -22,7 +22,7 @@ class ArtworkImage extends ConsumerWidget {
     super.key,
     this.url,
     this.size,
-    this.borderRadius = 12,
+    this.borderRadius = 6,
     this.fit = BoxFit.cover,
     this.showShadow = false,
     this.shadowColor,
@@ -48,20 +48,15 @@ class ArtworkImage extends ConsumerWidget {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    final imageKey = token != null ? '$url?_auth=${token.hashCode}' : url!;
+    final imageKey =
+        token != null ? '$url?_auth=${token.hashCode}' : url!;
 
     final image = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.surfaceRaised, AppColors.surfaceHigh],
-          ),
-        ),
+        decoration: const BoxDecoration(color: AppColors.surfaceRaised),
         child: Image.network(
           url!,
           key: ValueKey(imageKey),
@@ -77,15 +72,14 @@ class ArtworkImage extends ConsumerWidget {
     );
 
     if (!showShadow) return image;
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
             color: (shadowColor ?? Colors.black).withValues(alpha: 0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -98,27 +92,23 @@ class ArtworkImage extends ConsumerWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.surfaceRaised, AppColors.surfaceHigh],
-        ),
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Center(
         child: isLoading
             ? SizedBox(
-                width: size != null && size! < 40 ? 16 : 22,
-                height: size != null && size! < 40 ? 16 : 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                width: size != null && size! < 40 ? 14 : 20,
+                height: size != null && size! < 40 ? 14 : 20,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 1.5,
                   color: AppColors.textDim,
                 ),
               )
             : Icon(
                 Icons.music_note_rounded,
                 color: AppColors.textDim,
-                size: size != null && size! < 40 ? 20 : 32,
+                size: size != null && size! < 40 ? 18 : 28,
               ),
       ),
     );

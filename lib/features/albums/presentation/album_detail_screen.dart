@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../data/repositories/playlists_repository.dart';
-import '../../../domain/entities/playlist.dart';
+import '../../../data/api/albums_api.dart';
+import '../../../data/api/files_api.dart';
+import '../../../data/dto/file_dto.dart';
+import '../../../domain/entities/album.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_artwork.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
@@ -13,30 +15,30 @@ import '../../../ui/widgets/error_view.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 
-class PlaylistDetailScreen extends ConsumerStatefulWidget {
-  final String playlistId;
-  final Playlist? initial;
-  const PlaylistDetailScreen({
+class AlbumDetailScreen extends ConsumerStatefulWidget {
+  final String albumId;
+  final Album? initial;
+  const AlbumDetailScreen({
     super.key,
-    required this.playlistId,
+    required this.albumId,
     this.initial,
   });
 
   @override
-  ConsumerState<PlaylistDetailScreen> createState() =>
-      _PlaylistDetailScreenState();
+  ConsumerState<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
 }
 
-class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
-  Playlist? _playlist;
+class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
+  Album? _album;
   List<Song> _tracks = [];
+  String? _coverUrl;
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _playlist = widget.initial;
+    _album = widget.initial;
     _load();
   }
 
@@ -46,16 +48,28 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       _error = null;
     });
     try {
-      final repo = ref.read(playlistsRepositoryProvider);
-      final p = await repo.getPlaylist(widget.playlistId);
-      final tracks =
-          p.tracks ?? await repo.getPlaylistTracks(widget.playlistId);
+      final api = ref.read(albumsApiProvider);
+      final album = _album ?? await api.getAlbum(widget.albumId);
+      final tracks = await api.getAlbumTracks(widget.albumId);
+      String? cover;
+      try {
+        cover = await ref.read(filesApiProvider).thumbnailUrl(
+              NexoraFiles.parseRootId(widget.albumId),
+              NexoraFiles.parsePath(widget.albumId),
+              size: 600,
+            );
+      } catch (_) {
+        cover = null;
+      }
+      if (!mounted) return;
       setState(() {
-        _playlist = p;
+        _album = album;
         _tracks = tracks;
+        _coverUrl = cover;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -89,7 +103,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         body: ErrorView(message: _error!, onRetry: _load),
       );
     }
-    final p = _playlist!;
+    final album = _album!;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -105,21 +119,21 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded),
-                  onPressed: _showOptions,
+                  onPressed: () {},
                 ),
               ],
             ),
-            SliverToBoxAdapter(child: _hero(p)),
-            SliverToBoxAdapter(child: _actions(p)),
+            SliverToBoxAdapter(child: _hero(album)),
+            SliverToBoxAdapter(child: _actions()),
             if (_tracks.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
                   child: NexoraEmptyState(
-                    icon: Icons.queue_music_outlined,
-                    title: 'Empty playlist',
-                    subtitle: 'Add songs from your library to begin.',
+                    icon: Icons.album_outlined,
+                    title: 'No tracks',
+                    subtitle: 'This album folder has no audio files yet.',
                   ),
                 ),
               )
@@ -143,9 +157,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             artworkUrl: s.coverUrl,
                             title: s.title,
                             subtitle:
-                                '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                                '${s.artist ?? album.artist ?? 'Unknown'} • ${album.title}',
+                            duration:
+                                formatDuration(Duration(seconds: s.duration ?? 0)),
                             indexLabel:
-                                (i + 1).toString().padLeft(2, '0'),
+                                (s.trackNumber ?? (i + 1)).toString().padLeft(2, '0'),
                             isCurrent: isCurrent,
                             isPlaying:
                                 isCurrent &&
@@ -173,10 +189,12 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     );
   }
 
-  Widget _hero(Playlist p) {
-    final cover = _firstTrackArtwork(p);
-    final count = p.trackCount ?? _tracks.length;
-    final total = _totalDuration();
+  Widget _hero(Album album) {
+    final totalSec = _tracks.fold<int>(0, (s, t) => s + (t.duration ?? 0));
+    final year = _tracks.map((t) => t.year).firstWhere(
+          (y) => y != null,
+          orElse: () => null,
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
@@ -184,38 +202,37 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         children: [
           Center(
             child: SizedBox(
-              width: 220,
-              height: 220,
-              child: cover,
+              width: 260,
+              height: 260,
+              child: NexoraArtwork(url: _coverUrl, size: 260),
             ),
           ),
           const SizedBox(height: NexoraSpacing.s24),
           Text(
-            p.name,
+            album.title.toUpperCase(),
             style: const TextStyle(
               color: AppColors.text,
               fontSize: 30,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.6,
-              height: 1.1,
+              height: 1.05,
             ),
           ),
-          if (p.description != null && p.description!.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              p.description!,
-              style: const TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ],
           const SizedBox(height: 6),
           Text(
+            album.artist ?? 'Unknown Artist',
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
             [
-              '$count ${count == 1 ? 'track' : 'tracks'}',
-              if (total != null) formatDuration(total),
+              if (year != null) '$year',
+              '${_tracks.length} ${_tracks.length == 1 ? 'track' : 'tracks'}',
+              if (totalSec > 0) formatDuration(Duration(seconds: totalSec)),
             ].join(' • '),
             style: const TextStyle(
               color: AppColors.textDim,
@@ -229,14 +246,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     );
   }
 
-  Widget _actions(Playlist p) {
+  Widget _actions() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
       child: Row(
         children: [
           Expanded(
             child: NexoraTextButton(
-              label: 'Play',
+              label: 'Play All',
               icon: Icons.play_arrow_rounded,
               primary: true,
               onTap: _tracks.isEmpty
@@ -260,113 +277,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Duration? _totalDuration() {
-    if (_tracks.isEmpty) return null;
-    final seconds = _tracks.fold<int>(0, (s, t) => s + (t.duration ?? 0));
-    if (seconds == 0) return null;
-    return Duration(seconds: seconds);
-  }
-
-  Widget _firstTrackArtwork(Playlist p) {
-    String? url = p.coverUrl;
-    for (final t in p.tracks ?? const []) {
-      final trackUrl = t.coverUrl ?? t.artworkUrl;
-      if (trackUrl != null && trackUrl.isNotEmpty) {
-        url ??= trackUrl;
-        break;
-      }
-    }
-    return NexoraArtwork(url: url, size: 220);
-  }
-
-  void _showOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (c) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.textDim.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.text),
-                title: const Text('Rename',
-                    style: TextStyle(color: AppColors.text)),
-                onTap: () => Navigator.pop(context),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
-                title: const Text(
-                  'Delete playlist',
-                  style: TextStyle(color: AppColors.error),
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (cx) => AlertDialog(
-                      backgroundColor: AppColors.surface,
-                      title: const Text(
-                        'Delete?',
-                        style: TextStyle(color: AppColors.text),
-                      ),
-                      content: const Text(
-                        'This will delete the playlist.',
-                        style: TextStyle(color: AppColors.textMuted),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(cx, false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(cx, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                          ),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (ok == true) {
-                    try {
-                      await ref
-                          .read(playlistsRepositoryProvider)
-                          .deletePlaylist(widget.playlistId);
-                      if (mounted) Navigator.pop(context);
-                    } catch (e) {
-                      if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Delete failed: $e')),
-                        );
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

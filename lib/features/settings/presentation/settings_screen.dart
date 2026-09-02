@@ -6,9 +6,6 @@ import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/api/server_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/theme_provider.dart';
-import '../../../ui/widgets/enhanced_glass.dart';
-import '../../../ui/widgets/premium_widgets.dart';
-import '../../../ui/animations/app_animations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../player/providers/sleep_timer_provider.dart';
 
@@ -21,282 +18,199 @@ class SettingsScreen extends ConsumerWidget {
     final storage = ref.watch(secureStorageProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: AuroraBackground(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
-          children: [
-            const SizedBox(height: 8),
-            SlideInAnimation(
-              child: _settingsGroup('SERVER', [
-                FutureBuilder<String?>(
-                  future: storage.getServerUrl(),
-                  builder: (c, snap) => _SettingTile(
-                    icon: Icons.dns_rounded,
-                    iconBg: AppColors.primary,
-                    title: snap.data ?? 'Not configured',
-                    subtitle: 'Tap to configure server URL',
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.textDim,
-                    ),
-                    onTap: () => context.push('/server-setup'),
-                  ),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 20),
-            serverInfo.when(
-              data: (info) => SlideInAnimation(
-                child: _settingsGroup('CONNECTION', [
-                  _SettingTile(
-                    icon: Icons.check_circle_rounded,
-                    iconBg: AppColors.success,
-                    title: '${info.name} Connected',
-                    subtitle: 'v${info.serverVersion} • API ${info.apiVersion}',
-                    trailing: _StatusPill(text: 'Online'),
-                  ),
-                ]),
-              ),
-              loading: () => SlideInAnimation(
-                child: _settingsGroup('CONNECTION', [
-                  const _SettingTile(
-                    icon: Icons.sync_rounded,
-                    iconBg: AppColors.warning,
-                    title: 'Checking server...',
-                    subtitle: 'Verifying connection',
-                    showSpinner: true,
-                  ),
-                ]),
-              ),
-              error: (e, _) => SlideInAnimation(
-                child: _settingsGroup('CONNECTION', [
-                  _SettingTile(
-                    icon: Icons.error_outline_rounded,
-                    iconBg: AppColors.error,
-                    title: 'Server unreachable',
-                    subtitle: e.toString(),
-                  ),
-                ]),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
+        children: [
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Settings',
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w700,
+                fontSize: 28,
+                letterSpacing: -0.6,
               ),
             ),
-            const SizedBox(height: 20),
-            SlideInAnimation(
-              delay: const Duration(milliseconds: 100),
-              child: Consumer(
+          ),
+          const SizedBox(height: 16),
+          _SectionGroup(
+            title: 'PLAYBACK',
+            children: [
+              _SettingTile(
+                icon: Icons.tune_rounded,
+                title: 'Equalizer',
+                subtitle: 'Audiophile 8-band EQ',
+                onTap: () => context.push('/equalizer'),
+              ),
+              Consumer(
                 builder: (context, ref, _) {
                   final timer = ref.watch(sleepTimerProvider);
-                  return _settingsGroup('PLAYBACK', [
-                    _SettingTile(
-                      icon: Icons.graphic_eq_rounded,
-                      iconBg: AppColors.secondary,
-                      title: 'Equalizer',
-                      subtitle: 'Audiophile 8-band EQ',
-                      trailing: Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textDim,
-                      ),
-                      onTap: () => context.push('/equalizer'),
+                  return _SettingTile(
+                    icon: Icons.bedtime_outlined,
+                    title: 'Sleep timer',
+                    subtitle: timer.isActive ? timer.label : 'Off',
+                    trailing: Switch.adaptive(
+                      value: timer.isActive,
+                      onChanged: (v) {
+                        if (v) {
+                          _showSleepTimerSheet(context, ref);
+                        } else {
+                          ref.read(sleepTimerProvider.notifier).cancel();
+                        }
+                      },
                     ),
-                    _SettingTile(
-                      icon: Icons.timer_outlined,
-                      iconBg: AppColors.tertiary,
-                      title: 'Sleep timer',
-                      subtitle: timer.isActive ? timer.label : 'Off',
-                      trailing: Switch(
-                        value: timer.isActive,
-                        activeThumbColor: AppColors.primary,
-                        activeTrackColor: AppColors.primary.withValues(
-                          alpha: 0.35,
-                        ),
-                        inactiveThumbColor: AppColors.textDim,
-                        inactiveTrackColor: AppColors.surfaceHigh,
-                        onChanged: (v) {
-                          if (v) {
-                            _showSleepTimerSheet(context, ref);
-                          } else {
-                            ref.read(sleepTimerProvider.notifier).cancel();
-                          }
-                        },
-                      ),
-                      onTap: () => _showSleepTimerSheet(context, ref),
-                    ),
-                    const _SettingTile(
-                      icon: Icons.high_quality_rounded,
-                      iconBg: AppColors.primary,
-                      title: 'Audio quality',
-                      subtitle: 'Original (server) • No transcoding',
-                      trailing: _StatusPill(text: 'Hi-Res'),
-                    ),
-                  ]);
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            SlideInAnimation(
-              delay: const Duration(milliseconds: 200),
-              child: _settingsGroup('APPEARANCE', [
-                ref.watch(themeModeProvider) == AppThemePreference.dark
-                    ? _SettingTile(
-                        icon: Icons.dark_mode_rounded,
-                        iconBg: AppColors.primary,
-                        title: 'Theme',
-                        subtitle: 'Dark • Midnight Glassmorphism',
-                        trailing: Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.textDim,
-                        ),
-                        onTap: () => _showThemePicker(context, ref),
-                      )
-                    : _SettingTile(
-                        icon: Icons.light_mode_rounded,
-                        iconBg: AppColors.secondary,
-                        title: 'Theme',
-                        subtitle: 'Light • Adaptive device support',
-                        trailing: Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.textDim,
-                        ),
-                        onTap: () => _showThemePicker(context, ref),
-                      ),
-              ]),
-            ),
-            const SizedBox(height: 20),
-            SlideInAnimation(
-              delay: const Duration(milliseconds: 300),
-              child: _settingsGroup('ABOUT', [
-                const _SettingTile(
-                  icon: Icons.shield_rounded,
-                  iconBg: AppColors.success,
-                  title: 'Nexora Audio Player',
-                  subtitle: 'v1.0.0 • Audiophile edition',
-                  trailing: GlowDot(size: 8, color: AppColors.success),
-                ),
-                const _SettingTile(
-                  icon: Icons.code_rounded,
-                  iconBg: AppColors.secondary,
-                  title: 'Open source',
-                  subtitle:
-                      'github.com/suryaprakash251201/Nexora-Audio-Player',
-                ),
-              ]),
-            ),
-            const SizedBox(height: 28),
-            SlideInAnimation(
-              delay: const Duration(milliseconds: 400),
-              child: NeonGlowButton(
-                label: 'Log out',
-                icon: Icons.logout_rounded,
-                color: AppColors.error,
-                onPressed: () async {
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (c) => GlassDialog(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.logout_rounded,
-                                color: AppColors.error,
-                                size: 32,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Log out?',
-                              style: TextStyle(
-                                color: AppColors.text,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'This will clear your session and require re-login.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textMuted),
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.pop(c, false),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: AppColors.border,
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Cancel',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: AppColors.text,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.pop(c, true),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppColors.error.withValues(alpha: 0.8),
-                                            AppColors.error.withValues(alpha: 0.6),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Text(
-                                        'Log out',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    onTap: () => _showSleepTimerSheet(context, ref),
                   );
-                  if (ok == true) {
-                    await ref.read(authStateProvider.notifier).logout();
-                    if (context.mounted) context.go('/login');
-                  }
                 },
               ),
+              const _SettingTile(
+                icon: Icons.high_quality_outlined,
+                title: 'Audio quality',
+                subtitle: 'Original (server) • No transcoding',
+              ),
+              const _SettingTile(
+                icon: Icons.speed_rounded,
+                title: 'Playback speed',
+                subtitle: '1.0× default',
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _SectionGroup(
+            title: 'LIBRARY',
+            children: [
+              _SettingTile(
+                icon: Icons.download_outlined,
+                title: 'Downloads',
+                subtitle: 'Manage offline tracks',
+                onTap: () => context.push('/downloads'),
+              ),
+              const _SettingTile(
+                icon: Icons.sync_rounded,
+                title: 'Sync',
+                subtitle: 'Background sync is automatic',
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _SectionGroup(
+            title: 'APPEARANCE',
+            children: [
+              _SettingTile(
+                icon: ref.watch(themeModeProvider) == AppThemePreference.dark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
+                title: 'Theme',
+                subtitle: _themeLabel(
+                  ref.watch(themeModeProvider),
+                ),
+                onTap: () => _showThemePicker(context, ref),
+              ),
+              _SettingTile(
+                icon: Icons.tune_rounded,
+                title: 'Player style',
+                subtitle: 'Modern',
+                onTap: () => _showPlayerStylePicker(context, ref),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _SectionGroup(
+            title: 'SERVER',
+            children: [
+              FutureBuilder<String?>(
+                future: storage.getServerUrl(),
+                builder: (c, snap) => _SettingTile(
+                  icon: Icons.dns_outlined,
+                  title: snap.data ?? 'Not configured',
+                  subtitle: 'Tap to configure server URL',
+                  onTap: () => context.push('/server-setup'),
+                ),
+              ),
+              serverInfo.when(
+                data: (info) => _SettingTile(
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: AppColors.success,
+                  title: '${info.name} Connected',
+                  subtitle: 'v${info.serverVersion} • API ${info.apiVersion}',
+                ),
+                loading: () => const _SettingTile(
+                  icon: Icons.sync_rounded,
+                  iconColor: AppColors.warning,
+                  title: 'Checking server…',
+                  subtitle: 'Verifying connection',
+                ),
+                error: (e, _) => _SettingTile(
+                  icon: Icons.error_outline_rounded,
+                  iconColor: AppColors.error,
+                  title: 'Server unreachable',
+                  subtitle: e.toString(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _SectionGroup(
+            title: 'ABOUT',
+            children: [
+              const _SettingTile(
+                icon: Icons.info_outline_rounded,
+                title: 'Nexora Audio Player',
+                subtitle: 'v1.0.0 • Audiophile edition',
+              ),
+              const _SettingTile(
+                icon: Icons.code_rounded,
+                title: 'Open source',
+                subtitle:
+                    'github.com/suryaprakash251201/Nexora-Audio-Player',
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _DangerButton(
+            onPressed: () async {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  backgroundColor: AppColors.surface,
+                  title: const Text('Log out?'),
+                  content: const Text(
+                    'This will clear your session and require re-login.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: const Text(
+                        'Log out',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (ok == true) {
+                await ref.read(authStateProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Nexora Audio Player v1.0.0',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textDim,
+              fontSize: 11,
+              letterSpacing: 0.4,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Nexora Audio Player v1.0.0',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textDim, fontSize: 11),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -306,91 +220,89 @@ class SettingsScreen extends ConsumerWidget {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return GlassBottomSheet(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Theme',
-                    style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'THEME',
+                  style: TextStyle(
+                    color: AppColors.textDim,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Adaptive device support included',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                for (final pref in AppThemePreference.values)
+                  _ThemeOption(
+                    pref: pref,
+                    selected: pref == current,
+                    onTap: () {
+                      ref.read(themeModeProvider.notifier).set(pref);
+                      Navigator.pop(sheetContext);
+                    },
                   ),
-                  const SizedBox(height: 20),
-                  for (final pref in AppThemePreference.values)
-                    GlassCard(
-                      borderRadius: 16,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      onTap: () {
-                        ref.read(themeModeProvider.notifier).set(pref);
-                        Navigator.pop(sheetContext);
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primary.withValues(alpha: 0.15),
-                                  AppColors.secondary.withValues(alpha: 0.1),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              _themeIcon(pref),
-                              color: pref == current
-                                  ? AppColors.primary
-                                  : AppColors.textMuted,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              _themeLabel(pref),
-                              style: TextStyle(
-                                color: pref == current
-                                    ? AppColors.primary
-                                    : AppColors.text,
-                                fontWeight: pref == current
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                          if (pref == current)
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              color: AppColors.primary,
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPlayerStylePicker(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'PLAYER STYLE',
+                  style: TextStyle(
+                    color: AppColors.textDim,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                for (final style in PlayerVisualStyle.values)
+                  _PlayerStyleOption(
+                    style: style,
+                    selected: ref.read(playerVisualStyleProvider) == style,
+                    onTap: () {
+                      ref.read(playerVisualStyleProvider.notifier).state =
+                          style;
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -398,18 +310,18 @@ class SettingsScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (c) => const _SettingsSleepTimerSheet(),
+      builder: (c) => const _SleepTimerSheet(),
     );
   }
 
   IconData _themeIcon(AppThemePreference pref) {
     switch (pref) {
       case AppThemePreference.light:
-        return Icons.light_mode_rounded;
+        return Icons.light_mode_outlined;
       case AppThemePreference.dark:
-        return Icons.dark_mode_rounded;
+        return Icons.dark_mode_outlined;
       case AppThemePreference.system:
-        return Icons.brightness_auto_rounded;
+        return Icons.brightness_auto_outlined_rounded;
     }
   }
 
@@ -423,8 +335,26 @@ class SettingsScreen extends ConsumerWidget {
         return 'System default';
     }
   }
+}
 
-  Widget _settingsGroup(String title, List<Widget> children) {
+String _themeLabel(AppThemePreference pref) {
+  switch (pref) {
+    case AppThemePreference.light:
+      return 'Light';
+    case AppThemePreference.dark:
+      return 'Dark';
+    case AppThemePreference.system:
+      return 'System default';
+  }
+}
+
+class _SectionGroup extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+  const _SectionGroup({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -432,27 +362,29 @@ class SettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textDim,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+              letterSpacing: 1.4,
             ),
           ),
         ),
-        EnhancedGlassSurface(
-          opacity: 0.45,
-          blur: 25,
-          borderRadius: BorderRadius.circular(20),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 0.6),
+          ),
           child: Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
                 children[i],
                 if (i < children.length - 1)
-                  Divider(
-                    color: AppColors.border,
+                  const Divider(
+                    color: AppColors.hairline,
                     height: 0.5,
-                    indent: 16,
+                    indent: 56,
                     endIndent: 16,
                   ),
               ],
@@ -466,326 +398,355 @@ class SettingsScreen extends ConsumerWidget {
 
 class _SettingTile extends StatelessWidget {
   final IconData icon;
-  final Color iconBg;
+  final Color? iconColor;
   final String title;
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  final bool showSpinner;
 
   const _SettingTile({
     required this.icon,
-    required this.iconBg,
+    this.iconColor,
     required this.title,
     this.subtitle,
     this.trailing,
     this.onTap,
-    this.showSpinner = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    final c = iconColor ?? AppColors.textMuted;
+    return InkWell(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              iconBg.withValues(alpha: 0.28),
-              iconBg.withValues(alpha: 0.12),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: iconBg.withValues(alpha: 0.3), width: 0.6),
-          boxShadow: [
-            BoxShadow(
-              color: iconBg.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border, width: 0.6),
+              ),
+              child: Icon(icon, color: c, size: 18),
             ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) trailing!,
           ],
         ),
-        child: showSpinner
-            ? Padding(
-                padding: const EdgeInsets.all(12),
-                child: CircularProgressIndicator(strokeWidth: 2, color: iconBg),
-              )
-            : Icon(icon, color: iconBg, size: 22),
       ),
-      title: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: AppColors.text,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.1,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            )
-          : null,
-      trailing: trailing,
     );
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  final String text;
-  const _StatusPill({required this.text});
+class _DangerButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _DangerButton({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = text.toLowerCase().contains('online');
-    final color = isOnline ? AppColors.success : AppColors.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GlowDot(size: 6, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.logout_rounded, size: 18),
+      label: const Text('Log out'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.error,
+        side: BorderSide(color: AppColors.error.withValues(alpha: 0.35)),
       ),
     );
   }
 }
 
-class _SettingsSleepTimerSheet extends ConsumerWidget {
-  const _SettingsSleepTimerSheet();
+class _ThemeOption extends StatelessWidget {
+  final AppThemePreference pref;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ThemeOption({
+    required this.pref,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent.withValues(alpha: 0.10) : null,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? AppColors.accent.withValues(alpha: 0.45)
+                : AppColors.border,
+            width: 0.6,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _iconFor(pref),
+              color: selected ? AppColors.accent : AppColors.textMuted,
+              size: 18,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _themeLabel(pref),
+                style: TextStyle(
+                  color: selected ? AppColors.accent : AppColors.text,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                size: 18,
+                color: AppColors.accent,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _iconFor(AppThemePreference pref) {
+    switch (pref) {
+      case AppThemePreference.light:
+        return Icons.light_mode_outlined;
+      case AppThemePreference.dark:
+        return Icons.dark_mode_outlined;
+      case AppThemePreference.system:
+        return Icons.brightness_auto_outlined_rounded;
+    }
+  }
+}
+
+class _PlayerStyleOption extends StatelessWidget {
+  final PlayerVisualStyle style;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PlayerStyleOption({
+    required this.style,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent.withValues(alpha: 0.10) : null,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? AppColors.accent.withValues(alpha: 0.45)
+                : AppColors.border,
+            width: 0.6,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _iconFor(style),
+              color: selected ? AppColors.accent : AppColors.textMuted,
+              size: 18,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _labelFor(style),
+                style: TextStyle(
+                  color: selected ? AppColors.accent : AppColors.text,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                size: 18,
+                color: AppColors.accent,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _iconFor(PlayerVisualStyle s) {
+    switch (s) {
+      case PlayerVisualStyle.modern:
+        return Icons.album_outlined;
+      case PlayerVisualStyle.vinyl:
+        return Icons.album_rounded;
+      case PlayerVisualStyle.cassette:
+        return Icons.cassette_outlined;
+      case PlayerVisualStyle.minimal:
+        return Icons.minimize_outlined;
+    }
+  }
+
+  String _labelFor(PlayerVisualStyle s) {
+    switch (s) {
+      case PlayerVisualStyle.modern:
+        return 'Modern';
+      case PlayerVisualStyle.vinyl:
+        return 'Vinyl';
+      case PlayerVisualStyle.cassette:
+        return 'Cassette';
+      case PlayerVisualStyle.minimal:
+        return 'Minimal';
+    }
+  }
+}
+
+class _SleepTimerSheet extends ConsumerWidget {
+  const _SleepTimerSheet();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timer = ref.watch(sleepTimerProvider);
-    return GlassBottomSheet(
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: AppColors.textDim.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.tertiary.withValues(alpha: 0.22),
-                          AppColors.primary.withValues(alpha: 0.14),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.bedtime_rounded,
-                      color: AppColors.tertiary,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sleep timer',
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          timer.isActive
-                              ? timer.label
-                              : 'Automatically pause playback',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (timer.isActive)
-                    GestureDetector(
-                      onTap: () =>
-                          ref.read(sleepTimerProvider.notifier).cancel(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.error.withValues(alpha: 0.2),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              if (timer.isActive) ...[
-                const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: timer.progress,
-                    minHeight: 4,
-                    backgroundColor: AppColors.textDim.withValues(alpha: 0.12),
-                    valueColor: AlwaysStoppedAnimation(AppColors.tertiary),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 18),
-              Text(
-                'DURATION',
+              const Text(
+                'SLEEP TIMER',
                 style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+              Text(
+                timer.isActive ? timer.label : 'Stop playback automatically',
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 16),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (final d in SleepTimerNotifier.presets)
-                    GestureDetector(
+                    _PresetChip(
+                      duration: d,
+                      selected: timer.isActive && timer.total == d,
                       onTap: () {
                         ref.read(sleepTimerProvider.notifier).setTimer(d);
                         Navigator.pop(context);
                       },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: timer.isActive && timer.total == d
-                              ? LinearGradient(
-                                  colors: [
-                                    AppColors.tertiary.withValues(alpha: 0.22),
-                                    AppColors.primary.withValues(alpha: 0.14),
-                                  ],
-                                )
-                              : LinearGradient(
-                                  colors: [
-                                    AppColors.surfaceRaised.withValues(
-                                      alpha: 0.9,
-                                    ),
-                                    AppColors.surfaceHigh.withValues(
-                                      alpha: 0.6,
-                                    ),
-                                  ],
-                                ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: timer.isActive && timer.total == d
-                                ? AppColors.tertiary.withValues(alpha: 0.35)
-                                : AppColors.border,
-                            width: 0.6,
-                          ),
-                        ),
-                        child: Text(
-                          formatSleepDuration(d),
-                          style: TextStyle(
-                            color: timer.isActive && timer.total == d
-                                ? AppColors.tertiary
-                                : AppColors.text,
-                            fontWeight: timer.isActive && timer.total == d
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
                     ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: GestureDetector(
-                  onTap: () {
-                    if (timer.isActive) {
-                      ref.read(sleepTimerProvider.notifier).cancel();
-                    }
+              const SizedBox(height: 16),
+              if (timer.isActive)
+                OutlinedButton(
+                  onPressed: () {
+                    ref.read(sleepTimerProvider.notifier).cancel();
                     Navigator.pop(context);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border, width: 0.6),
-                    ),
-                    child: Text(
-                      timer.isActive ? 'Turn off' : 'Off',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  child: const Text('Turn off'),
                 ),
-              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  final Duration duration;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PresetChip({
+    required this.duration,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.accent.withValues(alpha: 0.18)
+              : AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? AppColors.accent.withValues(alpha: 0.45)
+                : AppColors.border,
+            width: 0.6,
+          ),
+        ),
+        child: Text(
+          formatSleepDuration(duration),
+          style: TextStyle(
+            color: selected ? AppColors.accent : AppColors.text,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
           ),
         ),
       ),
