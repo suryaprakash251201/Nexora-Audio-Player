@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -202,7 +204,8 @@ class GlassBottomSheet extends StatelessWidget {
 }
 
 /// App bar — kept as `GlassAppBar` so legacy call sites compile. The new
-/// design uses a clean AppBar directly.
+/// design uses a clean AppBar directly. When [blur] > 0 the bar renders a
+/// translucent frosted surface instead of a flat fill.
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final List<Widget>? actions;
@@ -210,6 +213,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBottom;
   final PreferredSizeWidget? bottom;
   final double blur;
+  final double toolbarHeight;
 
   const GlassAppBar({
     super.key,
@@ -218,35 +222,50 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBottom = false,
     this.bottom,
-    this.blur = 0,
+    this.blur = 18,
+    this.toolbarHeight = kToolbarHeight,
   });
 
   @override
   Size get preferredSize => Size.fromHeight(
-        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+        toolbarHeight + (bottom?.preferredSize.height ?? 0),
       );
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColors.background,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: leading,
-      title: title != null
-          ? Text(
-              title!,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
-              ),
-            )
-          : null,
-      actions: actions,
-      bottom: bottom,
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final tint = (isDark ? Colors.black : Colors.white).withValues(alpha: 0.35);
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          color: tint,
+          child: SafeArea(
+            bottom: false,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              toolbarHeight: toolbarHeight,
+              leading: leading,
+              title: title != null
+                  ? Text(
+                      title!,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                      ),
+                    )
+                  : null,
+              actions: actions,
+              bottom: bottom,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/favorites_repository.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
@@ -17,7 +18,8 @@ class FavoritesScreen extends ConsumerWidget {
     final favAsync = ref.watch(_favoritesProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         toolbarHeight: 64,
         title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),

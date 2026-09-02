@@ -58,6 +58,7 @@ class HomeScreen extends ConsumerWidget {
                     elevation: 0,
                     scrolledUnderElevation: 0,
                     toolbarHeight: 64,
+                    flexibleSpace: const NexoraSliverAppBarBackground(),
                     title: const _BrandLockup(),
                     actions: [
                       IconButton(

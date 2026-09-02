@@ -8,6 +8,7 @@ import '../../../data/api/files_api.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/playlist_cover.dart';
 
@@ -25,7 +26,8 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     final playlistsAsync = ref.watch(_playlistsProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         toolbarHeight: 64,
         title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),

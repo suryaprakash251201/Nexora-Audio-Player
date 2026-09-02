@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/history_repository.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../player/providers/player_provider.dart';
 
@@ -13,7 +14,8 @@ class HistoryScreen extends ConsumerWidget {
     final historyAsync = ref.watch(_historyProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         toolbarHeight: 64,
         title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),

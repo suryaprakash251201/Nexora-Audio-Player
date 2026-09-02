@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -170,9 +171,53 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell>
+    with TickerProviderStateMixin {
   /// Whether the bottom nav bar is currently on screen.
   bool _navVisible = true;
+
+  /// Spring-driven controllers for the nav bar slide & the mini-player
+  /// reposition. Using a [SpringSimulation] gives the dock a physical
+  /// feel that snaps in and settles rather than easing linearly.
+  late final AnimationController _navController;
+  late final AnimationController _miniController;
+
+  @override
+  void initState() {
+    super.initState();
+    _navController = AnimationController.unbounded(vsync: this);
+    _miniController = AnimationController.unbounded(vsync: this);
+
+    // Drive both springs to their resting positions.
+    _springTo(_navController, 0.0);
+    _springTo(_miniController, 0.0);
+  }
+
+  @override
+  void dispose() {
+    _navController.dispose();
+    _miniController.dispose();
+    super.dispose();
+  }
+
+  void _springTo(AnimationController c, double target) {
+    final sim = SpringSimulation(
+      const SpringDescription(mass: 1.0, stiffness: 220.0, damping: 24.0),
+      c.value,
+      target,
+      0,
+    );
+    c.animateWith(sim);
+  }
+
+  void _setNavVisible(bool v) {
+    if (_navVisible == v) return;
+    setState(() => _navVisible = v);
+    // 0 = visible, 1 = hidden below the fold.
+    _springTo(_navController, v ? 0.0 : 1.0);
+    // Mini player slides up to fill the space the nav bar left behind.
+    _springTo(_miniController, v ? 0.0 : 1.0);
+  }
 
   int _indexForLocation(String loc) {
     if (loc.startsWith('/search')) return 1;
@@ -190,7 +235,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // Always reveal the bar once we are back at the very top.
     if (metrics.pixels <= metrics.minScrollExtent + 1) {
-      if (!_navVisible) setState(() => _navVisible = true);
+      if (!_navVisible) _setNavVisible(true);
       return false;
     }
 
@@ -201,12 +246,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       case ScrollDirection.reverse:
         // Content moving up = user scrolling down the list.
         if (hasTrack && _navVisible && metrics.pixels > 40) {
-          setState(() => _navVisible = false);
+          _setNavVisible(false);
         }
         break;
       case ScrollDirection.forward:
         // Content moving down = user scrolling back up.
-        if (!_navVisible) setState(() => _navVisible = true);
+        if (!_navVisible) _setNavVisible(true);
         break;
       case ScrollDirection.idle:
         break;
@@ -253,7 +298,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             right: 0,
             bottom: 0,
             child: _BottomDock(
-              navVisible: _navVisible,
+              navController: _navController,
+              miniController: _miniController,
               bottomInset: bottomInset,
               navBar: EnhancedGlassNavBar(
                 selectedIndex: idx,
@@ -271,8 +317,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 /// Bottom overlay that cross-fades/repositions the mini player and the nav bar
 /// so they swap places as the user scrolls. Both are centered and share the
 /// same horizontal constraints; the bar sits slightly lower near the edge.
+///
+/// Movement is driven by two spring simulations ([_AppShellState]) so the
+/// mini-player rises and the nav bar slides down with a physical, snappy feel.
 class _BottomDock extends StatelessWidget {
-  final bool navVisible;
+  final Animation<double> navController;
+  final Animation<double> miniController;
   final double bottomInset;
   final Widget navBar;
   final VoidCallback onOpenPlayer;
@@ -280,9 +330,12 @@ class _BottomDock extends StatelessWidget {
   // Mini player visual height (card + progress) — gap removed for merged dock.
   static const double _miniHeight = 70;
   static const double _gap = 0;
+  // Hidden offset (in logical pixels) the nav bar slides to when off-screen.
+  static const double _hiddenOffset = 80;
 
   const _BottomDock({
-    required this.navVisible,
+    required this.navController,
+    required this.miniController,
     required this.bottomInset,
     required this.navBar,
     required this.onOpenPlayer,
@@ -291,7 +344,7 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    final double dockBottom = bottomInset > 0 ? bottomInset + 4 : 6;
+    final double dockBottom = bottomInset > 0 ? bottomInset + 6 : 8;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(
@@ -299,39 +352,55 @@ class _BottomDock extends StatelessWidget {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              right: 0,
-              bottom: navVisible ? navTotal : 0,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 650),
-                  child: MiniPlayer(onTap: onOpenPlayer),
-                ),
-              ),
-            ),
-            // Nav bar: centered, slides below the fold when hidden.
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 360),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              right: 0,
-              bottom: navVisible ? 0 : -navTotal - 12,
-              child: IgnorePointer(
-                ignoring: !navVisible,
-                child: AnimatedOpacity(
-                  opacity: navVisible ? 1 : 0,
-                  duration: const Duration(milliseconds: 220),
+            // Mini player: springs up to fill the empty space when the
+            // nav bar is dismissed.
+            AnimatedBuilder(
+              animation: miniController,
+              builder: (context, child) {
+                final t = miniController.value.clamp(0.0, 1.0);
+                final bottom = lerpDouble(navTotal, 0, t);
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: bottom,
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 650),
-                      child: navBar,
+                      child: child,
                     ),
                   ),
-                ),
-              ),
+                );
+              },
+              child: MiniPlayer(onTap: onOpenPlayer),
+            ),
+            // Nav bar: spring slides below the fold when hidden.
+            AnimatedBuilder(
+              animation: navController,
+              builder: (context, child) {
+                final t = navController.value.clamp(0.0, 1.0);
+                // Quick fade for the trailing 30% of the slide so the
+                // nav never feels "half-present" while it's tucked away.
+                final opacity =
+                    t < 0.3 ? 1.0 : (1.0 - (t - 0.3) / 0.7).clamp(0.0, 1.0);
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: -_hiddenOffset * t,
+                  child: IgnorePointer(
+                    ignoring: t > 0.05,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 650),
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: navBar,
             ),
           ],
         ),
@@ -339,3 +408,6 @@ class _BottomDock extends StatelessWidget {
     );
   }
 }
+
+/// Linear interpolation helper kept private to this file.
+double lerpDouble(double a, double b, double t) => a + (b - a) * t;

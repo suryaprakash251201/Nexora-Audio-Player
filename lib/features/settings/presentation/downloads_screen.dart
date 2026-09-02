@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
 
 class DownloadsScreen extends StatelessWidget {
@@ -10,7 +11,8 @@ class DownloadsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         toolbarHeight: 64,
         title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),

@@ -1,9 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
+import '../nexora/nexora_glass.dart';
 import '../theme.dart';
 import 'waveform_visualizer.dart';
 
@@ -606,7 +607,9 @@ class _MiniIconButton extends StatelessWidget {
   }
 }
 
-/// Hi-Fi navigation bar — flat dock, hairline borders, accent for selection.
+/// Hi-Fi navigation bar — true glassmorphism dock with frosted blur,
+/// hairline highlight, and a spring-physics selected indicator that
+/// smoothly slides between destinations.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -617,8 +620,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  static const double height = 58;
-  static const double bottomMargin = 8;
+  static const double height = 62;
+  static const double bottomMargin = 10;
   static const double totalHeight = height + bottomMargin;
 
   static const _destinations = [
@@ -639,43 +642,106 @@ class EnhancedGlassNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, bottomMargin),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 0.6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return Semantics(
+      label: 'Main navigation',
+      child: NexoraGlassDock(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: SizedBox(
+          height: height - 12,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth =
+                  (constraints.maxWidth - 12) / _destinations.length;
+              return Stack(
+                children: [
+                  // Sliding selected-indicator pill. Animated by an
+                  // [AnimationController] driven spring, so it physically
+                  // settles into place rather than easing in linearly.
+                  AnimatedAlign(
+                    duration: const Duration(milliseconds: 520),
+                    curve: const _SpringCurve(),
+                    alignment: Alignment(
+                      -1 + (2 * selectedIndex + 1) / _destinations.length,
+                      0,
+                    ),
+                    child: SizedBox(
+                      width: itemWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: const _SelectedPill(),
+                      ),
+                    ),
+                  ),
+                  // Tappable items layered on top of the pill.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: List.generate(_destinations.length, (i) {
+                      final (icon, selIcon, label) = _destinations[i];
+                      return _NavItem(
+                        icon: icon,
+                        selectedIcon: selIcon,
+                        label: label,
+                        selected: i == selectedIndex,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onSelect(i);
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              );
+            },
           ),
-        ],
-      ),
-      child: Container(
-        height: height,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(_destinations.length, (i) {
-            final (icon, selIcon, label) = _destinations[i];
-            final selected = i == selectedIndex;
-            return _NavItem(
-              icon: icon,
-              selectedIcon: selIcon,
-              label: label,
-              selected: selected,
-              onTap: () => onSelect(i),
-            );
-          }),
         ),
       ),
     );
   }
 }
 
-class _NavItem extends StatelessWidget {
+/// Custom curve that overshoots slightly and settles — gives a soft
+/// "physical" feel without going full spring.
+class _SpringCurve extends Curve {
+  const _SpringCurve();
+  @override
+  double transformInternal(double t) {
+    // Damped sine wave: starts fast, overshoots, settles.
+    return 1 -
+        math.exp(-5 * t) *
+            math.cos(t * 9.0) *
+            (1 - t);
+  }
+}
+
+/// Soft glass pill that sits behind the active nav item. Subtle inner
+/// glow + hairline accent border keeps it readable on any background.
+class _SelectedPill extends StatelessWidget {
+  const _SelectedPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.accent.withValues(alpha: 0.35),
+          width: 0.6,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withValues(alpha: 0.20),
+            blurRadius: 14,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatefulWidget {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
@@ -691,56 +757,104 @@ class _NavItem extends StatelessWidget {
   });
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setPressed(bool v) {
+    if (_pressed == v) return;
+    setState(() => _pressed = v);
+    if (v) {
+      _pressCtrl.forward();
+    } else {
+      _pressCtrl.reverse();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.accent : AppColors.textDim;
+    final color = widget.selected ? AppColors.accent : AppColors.textDim;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.accent.withValues(alpha: 0.14)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: selected
-              ? Border.all(
-                  color: AppColors.accent.withValues(alpha: 0.22),
-                  width: 0.6,
-                )
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: selected ? 1.08 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              child: Icon(
-                selected ? selectedIcon : icon,
-                color: color,
-                size: 22,
+      child: AnimatedBuilder(
+        animation: _pressCtrl,
+        builder: (context, child) {
+          // Spring-style press scale: -8% with mild overshoot.
+          final t = _pressCtrl.value;
+          final scale = 1.0 - 0.08 * Curves.easeOutCubic.transform(t);
+          return Transform.scale(scale: scale, child: child);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedScale(
+                scale: widget.selected ? 1.10 : 1.0,
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                child: Icon(
+                  widget.selected ? widget.selectedIcon : widget.icon,
+                  color: color,
+                  size: 22,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 220),
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                letterSpacing: 0.2,
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight:
+                      widget.selected ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+                child: Text(widget.label),
               ),
-              child: Text(label),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Optional convenience for code that wants to drive a spring
+/// directly. Exposed so other places (e.g. mini-player expand) can
+/// reuse the same motion language.
+class SpringSimulationConfig {
+  static const SpringDescription standard = SpringDescription(
+    mass: 1.0,
+    stiffness: 240.0,
+    damping: 22.0,
+  );
 }
 
 /// Editorial track row used across lists. Subtle separators, no glass.

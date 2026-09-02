@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/player/providers/player_provider.dart';
 import '../theme.dart';
 import 'nexora_artwork.dart';
+import 'nexora_glass.dart';
 import 'nexora_primitives.dart';
 import 'nexora_rows.dart';
 import 'nexora_tokens.dart';
@@ -72,21 +73,14 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
         setState(() => _dragOffset = 0);
       },
       onHorizontalDragCancel: () => setState(() => _dragOffset = 0),
-      child: Container(
+      child: NexoraGlass(
+        borderRadius: BorderRadius.circular(16),
         margin: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 0.6),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.38),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
+        padding: EdgeInsets.zero,
+        blur: 24,
+        tintAlpha: 0.6,
+        borderAlpha: 0.4,
+        borderWidth: 0.7,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -157,7 +151,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
               children: [
                 Container(
                   height: 2,
-                  color: AppColors.surfaceHigh,
+                  color: AppColors.surfaceHigh.withValues(alpha: 0.5),
                 ),
                 FractionallySizedBox(
                   widthFactor: progress,
@@ -182,6 +176,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (c) {
         return DraggableScrollableSheet(
           initialChildSize: 0.72,
@@ -189,117 +184,122 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
           maxChildSize: 0.92,
           expand: false,
           builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                border: Border(
-                  top: BorderSide(color: AppColors.border, width: 0.6),
-                ),
+            return NexoraGlass(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppColors.textDim.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(3),
+              padding: EdgeInsets.zero,
+              margin: EdgeInsets.zero,
+              blur: 30,
+              tintAlpha: 0.65,
+              borderAlpha: 0.45,
+              borderWidth: 0.7,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppColors.textDim.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Queue',
-                                style: TextStyle(
-                                  color: AppColors.text,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Playing next',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.playlist_remove_rounded,
-                            color: AppColors.textDim,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            ref.read(playerProvider.notifier).clearQueue();
-                            Navigator.pop(context);
-                          },
-                          tooltip: 'Clear',
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: state.queue.isEmpty
-                        ? const NexoraEmptyState(
-                            icon: Icons.queue_music_rounded,
-                            title: 'Queue is empty',
-                            subtitle: 'Add songs from library.',
-                          )
-                        : ReorderableListView.builder(
-                            scrollController: scrollController,
-                            padding: const EdgeInsets.only(bottom: 24),
-                            itemCount: state.queue.length,
-                            onReorder: (o, n) => ref
-                                .read(playerProvider.notifier)
-                                .move(o, n > o ? n - 1 : n),
-                            itemBuilder: (cx, i) {
-                              final item = state.queue[i];
-                              final isCurrent =
-                                  state.currentTrack?.id == item.id;
-                              return NexoraTrackRow(
-                                key: ValueKey('${item.id}_$i'),
-                                artworkUrl: item.artUri?.toString(),
-                                title: item.title,
-                                subtitle: item.artist,
-                                indexLabel:
-                                    (i + 1).toString().padLeft(2, '0'),
-                                isCurrent: isCurrent,
-                                isPlaying: isCurrent && state.isPlaying,
-                                trailing: IconButton(
-                                  icon: Icon(
-                                    Icons.close_rounded,
-                                    size: 16,
-                                    color: AppColors.textDim,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Queue',
+                                  style: TextStyle(
+                                    color: AppColors.text,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  onPressed: () => ref
-                                      .read(playerProvider.notifier)
-                                      .removeAt(i),
                                 ),
-                                onTap: () {
-                                  ref
-                                      .read(playerProvider.notifier)
-                                      .seekToIndex(i);
-                                  Navigator.pop(context);
-                                },
-                              );
-                            },
+                                SizedBox(height: 2),
+                                Text(
+                                  'Playing next',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                  ),
-                ],
+                          IconButton(
+                            icon: Icon(
+                              Icons.playlist_remove_rounded,
+                              color: AppColors.textDim,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              ref.read(playerProvider.notifier).clearQueue();
+                              Navigator.pop(context);
+                            },
+                            tooltip: 'Clear',
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: state.queue.isEmpty
+                          ? const NexoraEmptyState(
+                              icon: Icons.queue_music_rounded,
+                              title: 'Queue is empty',
+                              subtitle: 'Add songs from library.',
+                            )
+                          : ReorderableListView.builder(
+                              scrollController: scrollController,
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: state.queue.length,
+                              onReorder: (o, n) => ref
+                                  .read(playerProvider.notifier)
+                                  .move(o, n > o ? n - 1 : n),
+                              itemBuilder: (cx, i) {
+                                final item = state.queue[i];
+                                final isCurrent =
+                                    state.currentTrack?.id == item.id;
+                                return NexoraTrackRow(
+                                  key: ValueKey('${item.id}_$i'),
+                                  artworkUrl: item.artUri?.toString(),
+                                  title: item.title,
+                                  subtitle: item.artist,
+                                  indexLabel:
+                                      (i + 1).toString().padLeft(2, '0'),
+                                  isCurrent: isCurrent,
+                                  isPlaying: isCurrent && state.isPlaying,
+                                  trailing: IconButton(
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: AppColors.textDim,
+                                    ),
+                                    onPressed: () => ref
+                                        .read(playerProvider.notifier)
+                                        .removeAt(i),
+                                  ),
+                                  onTap: () {
+                                    ref
+                                        .read(playerProvider.notifier)
+                                        .seekToIndex(i);
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

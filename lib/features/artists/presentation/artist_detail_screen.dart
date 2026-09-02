@@ -94,16 +94,19 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
     final a = _artist!;
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              backgroundColor: AppColors.background,
+              backgroundColor: Colors.transparent,
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
+              surfaceTintColor: Colors.transparent,
               iconTheme: IconThemeData(color: AppColors.text),
+              flexibleSpace: const NexoraSliverAppBarBackground(),
             ),
             SliverToBoxAdapter(child: _hero(a)),
             SliverToBoxAdapter(child: _actions()),

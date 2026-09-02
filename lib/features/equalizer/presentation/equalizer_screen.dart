@@ -12,6 +12,7 @@ import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_settings_row.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
 
 /// Gain range (dB) for every band and for the preamp.
 const double kMinDb = -12;
@@ -238,10 +239,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
+        toolbarHeight: 64,
         title: Text(
           'Equalizer',
           style: TextStyle(

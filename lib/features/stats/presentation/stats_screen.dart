@@ -125,6 +125,7 @@ class _StatsBody extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         toolbarHeight: 60,
+        flexibleSpace: const NexoraSliverAppBarBackground(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).maybePop(),

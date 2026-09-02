@@ -110,6 +110,7 @@ class FolderBrowserScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: true,
       body: contentAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
@@ -121,11 +122,13 @@ class FolderBrowserScreen extends ConsumerWidget {
         data: (content) => CustomScrollView(
           slivers: [
             SliverAppBar(
-              backgroundColor: AppColors.background,
+              backgroundColor: Colors.transparent,
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
+              surfaceTintColor: Colors.transparent,
               toolbarHeight: 64,
+              flexibleSpace: const NexoraSliverAppBarBackground(),
               title: Text(
                 _folderName,
                 style: TextStyle(

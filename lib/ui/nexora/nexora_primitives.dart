@@ -1,7 +1,41 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'nexora_tokens.dart';
+
+/// Frosted-glass sliver-app-bar background. Drop into a [SliverAppBar]'s
+/// `flexibleSpace` slot (and set the bar's `backgroundColor` to transparent
+/// and call `extendBodyBehindAppBar: true` on the surrounding [Scaffold])
+/// to get a real blur of whatever scrolls underneath.
+class NexoraSliverAppBarBackground extends StatelessWidget {
+  const NexoraSliverAppBarBackground({super.key, this.blur = 18});
+
+  final double blur;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.black : Colors.white)
+                .withValues(alpha: 0.32),
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.hairline,
+                width: 0.5,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Compact section header used throughout the redesign.
 ///

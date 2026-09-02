@@ -92,16 +92,19 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final p = _playlist!;
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              backgroundColor: AppColors.background,
+              backgroundColor: Colors.transparent,
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
+              surfaceTintColor: Colors.transparent,
               iconTheme: IconThemeData(color: AppColors.text),
+              flexibleSpace: const NexoraSliverAppBarBackground(),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded),
