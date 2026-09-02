@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 
@@ -70,14 +71,24 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
               child: _AmbientLayer(artworkUrl: track.artUri!.toString()),
             ),
           SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  onClose: () => Navigator.pop(context),
-                  onSleepTimer: () => _showSleepTimerSheet(context, ref),
-                  onMode: () => _showVisualModeSheet(context, ref),
-                  modeLabel: mode.label,
-                ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragEnd: (details) {
+                final vy = details.primaryVelocity ?? 0;
+                if (vy > 380 && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (vy < -420) {
+                  _showQueue(context);
+                }
+              },
+              child: Column(
+                children: [
+                  _TopBar(
+                    onClose: () => Navigator.pop(context),
+                    onSleepTimer: () => _showSleepTimerSheet(context, ref),
+                    onMode: () => _showVisualModeSheet(context, ref),
+                    modeLabel: mode.label,
+                  ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -97,11 +108,27 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                               child: Column(
                                 children: [
                                   const SizedBox(height: NexoraSpacing.s8),
-                                  _ArtworkStage(
-                                    mode: mode,
-                                    isPlaying: isPlaying,
-                                    artworkUrl: track.artUri?.toString(),
-                                    size: artworkSize,
+                                  GestureDetector(
+                                    onHorizontalDragEnd: (details) {
+                                      final v = details.primaryVelocity ?? 0;
+                                      if (v < -380 || v > 380) {
+                                        HapticFeedback.lightImpact();
+                                      }
+                                      if (v < -380) {
+                                        notifier.next();
+                                      } else if (v > 380) {
+                                        notifier.previous();
+                                      }
+                                    },
+                                    child: Hero(
+                                      tag: 'nexora-artwork-${track.id}',
+                                      child: _ArtworkStage(
+                                        mode: mode,
+                                        isPlaying: isPlaying,
+                                        artworkUrl: track.artUri?.toString(),
+                                        size: artworkSize,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: NexoraSpacing.s24),
                                   _TrackIdentity(
@@ -175,6 +202,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
               ],
             ),
           ),
+          ),
         ],
       ),
     );
@@ -227,7 +255,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -291,7 +319,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                 isCurrent: isCurrent,
                                 isPlaying: isCurrent && state.isPlaying,
                                 trailing: IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.close_rounded,
                                     size: 18,
                                     color: AppColors.textDim,
@@ -423,7 +451,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                   outputLabel: null,
                 ),
                 const SizedBox(height: NexoraSpacing.s24),
-                const Text(
+                Text(
                   'Playback Engine',
                   style: TextStyle(
                     color: AppColors.textDim,
@@ -433,7 +461,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Nexora Audio Engine',
                   style: TextStyle(
                     color: AppColors.text,
@@ -907,7 +935,7 @@ class _TrackIdentity extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.text,
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -920,7 +948,7 @@ class _TrackIdentity extends StatelessWidget {
           Text(
             artist!,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -935,7 +963,7 @@ class _TrackIdentity extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textDim,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -1135,7 +1163,7 @@ class _VisualModeTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     _desc,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                       height: 1.35,
@@ -1206,7 +1234,7 @@ class _SleepTimerInlineBar extends ConsumerWidget {
                 children: [
                   Text(
                     'Sleep timer · ${timer.label}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,

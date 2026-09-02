@@ -210,7 +210,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           const SizedBox(height: NexoraSpacing.s24),
           Text(
             album.title.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.text,
               fontSize: 30,
               fontWeight: FontWeight.w700,
@@ -221,7 +221,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           const SizedBox(height: 6),
           Text(
             album.artist ?? 'Unknown Artist',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -234,7 +234,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               '${_tracks.length} ${_tracks.length == 1 ? 'track' : 'tracks'}',
               if (totalSec > 0) formatDuration(Duration(seconds: totalSec)),
             ].join(' • '),
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textDim,
               fontSize: 11.5,
               fontWeight: FontWeight.w700,

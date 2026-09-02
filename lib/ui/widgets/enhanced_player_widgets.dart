@@ -253,7 +253,7 @@ class EnhancedSeekBar extends StatelessWidget {
             children: [
               Text(
                 _format(position),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -263,7 +263,7 @@ class EnhancedSeekBar extends StatelessWidget {
               ),
               Text(
                 _format(duration),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -444,7 +444,7 @@ class GlassMiniPlayer extends StatelessWidget {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.text,
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -457,7 +457,7 @@ class GlassMiniPlayer extends StatelessWidget {
                               artist!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -549,8 +549,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  static const double height = 60;
-  static const double bottomMargin = 6;
+  static const double height = 58;
+  static const double bottomMargin = 8;
   static const double totalHeight = height + bottomMargin;
 
   static const _destinations = [
@@ -575,8 +575,15 @@ class EnhancedGlassNavBar extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 0, 12, bottomMargin),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 0.6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Container(
         height: height,
@@ -622,22 +629,33 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.accent.withValues(alpha: 0.12)
+              ? AppColors.accent.withValues(alpha: 0.14)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
+          border: selected
+              ? Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.22),
+                  width: 0.6,
+                )
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              selected ? selectedIcon : icon,
-              color: color,
-              size: 22,
+            AnimatedScale(
+              scale: selected ? 1.08 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              child: Icon(
+                selected ? selectedIcon : icon,
+                color: color,
+                size: 22,
+              ),
             ),
             const SizedBox(height: 2),
             AnimatedDefaultTextStyle(
@@ -757,7 +775,7 @@ class GlassSongTile extends StatelessWidget {
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w400,

@@ -275,9 +275,9 @@ class _BottomDock extends StatelessWidget {
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  // Mini player visual height (card + progress)
-  static const double _miniHeight = 72;
-  static const double _gap = 8;
+  // Mini player visual height (card + progress) — gap removed for merged dock.
+  static const double _miniHeight = 70;
+  static const double _gap = 0;
 
   const _BottomDock({
     required this.navVisible,
@@ -289,8 +289,7 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    // Small extra inset so the dock breathes but stays low.
-    final double dockBottom = bottomInset > 0 ? bottomInset + 2 : 4;
+    final double dockBottom = bottomInset > 0 ? bottomInset + 4 : 6;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(
@@ -298,15 +297,12 @@ class _BottomDock extends StatelessWidget {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            // Mini player: centered, same width logic as nav bar (14px margins
-            // inside the card). Sits above nav when visible, drops into nav's
-            // slot when nav is hidden.
             AnimatedPositioned(
-              duration: const Duration(milliseconds: 360),
+              duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
-              bottom: navVisible ? navTotal + _gap : 0,
+              bottom: navVisible ? navTotal : 0,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 650),

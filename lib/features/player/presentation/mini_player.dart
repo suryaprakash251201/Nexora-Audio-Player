@@ -8,10 +8,11 @@ import '../../../ui/nexora/nexora_mini_player.dart';
 /// Nexora design system.
 class MiniPlayer extends ConsumerWidget {
   final VoidCallback onTap;
-  const MiniPlayer({super.key, required this.onTap});
+  final VoidCallback? onShowQueue;
+  const MiniPlayer({super.key, required this.onTap, this.onShowQueue});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return NexoraMiniPlayer(onTap: onTap);
+    return NexoraMiniPlayer(onTap: onTap, onShowQueue: onShowQueue);
   }
 }

@@ -80,7 +80,7 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
             children: [
               Text(
                 _format(Duration(milliseconds: seekMs)),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -89,7 +89,7 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
               ),
               Text(
                 _format(widget.duration),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

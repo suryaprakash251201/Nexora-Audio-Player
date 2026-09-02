@@ -100,7 +100,7 @@ class ArtworkImage extends ConsumerWidget {
             ? SizedBox(
                 width: size != null && size! < 40 ? 14 : 20,
                 height: size != null && size! < 40 ? 14 : 20,
-                child: const CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   strokeWidth: 1.5,
                   color: AppColors.textDim,
                 ),

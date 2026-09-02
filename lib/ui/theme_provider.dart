@@ -72,21 +72,34 @@ class ThemeNotifier extends Notifier<AppThemePreference> {
 
 class PlayerVisualStyleNotifier extends Notifier<PlayerVisualStyle> {
   static const _key = 'player_visual_style';
+  static const _canonicalKey = 'player_visual_mode';
 
   @override
   PlayerVisualStyle build() {
     final prefs = ref.watch(prefsServiceProvider);
-    prefs
-        .getString(_key)
-        .then((v) {
+    // Load canonical key first (new), fall back to legacy key.
+    // Use a detached async task so we don't confuse the analyzer's
+    // return-type inference for the `then` callback.
+    Future.microtask(() async {
+      try {
+        final v = await prefs.getString(_canonicalKey);
+        if (v != null) {
           for (final s in PlayerVisualStyle.values) {
             if (s.name == v) {
               state = s;
-              return;
+              return Future<void>.value();
             }
           }
-        })
-        .catchError((_) {});
+        }
+        final legacy = await prefs.getString(_key);
+        for (final s in PlayerVisualStyle.values) {
+          if (s.name == legacy) {
+            state = s;
+            return Future<void>.value();
+          }
+        }
+      } catch (_) {}
+    });
     return PlayerVisualStyle.modern;
   }
 
@@ -95,6 +108,25 @@ class PlayerVisualStyleNotifier extends Notifier<PlayerVisualStyle> {
     final prefs = ref.read(prefsServiceProvider);
     try {
       await prefs.setString(_key, style.name);
+      await prefs.setString(_canonicalKey, style.name);
     } catch (_) {}
+  }
+}
+
+/// Helper to convert between the legacy [PlayerVisualStyle] and the
+/// canonical [PlayerVisualMode] (they share the same value names).
+extension PlayerVisualStyleToMode on PlayerVisualStyle {
+  /// Mirror name into canonical mode – safe because both enums share
+  /// identical case names.
+  String get modeName => name;
+}
+
+extension PlayerVisualModeToStyle on Object {
+  PlayerVisualStyle? toLegacyStyle() {
+    final n = toString().split('.').last;
+    for (final s in PlayerVisualStyle.values) {
+      if (s.name == n) return s;
+    }
+    return null;
   }
 }

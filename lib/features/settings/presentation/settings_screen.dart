@@ -6,6 +6,9 @@ import '../../../core/storage/secure_storage_service.dart';
 import '../../../data/api/server_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/theme_provider.dart';
+import '../../../ui/nexora/nexora_tokens.dart';
+import '../../../ui/nexora/player_visual_mode_provider.dart';
+import '../../../ui/nexora/nexora_dialog.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../player/providers/sleep_timer_provider.dart';
 
@@ -22,7 +25,7 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
         children: [
           const SizedBox(height: 8),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Settings',
@@ -65,12 +68,12 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 },
               ),
-              const _SettingTile(
+              _SettingTile(
                 icon: Icons.high_quality_outlined,
                 title: 'Audio quality',
                 subtitle: 'Original (server) • No transcoding',
               ),
-              const _SettingTile(
+              _SettingTile(
                 icon: Icons.speed_rounded,
                 title: 'Playback speed',
                 subtitle: '1.0× default',
@@ -87,7 +90,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Manage offline tracks',
                 onTap: () => context.push('/downloads'),
               ),
-              const _SettingTile(
+              _SettingTile(
                 icon: Icons.sync_rounded,
                 title: 'Sync',
                 subtitle: 'Background sync is automatic',
@@ -101,18 +104,25 @@ class SettingsScreen extends ConsumerWidget {
               _SettingTile(
                 icon: ref.watch(themeModeProvider) == AppThemePreference.dark
                     ? Icons.dark_mode_outlined
-                    : Icons.light_mode_outlined,
+                    : ref.watch(themeModeProvider) == AppThemePreference.light
+                        ? Icons.light_mode_outlined
+                        : Icons.brightness_auto_rounded,
                 title: 'Theme',
                 subtitle: _themeLabel(
                   ref.watch(themeModeProvider),
                 ),
                 onTap: () => _showThemePicker(context, ref),
               ),
-              _SettingTile(
-                icon: Icons.tune_rounded,
-                title: 'Player style',
-                subtitle: 'Modern',
-                onTap: () => _showPlayerStylePicker(context, ref),
+              Consumer(
+                builder: (context, ref, _) {
+                  final mode = ref.watch(playerVisualModeProvider);
+                  return _SettingTile(
+                    icon: _playerStyleIcon(mode),
+                    title: 'Player style',
+                    subtitle: mode.label,
+                    onTap: () => _showPlayerStylePicker(context, ref),
+                  );
+                },
               ),
             ],
           ),
@@ -136,7 +146,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: '${info.name} Connected',
                   subtitle: 'v${info.serverVersion} • API ${info.apiVersion}',
                 ),
-                loading: () => const _SettingTile(
+                loading: () => _SettingTile(
                   icon: Icons.sync_rounded,
                   iconColor: AppColors.warning,
                   title: 'Checking server…',
@@ -155,12 +165,12 @@ class SettingsScreen extends ConsumerWidget {
           _SectionGroup(
             title: 'ABOUT',
             children: [
-              const _SettingTile(
+              _SettingTile(
                 icon: Icons.info_outline_rounded,
                 title: 'Nexora Audio Player',
                 subtitle: 'v1.0.0 • Audiophile edition',
               ),
-              const _SettingTile(
+              _SettingTile(
                 icon: Icons.code_rounded,
                 title: 'Open source',
                 subtitle:
@@ -201,7 +211,7 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Nexora Audio Player v1.0.0',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -217,44 +227,28 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _showThemePicker(BuildContext context, WidgetRef ref) async {
     final current = ref.read(themeModeProvider);
-    await showModalBottomSheet<void>(
+    await showNexoraFloatingDialog<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'THEME',
-                  style: TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (final pref in AppThemePreference.values)
-                  _ThemeOption(
-                    pref: pref,
-                    selected: pref == current,
-                    onTap: () {
-                      ref.read(themeModeProvider.notifier).set(pref);
-                      Navigator.pop(sheetContext);
-                    },
-                  ),
-              ],
+      title: 'Theme',
+      subtitle: 'Choose how the app appearance adapts to light & dark.',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < AppThemePreference.values.length; i++)
+            NexoraFloatingOption(
+              index: i,
+              icon: _themeIcon(AppThemePreference.values[i]),
+              title: _themeLabel(AppThemePreference.values[i]),
+              description: _themeDescription(AppThemePreference.values[i]),
+              selected: AppThemePreference.values[i] == current,
+              onTap: () {
+                ref.read(themeModeProvider.notifier).set(
+                      AppThemePreference.values[i],
+                    );
+                Navigator.pop(context);
+              },
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -263,45 +257,35 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    await showModalBottomSheet<void>(
+    final current = ref.read(playerVisualModeProvider);
+    await showNexoraFloatingDialog<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'PLAYER STYLE',
-                  style: TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (final style in PlayerVisualStyle.values)
-                  _PlayerStyleOption(
-                    style: style,
-                    selected: ref.read(playerVisualStyleProvider) == style,
-                    onTap: () {
-                      ref.read(playerVisualStyleProvider.notifier).state =
-                          style;
-                      Navigator.pop(sheetContext);
-                    },
-                  ),
-              ],
+      title: 'Player style',
+      subtitle: 'Choose how the artwork stage is presented.',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < PlayerVisualMode.values.length; i++)
+            NexoraFloatingOption(
+              index: i,
+              icon: _playerStyleIcon(PlayerVisualMode.values[i]),
+              title: PlayerVisualMode.values[i].label,
+              description:
+                  _playerStyleDescription(PlayerVisualMode.values[i]),
+              selected: PlayerVisualMode.values[i] == current,
+              onTap: () {
+                ref
+                    .read(playerVisualModeProvider.notifier)
+                    .set(PlayerVisualMode.values[i]);
+                // Keep legacy provider in sync for any stale readers
+                final legacy = PlayerVisualStyle.values.firstWhere(
+                  (e) => e.name == PlayerVisualMode.values[i].name,
+                );
+                ref.read(playerVisualStyleProvider.notifier).state = legacy;
+                Navigator.pop(context);
+              },
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -310,7 +294,7 @@ class SettingsScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (c) => const _SleepTimerSheet(),
+      builder: (c) => _SleepTimerSheet(),
     );
   }
 
@@ -335,6 +319,43 @@ class SettingsScreen extends ConsumerWidget {
         return 'System default';
     }
   }
+
+  String _themeDescription(AppThemePreference pref) {
+    switch (pref) {
+      case AppThemePreference.light:
+        return 'Bright paper tones, best in daylight.';
+      case AppThemePreference.dark:
+        return 'Deep navy studio vibe — the default.';
+      case AppThemePreference.system:
+        return 'Follows your device light/dark setting.';
+    }
+  }
+
+  IconData _playerStyleIcon(PlayerVisualMode m) {
+    switch (m) {
+      case PlayerVisualMode.modern:
+        return Icons.album_outlined;
+      case PlayerVisualMode.vinyl:
+        return Icons.album_rounded;
+      case PlayerVisualMode.cassette:
+        return Icons.audiotrack_outlined;
+      case PlayerVisualMode.minimal:
+        return Icons.minimize_rounded;
+    }
+  }
+
+  String _playerStyleDescription(PlayerVisualMode m) {
+    switch (m) {
+      case PlayerVisualMode.modern:
+        return 'Calm dark canvas with sharp square artwork.';
+      case PlayerVisualMode.vinyl:
+        return 'Rotating round record with artwork at center.';
+      case PlayerVisualMode.cassette:
+        return 'Tape-inspired stage with rotating reels.';
+      case PlayerVisualMode.minimal:
+        return 'Only artwork and track identity — pure.';
+    }
+  }
 }
 
 String _themeLabel(AppThemePreference pref) {
@@ -351,7 +372,7 @@ String _themeLabel(AppThemePreference pref) {
 class _SectionGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
-  const _SectionGroup({required this.title, required this.children});
+  _SectionGroup({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +383,7 @@ class _SectionGroup extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textDim,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -381,7 +402,7 @@ class _SectionGroup extends StatelessWidget {
               for (var i = 0; i < children.length; i++) ...[
                 children[i],
                 if (i < children.length - 1)
-                  const Divider(
+                  Divider(
                     color: AppColors.hairline,
                     height: 0.5,
                     indent: 56,
@@ -404,7 +425,7 @@ class _SettingTile extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
-  const _SettingTile({
+  _SettingTile({
     required this.icon,
     this.iconColor,
     required this.title,
@@ -419,7 +440,7 @@ class _SettingTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -442,7 +463,7 @@ class _SettingTile extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -455,7 +476,7 @@ class _SettingTile extends StatelessWidget {
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                       ),
@@ -644,13 +665,13 @@ class _PlayerStyleOption extends StatelessWidget {
 }
 
 class _SleepTimerSheet extends ConsumerWidget {
-  const _SleepTimerSheet();
+  _SleepTimerSheet();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timer = ref.watch(sleepTimerProvider);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -661,7 +682,7 @@ class _SleepTimerSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'SLEEP TIMER',
                 style: TextStyle(
                   color: AppColors.textDim,
@@ -673,7 +694,7 @@ class _SleepTimerSheet extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 timer.isActive ? timer.label : 'Stop playback automatically',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.text,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,

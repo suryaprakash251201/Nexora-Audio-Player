@@ -27,7 +27,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         toolbarHeight: 64,
-        title: const Padding(
+        title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text(
             'Playlists',
@@ -262,7 +262,7 @@ class _PlaylistCard extends ConsumerWidget {
             playlist.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -272,7 +272,7 @@ class _PlaylistCard extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,
             ),
@@ -358,7 +358,7 @@ class _PlaylistRow extends ConsumerWidget {
                     playlist.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -368,7 +368,7 @@ class _PlaylistRow extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                     ),
@@ -376,7 +376,7 @@ class _PlaylistRow extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 18,
               color: AppColors.textDim,

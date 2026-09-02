@@ -111,7 +111,7 @@ class NexoraTrackRow extends StatelessWidget {
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                         height: 1.3,
@@ -152,7 +152,7 @@ class NexoraTrackRow extends StatelessWidget {
                 child: Text(
                   duration!,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textDim,
                     fontSize: 12,
                     fontFeatures: [FontFeature.tabularFigures()],
@@ -163,7 +163,7 @@ class NexoraTrackRow extends StatelessWidget {
               SizedBox(
                 width: 36,
                 child: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.more_horiz_rounded,
                     size: 18,
                     color: AppColors.textDim,
@@ -214,7 +214,7 @@ class NexoraAlbumCard extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -227,7 +227,7 @@ class NexoraAlbumCard extends StatelessWidget {
                 subtitle!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 12,
                 ),
@@ -284,7 +284,7 @@ class NexoraArtistRow extends StatelessWidget {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -296,7 +296,7 @@ class NexoraArtistRow extends StatelessWidget {
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,
                       ),
@@ -305,7 +305,7 @@ class NexoraArtistRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 18,
               color: AppColors.textDim,

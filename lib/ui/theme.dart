@@ -21,69 +21,79 @@ class AppColors {
   static AppThemeMode mode = AppThemeMode.dark;
 
   // ── Backgrounds ─────────────────────────────────────────────
-  // NOTE: These are `const` (not getters) so they can be used inside `const`
-  // constructors (e.g. `const TextStyle(color: AppColors.text)`). The previous
-  // `mode`-aware getters broke every `const` usage in release/AOT. Light mode
-  // is still handled via `ThemeData` overrides; the raw tokens stay on the
-  // dark Hi-Fi palette (the primary experience).
-  static const Color _backgroundDark = Color(0xFF080808);
-  static const Color _backgroundLight = Color(0xFFF5F4F0);
-  static const Color background = _backgroundDark;
+  // Mode-aware getters: they resolve to the matching light/dark palette at
+  // runtime so that `AppColors.xxx` always reflects the currently active
+  // theme. Do NOT mark these `const` — that would freeze them to the dark
+  // palette and make Theme switching appear broken.
+  // Blue-black audiophile palette — deep navy studio vibe, not pure black.
+  static const Color _backgroundDark = Color(0xFF070A12);
+  static const Color _backgroundLight = Color(0xFFF0F3F8);
+  static Color get background =>
+      mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
 
-  static const Color _surfaceDark = Color(0xFF111111);
+  static const Color _surfaceDark = Color(0xFF0F141E);
   static const Color _surfaceLight = Color(0xFFFFFFFF);
-  static const Color surface = _surfaceDark;
+  static Color get surface =>
+      mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
 
-  static const Color _surfaceRaisedDark = Color(0xFF171717);
-  static const Color _surfaceRaisedLight = Color(0xFFEFEDE6);
-  static const Color surfaceRaised = _surfaceRaisedDark;
+  static const Color _surfaceRaisedDark = Color(0xFF141E2E);
+  static const Color _surfaceRaisedLight = Color(0xFFE8EEF6);
+  static Color get surfaceRaised =>
+      mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
 
-  static const Color _surfaceHighDark = Color(0xFF1E1E1E);
-  static const Color _surfaceHighLight = Color(0xFFE6E3DA);
-  static const Color surfaceHigh = _surfaceHighDark;
+  static const Color _surfaceHighDark = Color(0xFF1A2335);
+  static const Color _surfaceHighLight = Color(0xFFDDE6F3);
+  static Color get surfaceHigh =>
+      mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
 
   // ── Borders ────────────────────────────────────────────────
-  static const Color _borderDark = Color(0xFF242424);
-  static const Color _borderLight = Color(0xFFE0DDD2);
-  static const Color border = _borderDark;
+  static const Color _borderDark = Color(0xFF1E2A3F);
+  static const Color _borderLight = Color(0xFFD6DDEA);
+  static Color get border =>
+      mode == AppThemeMode.dark ? _borderDark : _borderLight;
 
-  static const Color _hairlineDark = Color(0xFF1B1B1B);
-  static const Color _hairlineLight = Color(0xFFEAE7DD);
-  static const Color hairline = _hairlineDark;
+  static const Color _hairlineDark = Color(0xFF162032);
+  static const Color _hairlineLight = Color(0xFFE2E8F2);
+  static Color get hairline =>
+      mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
 
   // ── Text ───────────────────────────────────────────────────
-  static const Color _textDark = Color(0xFFF5F5F2);
-  static const Color _textLight = Color(0xFF141414);
-  static const Color text = _textDark;
+  static const Color _textDark = Color(0xFFE6EAF0);
+  static const Color _textLight = Color(0xFF0F172A);
+  static Color get text =>
+      mode == AppThemeMode.dark ? _textDark : _textLight;
 
-  static const Color _textMutedDark = Color(0xFFA8A8A3);
-  static const Color _textMutedLight = Color(0xFF6A6A65);
-  static const Color textMuted = _textMutedDark;
+  static const Color _textMutedDark = Color(0xFF8A9AB8);
+  static const Color _textMutedLight = Color(0xFF5A6B8A);
+  static Color get textMuted =>
+      mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
 
-  static const Color _textDimDark = Color(0xFF6F6F6A);
-  static const Color _textDimLight = Color(0xFF8C8C86);
-  static const Color textDim = _textDimDark;
+  static const Color _textDimDark = Color(0xFF5B6B8A);
+  static const Color _textDimLight = Color(0xFF7A8BA8);
+  static Color get textDim =>
+      mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
   // ── Accent (use sparingly) ─────────────────────────────────
-  static const Color accent = Color(0xFFD8B56A);
-  static const Color accentSoft = Color(0xFFB89A5A);
-  static const Color accentDim = Color(0xFF8A7440);
+  // Audiophile studio blue — unique, calm, hardware-inspired.
+  static const Color accent = Color(0xFF3A7BFF);
+  static const Color accentSoft = Color(0xFF5B94FF);
+  static const Color accentDim = Color(0xFF2A5FCC);
 
   // ── Status ─────────────────────────────────────────────────
-  static const Color success = Color(0xFF8EBF9A);
-  static const Color warning = Color(0xFFD6B06C);
-  static const Color error = Color(0xFFD87878);
+  static const Color success = Color(0xFF4ECDC4);
+  static const Color warning = Color(0xFF6B9FFF);
+  static const Color error = Color(0xFFE84855);
 
   // ── Convenience getters ────────────────────────────────────
   /// Used for the active player position, EQ active band, selected state.
   static Color get accentOnDark => accent;
 
   /// Foreground for filled accent buttons.
-  static const Color onAccent = Color(0xFF14110A);
+  static const Color onAccent = Color(0xFFFFFFFF);
 
   /// Subtle ambient tint derived from artwork (kept neutral — caller can
-  /// override with sampled colors).
-  static const Color ambientNeutral = Color(0xFF1A1A1A);
+  /// override with sampled colors). Blue-tinted for new palette.
+  static const Color ambientNeutral = Color(0xFF141E2E);
 
   // ── Legacy aliases (for components that still reference these) ──
   // Kept so the redesign doesn't break call sites; never use these for new
@@ -95,10 +105,10 @@ class AppColors {
   static const Color secondaryLight = accent;
   static const Color tertiary = accent;
 
-  static const Color glassBase = surface;
-  static const Color glassHighlight = surfaceHigh;
-  static const Color glassBorder = border;
-  static const Color glassBorderStrong = border;
+  static Color get glassBase => surface;
+  static Color get glassHighlight => surfaceHigh;
+  static Color get glassBorder => border;
+  static Color get glassBorderStrong => border;
 
   /// Spacing scale used throughout the app.
   static const double s4 = 4;
@@ -132,7 +142,10 @@ class AppTypography {
   static TextTheme build({required bool isDark}) {
     final base = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
     final tx = GoogleFonts.interTextTheme(base);
-    final text = isDark ? AppColors.text : AppColors.text;
+    // AppColors.mode is already set to `isDark ? dark : light` by
+    // AppTheme.themeFor before this is called, so these getters return the
+    // correct light/dark variant.
+    final text = AppColors.text;
     final muted = AppColors.textMuted;
     final dim = AppColors.textDim;
 
@@ -237,7 +250,7 @@ class AppTheme {
     final isDark = mode == AppThemeMode.dark;
 
     final colorScheme = isDark
-        ? const ColorScheme.dark(
+        ? ColorScheme.dark(
             primary: AppColors.accent,
             onPrimary: AppColors.onAccent,
             secondary: AppColors.accentSoft,
@@ -251,7 +264,7 @@ class AppTheme {
             outline: AppColors.border,
             surfaceContainerHighest: AppColors.surfaceHigh,
           )
-        : const ColorScheme.light(
+        : ColorScheme.light(
             primary: AppColors.accent,
             onPrimary: AppColors.onAccent,
             secondary: AppColors.accentSoft,

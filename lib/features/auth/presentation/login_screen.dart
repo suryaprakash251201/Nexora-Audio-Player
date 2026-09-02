@@ -127,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Image.asset(
                         'assets/icon.png',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Icons.graphic_eq_rounded,
                           size: 26,
                           color: AppColors.text,
@@ -136,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'NEXORA',
                     style: TextStyle(
                       color: AppColors.text,
@@ -146,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Your music.\nYour control.',
                     style: TextStyle(
                       color: AppColors.text,
@@ -339,7 +339,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: AppColors.textDim,
         fontSize: 11,
         fontWeight: FontWeight.w600,

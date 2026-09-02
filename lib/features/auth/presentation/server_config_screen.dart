@@ -108,7 +108,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                 children: [
                   const _Label('NEXORA SERVER'),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Self-hosted or LAN server',
                     style: TextStyle(
                       color: AppColors.textMuted,
@@ -184,7 +184,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Tip: For LAN, use http://192.168.x.x:PORT. For production, HTTPS is enforced.',
                     style: TextStyle(
                       color: AppColors.textDim,
@@ -210,7 +210,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: AppColors.textDim,
         fontSize: 11,
         fontWeight: FontWeight.w700,

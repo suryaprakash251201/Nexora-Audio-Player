@@ -325,7 +325,7 @@ class BrightIconChip extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

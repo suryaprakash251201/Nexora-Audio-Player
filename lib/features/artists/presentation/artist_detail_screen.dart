@@ -193,7 +193,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
               children: [
                 Text(
                   'ARTIST',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textDim,
                     fontSize: 10,
                     letterSpacing: 1.6,
@@ -205,7 +205,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                   a.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.text,
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
@@ -216,7 +216,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '${a.albumCount ?? 0} albums • ${a.trackCount ?? _songs.length} tracks',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
                   ),

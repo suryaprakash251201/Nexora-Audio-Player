@@ -15,7 +15,7 @@ class HistoryScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         toolbarHeight: 64,
-        title: const Padding(
+        title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text(
             'History',
@@ -56,7 +56,7 @@ class HistoryScreen extends ConsumerWidget {
                           horizontal: 20,
                           vertical: 10,
                         ),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
                               color: AppColors.hairline,
@@ -87,7 +87,7 @@ class HistoryScreen extends ConsumerWidget {
                                           : null,
                                     ),
                                     child: s?.coverUrl == null
-                                        ? const Icon(
+                                        ? Icon(
                                             Icons.music_note_rounded,
                                             color: AppColors.textDim,
                                             size: 20,
@@ -137,7 +137,7 @@ class HistoryScreen extends ConsumerWidget {
                                     '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.textMuted,
                                       fontSize: 12,
                                     ),

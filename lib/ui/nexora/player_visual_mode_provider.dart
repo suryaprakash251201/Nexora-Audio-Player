@@ -12,10 +12,14 @@ class PlayerVisualModeNotifier extends StateNotifier<PlayerVisualMode> {
     _load();
   }
 
+  static const _legacyKey = 'player_visual_style';
+
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
+      var raw = prefs.getString(_key);
+      // Migrate legacy key if canonical missing.
+      raw ??= prefs.getString(_legacyKey);
       if (raw == null) return;
       state = PlayerVisualMode.values.firstWhere(
         (m) => m.name == raw,
@@ -32,6 +36,8 @@ class PlayerVisualModeNotifier extends StateNotifier<PlayerVisualMode> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_key, mode.name);
+      // Keep legacy key in sync so the old provider stays consistent.
+      await prefs.setString(_legacyKey, mode.name);
     } catch (_) {
       // Persistence is best-effort; the in-memory state still flips.
     }

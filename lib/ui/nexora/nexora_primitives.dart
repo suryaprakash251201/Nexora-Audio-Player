@@ -31,7 +31,7 @@ class NexoraSectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               label.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
@@ -231,7 +231,7 @@ class NexoraEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -243,7 +243,7 @@ class NexoraEmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
                   height: 1.4,

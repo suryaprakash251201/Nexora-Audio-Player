@@ -12,7 +12,7 @@ class DownloadsScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         toolbarHeight: 64,
-        title: const Padding(
+        title: Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text(
             'Downloads',

@@ -230,7 +230,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       );
@@ -242,7 +242,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text(
+        title: Text(
           'Equalizer',
           style: TextStyle(
             color: AppColors.text,
@@ -357,7 +357,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'BANDS',
                     style: TextStyle(
                       color: AppColors.textDim,
@@ -369,7 +369,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                   const Spacer(),
                   Text(
                     '${_specs.length} BANDS · ${kMinDb.toInt()} TO +${kMaxDb.toInt()} dB',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textDim,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -458,7 +458,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline_rounded,
                       size: 16,
                       color: AppColors.textDim,
@@ -490,7 +490,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   Widget _preampSlider() {
     return Row(
       children: [
-        const SizedBox(
+        SizedBox(
           width: 60,
           child: Text(
             'PREAMP',

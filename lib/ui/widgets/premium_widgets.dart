@@ -165,7 +165,7 @@ class SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -182,7 +182,7 @@ class SectionHeader extends StatelessWidget {
                 children: [
                   Text(
                     seeAllText ?? 'See all',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -190,7 +190,7 @@ class SectionHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
                     size: 16,
                     color: AppColors.textMuted,

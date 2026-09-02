@@ -237,7 +237,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: title != null
           ? Text(
               title!,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

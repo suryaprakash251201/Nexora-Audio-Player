@@ -58,7 +58,7 @@ class NexoraSettingsRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                       height: 1.35,

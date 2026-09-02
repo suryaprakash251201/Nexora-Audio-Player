@@ -53,7 +53,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'Library',
                     style: TextStyle(
                       color: AppColors.text,
@@ -425,13 +425,13 @@ class _PlaylistsTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.queue_music_rounded,
               color: AppColors.textDim,
               size: 28,
             ),
             const SizedBox(height: NexoraSpacing.s12),
-            const Text(
+            Text(
               'Playlists live in their own section.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -441,7 +441,7 @@ class _PlaylistsTab extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: NexoraSpacing.s4),
-            const Text(
+            Text(
               'Open the Playlists tab in the bottom bar to browse your collections.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),

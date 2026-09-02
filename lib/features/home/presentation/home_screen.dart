@@ -50,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
                       child: Image.asset(
                         'assets/icon.png',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Icons.graphic_eq_rounded,
                           size: 18,
                           color: AppColors.text,
@@ -59,7 +59,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'NEXORA',
                     style: TextStyle(
                       fontSize: 14,
@@ -143,7 +143,7 @@ class _Greeting extends StatelessWidget {
       children: [
         Text(
           _hour.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textDim,
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -151,7 +151,7 @@ class _Greeting extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Your library',
           style: TextStyle(
             color: AppColors.text,
@@ -174,7 +174,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: AppColors.text,
         fontSize: 22,
         fontWeight: FontWeight.w700,
@@ -214,7 +214,7 @@ class _ContinueListening extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'CONTINUE LISTENING',
                     style: TextStyle(
                       color: AppColors.textDim,
@@ -228,7 +228,7 @@ class _ContinueListening extends ConsumerWidget {
                     track.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -240,7 +240,7 @@ class _ContinueListening extends ConsumerWidget {
                     track.artist ?? 'Unknown Artist',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                     ),
@@ -442,7 +442,7 @@ class _SongCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -454,7 +454,7 @@ class _SongCard extends StatelessWidget {
               song.artist ?? 'Unknown',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 12,
               ),
@@ -492,7 +492,7 @@ class _SmallSongCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
@@ -504,7 +504,7 @@ class _SmallSongCard extends StatelessWidget {
                 song.artist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 11,
                 ),
@@ -542,7 +542,7 @@ class _AlbumCard extends StatelessWidget {
             album.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.text,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -554,7 +554,7 @@ class _AlbumCard extends StatelessWidget {
             '${album.artist ?? 'Album'} • ${album.trackCount ?? '—'} tracks',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,
             ),
@@ -606,7 +606,7 @@ class _EmptyHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 13,
               ),

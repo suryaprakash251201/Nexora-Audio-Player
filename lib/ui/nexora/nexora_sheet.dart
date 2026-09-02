@@ -87,7 +87,7 @@ class NexoraSheet extends StatelessWidget {
                           children: [
                             Text(
                               title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.text,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -98,7 +98,7 @@ class NexoraSheet extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 subtitle!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                 ),

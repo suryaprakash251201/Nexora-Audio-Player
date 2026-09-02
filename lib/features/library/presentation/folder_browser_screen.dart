@@ -128,7 +128,7 @@ class FolderBrowserScreen extends ConsumerWidget {
               toolbarHeight: 64,
               title: Text(
                 _folderName,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.text,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -163,7 +163,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
                     Text(
                       _folderName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.text,
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -174,7 +174,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                     Text(
                       '${content.songs.length} ${content.songs.length == 1 ? 'song' : 'songs'}'
                       '${content.folders.isNotEmpty ? ' • ${content.folders.length} folders' : ''}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 13,
                       ),
@@ -219,7 +219,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                     ],
                     if (content.folders.isNotEmpty) ...[
                       const SizedBox(height: 32),
-                      const Text(
+                      Text(
                         'Folders',
                         style: TextStyle(
                           color: AppColors.text,
@@ -246,7 +246,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                     ],
                     if (content.songs.isNotEmpty) ...[
                       const SizedBox(height: 32),
-                      const Text(
+                      Text(
                         'Tracks',
                         style: TextStyle(
                           color: AppColors.text,
@@ -294,7 +294,7 @@ class FolderBrowserScreen extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (c) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
@@ -393,7 +393,7 @@ class _FolderCard extends ConsumerWidget {
             folder.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -427,7 +427,7 @@ class _SongRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: AppColors.hairline, width: 0.5),
           ),
@@ -438,7 +438,7 @@ class _SongRow extends StatelessWidget {
               width: 28,
               child: Text(
                 '$index',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 12,
                   fontFeatures: [FontFeature.tabularFigures()],
@@ -459,7 +459,7 @@ class _SongRow extends StatelessWidget {
                     : null,
               ),
               child: song.coverUrl == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.music_note_rounded,
                       color: AppColors.textDim,
                       size: 20,
@@ -490,7 +490,7 @@ class _SongRow extends StatelessWidget {
                     song.artist ?? song.album ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                     ),
@@ -524,7 +524,7 @@ class _SongRow extends StatelessWidget {
               ),
             ],
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_horiz_rounded,
                 size: 20,
                 color: AppColors.textDim,

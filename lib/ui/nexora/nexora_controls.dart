@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -104,26 +105,54 @@ class NexoraPlayButton extends StatelessWidget {
     super.key,
     required this.isPlaying,
     required this.onPressed,
-    this.size = 72,
+    this.size = 78,
   });
 
   @override
   Widget build(BuildContext context) {
     return NexoraPressable(
-      onTap: onPressed,
-      scale: 0.94,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onPressed();
+      },
+      scale: 0.92,
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
           color: AppColors.text,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.textDim.withValues(alpha: 0.12),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: isPlaying ? 0.18 : 0),
+              blurRadius: 24,
+              spreadRadius: 1,
+            ),
+          ],
         ),
         child: Center(
           child: AnimatedSwitcher(
-            duration: NexoraDuration.micro,
-            transitionBuilder: (child, anim) =>
-                ScaleTransition(scale: anim, child: child),
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, anim) => ScaleTransition(
+              scale: Tween<double>(begin: 0.72, end: 1.0).animate(
+                CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+              ),
+              child: RotationTransition(
+                turns: Tween<double>(begin: 0.08, end: 0.0).animate(anim),
+                child: child,
+              ),
+            ),
             child: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               key: ValueKey(isPlaying),

@@ -104,7 +104,7 @@ class NexoraQualityInfo extends StatelessWidget {
             Text(
               subline,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 11,
                 letterSpacing: 0.4,
@@ -134,7 +134,7 @@ class NexoraQualityInfo extends StatelessWidget {
               Expanded(
                 child: Text(
                   headline,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.text,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -150,7 +150,7 @@ class NexoraQualityInfo extends StatelessWidget {
             padding: const EdgeInsets.only(left: 18),
             child: Text(
               subline,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 12,
                 letterSpacing: 0.2,
@@ -185,7 +185,7 @@ class _Field extends StatelessWidget {
             width: 120,
             child: Text(
               label.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textDim,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -196,7 +196,7 @@ class _Field extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

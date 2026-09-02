@@ -192,7 +192,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           const SizedBox(height: NexoraSpacing.s24),
           Text(
             p.name,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.text,
               fontSize: 30,
               fontWeight: FontWeight.w700,
@@ -204,7 +204,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             const SizedBox(height: 6),
             Text(
               p.description!,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 13,
                 height: 1.4,
@@ -217,7 +217,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               '$count ${count == 1 ? 'track' : 'tracks'}',
               if (total != null) formatDuration(total),
             ].join(' • '),
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textDim,
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
@@ -309,7 +309,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.edit, color: AppColors.text),
-                title: const Text('Rename',
+                title: Text('Rename',
                     style: TextStyle(color: AppColors.text)),
                 onTap: () => Navigator.pop(context),
               ),
@@ -326,11 +326,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     context: context,
                     builder: (cx) => AlertDialog(
                       backgroundColor: AppColors.surface,
-                      title: const Text(
+                      title: Text(
                         'Delete?',
                         style: TextStyle(color: AppColors.text),
                       ),
-                      content: const Text(
+                      content: Text(
                         'This will delete the playlist.',
                         style: TextStyle(color: AppColors.textMuted),
                       ),

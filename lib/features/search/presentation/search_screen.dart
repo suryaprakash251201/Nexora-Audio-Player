@@ -92,7 +92,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           children: [
                             Row(
                               children: [
-                                const Text(
+                                Text(
                                   'RECENT SEARCHES',
                                   style: TextStyle(
                                     color: AppColors.textDim,
@@ -129,7 +129,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
                                   ),
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     border: Border(
                                       bottom: BorderSide(
                                         color: AppColors.hairline,
@@ -139,7 +139,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.history_rounded,
                                         size: 16,
                                         color: AppColors.textDim,
@@ -148,13 +148,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       Expanded(
                                         child: Text(
                                           q,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: AppColors.text,
                                             fontSize: 15,
                                           ),
                                         ),
                                       ),
-                                      const Icon(
+                                      Icon(
                                         Icons.north_west_rounded,
                                         size: 16,
                                         color: AppColors.textDim,
@@ -227,7 +227,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textDim,
           fontSize: 11,
           fontWeight: FontWeight.w700,
@@ -251,7 +251,7 @@ class _SongResultTile extends ConsumerWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: AppColors.hairline, width: 0.5),
           ),
@@ -272,7 +272,7 @@ class _SongResultTile extends ConsumerWidget {
                     : null,
               ),
               child: song.coverUrl == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.music_note_rounded,
                       color: AppColors.textDim,
                       size: 20,
@@ -303,7 +303,7 @@ class _SongResultTile extends ConsumerWidget {
                     song.artist ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                     ),
@@ -316,7 +316,7 @@ class _SongResultTile extends ConsumerWidget {
                 formatDuration(
                   Duration(seconds: song.duration as int? ?? 0),
                 ),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -338,7 +338,7 @@ class _AlbumResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.hairline, width: 0.5),
         ),
@@ -359,7 +359,7 @@ class _AlbumResultTile extends StatelessWidget {
                   album.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.text,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -371,7 +371,7 @@ class _AlbumResultTile extends StatelessWidget {
                   album.artist ?? '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
                   ),
@@ -393,7 +393,7 @@ class _ArtistResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.hairline, width: 0.5),
         ),
@@ -408,7 +408,7 @@ class _ArtistResultTile extends StatelessWidget {
               color: AppColors.surfaceRaised,
               border: Border.all(color: AppColors.border, width: 0.6),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person_outline_rounded,
               size: 20,
               color: AppColors.textMuted,
@@ -420,7 +420,7 @@ class _ArtistResultTile extends StatelessWidget {
               artist.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.text,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -441,7 +441,7 @@ class _PlaylistResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.hairline, width: 0.5),
         ),
@@ -455,7 +455,7 @@ class _PlaylistResultTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               color: AppColors.surfaceRaised,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.queue_music_rounded,
               size: 20,
               color: AppColors.textMuted,
@@ -470,7 +470,7 @@ class _PlaylistResultTile extends StatelessWidget {
                   playlist.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.text,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -479,7 +479,7 @@ class _PlaylistResultTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${playlist.trackCount ?? 0} tracks',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
                   ),

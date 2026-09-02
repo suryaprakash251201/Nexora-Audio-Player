@@ -63,7 +63,7 @@ class _CoverImage extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         color: AppColors.surfaceRaised,
-        child: const Center(
+        child: Center(
           child: Icon(
             Icons.broken_image_outlined,
             color: AppColors.textDim,
