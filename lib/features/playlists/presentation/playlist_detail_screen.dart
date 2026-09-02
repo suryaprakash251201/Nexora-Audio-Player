@@ -72,7 +72,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: const LoadingView(),
       );
@@ -84,7 +84,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: ErrorView(message: _error!, onRetry: _load),
       );
@@ -101,7 +101,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
-              iconTheme: const IconThemeData(color: AppColors.text),
+              iconTheme: IconThemeData(color: AppColors.text),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded),
@@ -289,7 +289,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (c) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: NexoraRadius.sheetTop,
           border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
@@ -308,7 +308,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.text),
+                leading: Icon(Icons.edit, color: AppColors.text),
                 title: const Text('Rename',
                     style: TextStyle(color: AppColors.text)),
                 onTap: () => Navigator.pop(context),

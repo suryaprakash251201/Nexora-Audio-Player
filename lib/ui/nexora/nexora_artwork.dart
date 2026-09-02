@@ -70,7 +70,7 @@ class _Placeholder extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColorTokens.surfaceRaised,
       ),
       alignment: Alignment.center,
@@ -89,11 +89,11 @@ class _Placeholder extends StatelessWidget {
   }
 }
 
-/// Internal color aliases used by the new widgets. These point to the
-/// existing [AppColors] so the redesign is consistent without redoing the
-/// palette.
+/// Internal color aliases used by the new widgets. These forward to the
+/// existing [AppColors] getters — they're not const because the getters
+/// themselves are not const (they switch on [AppColors.mode]).
 class AppColorTokens {
   AppColorTokens._();
-  static const surfaceRaised = AppColors.surfaceRaised;
-  static const textDim = AppColors.textDim;
+  static Color get surfaceRaised => AppColors.surfaceRaised;
+  static Color get textDim => AppColors.textDim;
 }

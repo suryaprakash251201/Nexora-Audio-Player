@@ -270,7 +270,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (c) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: NexoraRadius.sheetTop,
           border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
@@ -289,16 +289,16 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.play_arrow_rounded, color: AppColors.text),
-                title: const Text('Play next', style: TextStyle(color: AppColors.text)),
+                leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
+                title: Text('Play next', style: TextStyle(color: AppColors.text)),
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(playerProvider.notifier).playNext(song);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.queue_music_rounded, color: AppColors.text),
-                title: const Text('Add to queue', style: TextStyle(color: AppColors.text)),
+                leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
+                title: Text('Add to queue', style: TextStyle(color: AppColors.text)),
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(playerProvider.notifier).addToQueue(song);

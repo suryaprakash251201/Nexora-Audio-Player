@@ -74,7 +74,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: const LoadingView(),
       );
@@ -86,7 +86,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: ErrorView(message: _error!, onRetry: _load),
       );
@@ -103,7 +103,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
-              iconTheme: const IconThemeData(color: AppColors.text),
+              iconTheme: IconThemeData(color: AppColors.text),
             ),
             SliverToBoxAdapter(child: _hero(a)),
             SliverToBoxAdapter(child: _actions()),

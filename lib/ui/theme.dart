@@ -98,10 +98,13 @@ class AppColors {
   static const Color secondaryLight = accent;
   static const Color tertiary = accent;
 
-  static const Color glassBase = surface;
-  static const Color glassHighlight = surfaceHigh;
-  static const Color glassBorder = border;
-  static const Color glassBorderStrong = border;
+  // These getters alias the mode-aware colors so callers can still write
+  // AppColors.glassBase without breaking. They are NOT const because the
+  // underlying values switch on [AppColors.mode].
+  static Color get glassBase => surface;
+  static Color get glassHighlight => surfaceHigh;
+  static Color get glassBorder => border;
+  static Color get glassBorderStrong => border;
 
   /// Spacing scale used throughout the app.
   static const double s4 = 4;

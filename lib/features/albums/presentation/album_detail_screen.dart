@@ -86,7 +86,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: const LoadingView(),
       );
@@ -98,7 +98,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.text),
+          iconTheme: IconThemeData(color: AppColors.text),
         ),
         body: ErrorView(message: _error!, onRetry: _load),
       );
@@ -115,7 +115,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               pinned: true,
               elevation: 0,
               scrolledUnderElevation: 0,
-              iconTheme: const IconThemeData(color: AppColors.text),
+              iconTheme: IconThemeData(color: AppColors.text),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded),

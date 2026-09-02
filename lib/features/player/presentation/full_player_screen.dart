@@ -205,7 +205,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
           expand: false,
           builder: (context, scrollController) {
             return Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: NexoraRadius.sheetTop,
                 border: Border(
@@ -390,7 +390,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                             track.title ?? '',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.text,
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -401,7 +401,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                             const SizedBox(height: 4),
                             Text(
                               track.artist ?? '',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,
                               ),
@@ -544,7 +544,7 @@ class _TopBar extends ConsumerWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.keyboard_arrow_down_rounded,
               color: AppColors.text,
               size: 30,
@@ -633,7 +633,7 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.bedtime_outlined,
               color: AppColors.text,
               size: 22,
@@ -1262,7 +1262,7 @@ class _SleepTimerSheet extends ConsumerWidget {
                     timer.isActive
                         ? timer.label
                         : 'Music stops automatically',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
                     ),
@@ -1284,7 +1284,7 @@ class _SleepTimerSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: NexoraSpacing.s20),
-            const Text(
+            Text(
               'SET TIMER',
               style: TextStyle(
                 color: AppColors.textDim,

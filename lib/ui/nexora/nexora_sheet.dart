@@ -58,7 +58,7 @@ class NexoraSheet extends StatelessWidget {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: NexoraRadius.sheetTop,
             border: Border(

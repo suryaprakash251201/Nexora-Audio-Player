@@ -115,7 +115,7 @@ class NexoraPlayButton extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.text,
           shape: BoxShape.circle,
         ),

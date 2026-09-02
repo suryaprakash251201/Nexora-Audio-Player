@@ -180,7 +180,7 @@ class _MiniPlayButtonState extends State<_MiniPlayButton> {
           width: 38,
           height: 38,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.text,
             shape: BoxShape.circle,
           ),
