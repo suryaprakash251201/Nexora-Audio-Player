@@ -550,22 +550,35 @@ class _AppBarContent extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.5),
-                blurRadius: 20,
+                color: AppColors.primary.withValues(alpha: 0.35),
+                blurRadius: 18,
                 offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: Icon(
-            Icons.graphic_eq_rounded,
-            color: AppColors.text,
-            size: 22,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.asset(
+              'assets/icon.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.graphic_eq_rounded,
+                  color: AppColors.text,
+                  size: 22,
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 14),

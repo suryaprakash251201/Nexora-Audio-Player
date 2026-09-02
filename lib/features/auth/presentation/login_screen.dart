@@ -143,27 +143,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: AppColors.primary,
                             maxBlur: 40,
                             child: Container(
-                              width: 90,
-                              height: 90,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [AppColors.primary, Color(0xFF7C3AED)],
-                                ),
+                              width: 92,
+                              height: 92,
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary,
-                                    blurRadius: 35,
-                                    spreadRadius: -5,
+                                    color:
+                                        AppColors.primary.withValues(alpha: 0.45),
+                                    blurRadius: 32,
+                                    spreadRadius: -2,
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.graphic_eq_rounded,
-                                size: 44,
-                                color: AppColors.text,
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/icon.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          AppColors.primary,
+                                          Color(0xFF7C3AED)
+                                        ],
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.graphic_eq_rounded,
+                                      size: 44,
+                                      color: AppColors.text,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
