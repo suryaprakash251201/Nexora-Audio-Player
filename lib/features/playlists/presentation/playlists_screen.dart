@@ -365,18 +365,170 @@ class _PlaylistGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 190,
-        mainAxisSpacing: 20,
+        mainAxisSpacing: 22,
         crossAxisSpacing: 16,
         childAspectRatio: 0.78,
       ),
       itemCount: list.length,
       itemBuilder: (c, i) => SlideInAnimation(
-        delay: Duration(milliseconds: i * 60),
-        child: _PlaylistTile(playlist: list[i]),
+        delay: Duration(milliseconds: (i.clamp(0, 14)) * 40),
+        duration: const Duration(milliseconds: 420),
+        child: _ModernPlaylistCard(
+          playlist: list[i],
+          isLight: isLight,
+          onTap: () => context.push('/playlists/${list[i].id}', extra: list[i]),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModernPlaylistCard extends ConsumerWidget {
+  final Playlist playlist;
+  final bool isLight;
+  final VoidCallback onTap;
+  const _ModernPlaylistCard({
+    required this.playlist,
+    required this.isLight,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: coversAsync.when(
+                    data: (urls) => PlaylistCover(
+                      artworkUrls: urls,
+                      borderRadius: 20,
+                      title: playlist.name,
+                    ),
+                    loading: () => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 20,
+                      title: playlist.name,
+                    ),
+                    error: (_, __) => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 20,
+                      title: playlist.name,
+                    ),
+                  ),
+                ),
+                // Track count pill — calm, theme-aware
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isLight
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isLight
+                            ? AppColors.hairline
+                            : Colors.white.withValues(alpha: 0.18),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.music_note_rounded,
+                          size: 11,
+                          color: isLight ? AppColors.text : Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${playlist.trackCount ?? 0}',
+                          style: TextStyle(
+                            color: isLight ? AppColors.text : Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Play overlay (top-right circle)
+                Positioned(
+                  right: 10,
+                  bottom: 10,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isLight ? AppColors.text : Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isLight ? 0.18 : 0.35,
+                          ),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: isLight ? Colors.white : AppColors.background,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              playlist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '${playlist.trackCount ?? 0} ${(playlist.trackCount ?? 0) == 1 ? "song" : "songs"}',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -388,56 +540,160 @@ class _PlaylistList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 140),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
       itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (c, i) {
         final p = list[i];
         return SlideInAnimation(
-          delay: Duration(milliseconds: i * 50),
-          child: GlassCard(
-            borderRadius: 16,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            padding: const EdgeInsets.all(12),
+          delay: Duration(milliseconds: (i.clamp(0, 14)) * 32),
+          duration: const Duration(milliseconds: 420),
+          child: _ModernPlaylistRow(
+            playlist: p,
+            isLight: isLight,
+            index: i,
             onTap: () => context.push('/playlists/${p.id}', extra: p),
-            child: Row(
-              children: [
-                _PlaylistCoverBadge(playlist: p),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Text(
-                        '${p.trackCount ?? 0} songs${p.description != null && p.description!.isNotEmpty ? ' • ${p.description}' : ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-              ],
-            ),
           ),
         );
       },
     );
+  }
+}
+
+class _ModernPlaylistRow extends ConsumerWidget {
+  final Playlist playlist;
+  final bool isLight;
+  final int index;
+  final VoidCallback onTap;
+  const _ModernPlaylistRow({
+    required this.playlist,
+    required this.isLight,
+    required this.index,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.fromLTRB(10, 10, 16, 10),
+        decoration: BoxDecoration(
+          color: isLight
+              ? Colors.white.withValues(alpha: 0.85)
+              : AppColors.surface.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isLight ? AppColors.hairline : AppColors.glassBorderStrong,
+            width: 0.6,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isLight ? 0.05 : 0.18),
+              blurRadius: isLight ? 14 : 22,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Cover
+            SizedBox(
+              width: 60,
+              height: 60,
+              child: coversAsync.when(
+                data: (urls) => PlaylistCover(
+                  artworkUrls: urls,
+                  borderRadius: 14,
+                  title: playlist.name,
+                  emptyIconSize: 26,
+                ),
+                loading: () => PlaylistCover(
+                  artworkUrls: const [],
+                  borderRadius: 14,
+                  title: playlist.name,
+                  emptyIconSize: 26,
+                ),
+                error: (_, __) => PlaylistCover(
+                  artworkUrls: const [],
+                  borderRadius: 14,
+                  title: playlist.name,
+                  emptyIconSize: 26,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Identity
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    playlist.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _subtitle(playlist),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Modern play dot + chevron
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isLight
+                    ? AppColors.surfaceRaised
+                    : AppColors.glassBase.withValues(alpha: 0.55),
+                border: Border.all(
+                  color: isLight
+                      ? AppColors.hairline
+                      : AppColors.glassBorderStrong,
+                  width: 0.6,
+                ),
+              ),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                color: AppColors.text,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _subtitle(Playlist p) {
+    final count = p.trackCount ?? 0;
+    final songs = '$count ${count == 1 ? 'song' : 'songs'}';
+    final desc = p.description;
+    if (desc != null && desc.trim().isNotEmpty) {
+      return '$songs • ${desc.trim()}';
+    }
+    return songs;
   }
 }
 

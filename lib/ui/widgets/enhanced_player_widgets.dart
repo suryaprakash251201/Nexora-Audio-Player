@@ -73,45 +73,27 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: AppColors.primaryGradient,
+                // Optimized glow — single soft halo only when playing.
                 boxShadow: widget.showGlow
                     ? [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                          blurRadius: 30,
-                          spreadRadius: 4,
-                        ),
-                        BoxShadow(
-                          color: AppColors.secondary.withValues(alpha: 0.2),
-                          blurRadius: 50,
-                          spreadRadius: 8,
+                          color: AppColors.primary.withValues(alpha: 0.28),
+                          blurRadius: 22,
+                          spreadRadius: 1,
                         ),
                       ]
                     : null,
               ),
-              child: ClipOval(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          widget.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          key: ValueKey(widget.isPlaying),
-                          color: Colors.white,
-                          size: widget.size * 0.45,
-                        ),
-                      ),
-                    ),
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    widget.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    key: ValueKey(widget.isPlaying),
+                    color: Colors.white,
+                    size: widget.size * 0.46,
                   ),
                 ),
               ),
@@ -184,33 +166,27 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
       height: widget.size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        // Soft optimized disc shadow — single subtle halo, no box glow.
         boxShadow: [
           BoxShadow(
-            color: isLight
-                ? Colors.black.withValues(alpha: 0.14)
-                : AppColors.primary.withValues(alpha: 0.18),
-            blurRadius: isLight ? 32 : 48,
-            spreadRadius: isLight ? 0 : 6,
-            offset: const Offset(0, 16),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.38),
-            blurRadius: isLight ? 22 : 40,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.32),
+            blurRadius: isLight ? 24 : 36,
+            spreadRadius: isLight ? 0 : 2,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // No animated sweep — static hairline rim for modern calm
+          // Hairline rim for definition
           Container(
             width: widget.size + 2,
             height: widget.size + 2,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.glassBorderStrong.withValues(alpha: 0.6),
+                color: AppColors.glassBorderStrong.withValues(alpha: 0.5),
                 width: 0.7,
               ),
             ),
@@ -257,10 +233,10 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
               );
             },
           ),
-          // Center hole (vinyl style) — smaller, matte
+          // Center hole (vinyl style) — subtle matte dot
           Container(
-            width: widget.size * 0.13,
-            height: widget.size * 0.13,
+            width: widget.size * 0.12,
+            height: widget.size * 0.12,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.background,
@@ -268,12 +244,6 @@ class _RotatingAlbumArtState extends State<RotatingAlbumArt>
                 color: AppColors.glassBorderStrong,
                 width: 1.2,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 8,
-                ),
-              ],
             ),
           ),
         ],
@@ -494,116 +464,164 @@ class GlassMiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppColors.mode == AppThemeMode.light;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // Same horizontal margin as nav bar (14) and centered — no extra cap/padding.
         margin: const EdgeInsets.symmetric(horizontal: 14),
-        child: GlassCard(
-          // Unified dock radius — matches nav bar visual weight.
-          borderRadius: 28,
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: artworkUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(artworkUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    gradient: artworkUrl == null
-                        ? LinearGradient(
-                            colors: [
-                              AppColors.surfaceRaised,
-                              AppColors.surfaceHigh,
-                            ],
-                          )
-                        : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: artworkUrl == null
-                      ? Icon(
-                          Icons.music_note_rounded,
-                          color: AppColors.textDim,
-                          size: 24,
-                        )
-                      : null,
-                ),
-                title: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                subtitle: artist != null
-                    ? Text(
-                        artist!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      )
-                    : null,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _GlassIconButton(
-                      icon: isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      onPressed: onPlayPause,
-                      isActive: isPlaying,
-                    ),
-                    const SizedBox(width: 4),
-                    _GlassIconButton(
-                      icon: Icons.skip_next_rounded,
-                      onPressed: onNext,
-                    ),
-                    if (onDismiss != null) ...[
-                      const SizedBox(width: 4),
-                      _GlassIconButton(
-                        icon: Icons.close_rounded,
-                        onPressed: onDismiss!,
-                        color: AppColors.textDim,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              // Thin progress — no rounded cap, blends into card bottom.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 2.5,
-                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                  valueColor: AlwaysStoppedAnimation(
-                    AppColors.primary.withValues(alpha: 0.85),
-                  ),
-                ),
-              ),
-            ],
+        decoration: BoxDecoration(
+          color: isLight
+              ? Colors.white.withValues(alpha: 0.92)
+              : AppColors.glassBase.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isLight ? AppColors.hairline : AppColors.glassBorderStrong,
+            width: 0.6,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.28),
+              blurRadius: isLight ? 18 : 26,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
+                  child: Row(
+                    children: [
+                      // Round artwork disc
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: artworkUrl != null
+                              ? DecorationImage(
+                                  image: NetworkImage(artworkUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          gradient: artworkUrl == null
+                              ? LinearGradient(
+                                  colors: [
+                                    AppColors.surfaceRaised,
+                                    AppColors.surfaceHigh,
+                                  ],
+                                )
+                              : null,
+                        ),
+                        child: artworkUrl == null
+                            ? Icon(
+                                Icons.music_note_rounded,
+                                color: AppColors.textDim,
+                                size: 22,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.text,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                            if (artist != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                artist!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      // Round play button (filled when playing)
+                      _MiniPlayButton(
+                        isPlaying: isPlaying,
+                        onPressed: onPlayPause,
+                      ),
+                      const SizedBox(width: 2),
+                      _GlassIconButton(
+                        icon: Icons.skip_next_rounded,
+                        onPressed: onNext,
+                      ),
+                      if (onDismiss != null) ...[
+                        const SizedBox(width: 2),
+                        _GlassIconButton(
+                          icon: Icons.close_rounded,
+                          onPressed: onDismiss!,
+                          color: AppColors.textDim,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Thin inline progress
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 2,
+                    backgroundColor: AppColors.textDim.withValues(alpha: 0.10),
+                    valueColor: AlwaysStoppedAnimation(
+                      AppColors.primary.withValues(alpha: 0.95),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniPlayButton extends StatelessWidget {
+  final bool isPlaying;
+  final VoidCallback onPressed;
+  const _MiniPlayButton({required this.isPlaying, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 36,
+        height: 36,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: AppColors.primaryGradient,
+        ),
+        child: Icon(
+          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          color: Colors.white,
+          size: 20,
         ),
       ),
     );

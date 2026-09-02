@@ -456,14 +456,11 @@ class _ArtworkStage extends StatelessWidget {
               )
             : Center(
                 key: const ValueKey('artwork'),
-                child: BreathingGlow(
-                  color: AppColors.primary,
-                  maxBlur: 18,
-                  child: RotatingAlbumArt(
-                    imageUrl: artworkUrl,
-                    isPlaying: isPlaying,
-                    size: size,
-                  ),
+                // Round disc only — no box-shape glow background.
+                child: RotatingAlbumArt(
+                  imageUrl: artworkUrl,
+                  isPlaying: isPlaying,
+                  size: size,
                 ),
               ),
       ),
@@ -591,98 +588,70 @@ class _TransportConsole extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = AppColors.mode == AppThemeMode.light;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isLight ? AppColors.hairline : AppColors.glassBorderStrong,
-          width: 0.6,
+    // Modern transport: NO container background. Controls float over the
+    // scrim, each button is a clean disc (light=ink-on-white, dark=glass).
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        _ControlButton(
+          icon: Icons.shuffle_rounded,
+          isActive: shuffle,
+          tone: BrightIconTone.cyan,
+          onPressed: onShuffle,
         ),
-        color: isLight
-            ? Colors.white.withValues(alpha: 0.88)
-            : AppColors.glassBase.withValues(alpha: 0.62),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.24),
-            blurRadius: isLight ? 18 : 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              _ControlButton(
-                icon: Icons.shuffle_rounded,
-                isActive: shuffle,
-                tone: BrightIconTone.cyan,
-                onPressed: onShuffle,
-              ),
-              _ControlButton(
-                icon: Icons.skip_previous_rounded,
-                size: 28,
-                discSize: 48,
-                tone: BrightIconTone.violet,
-                alwaysBright: true,
-                onPressed: onPrevious,
-              ),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (isBuffering)
-                    SizedBox(
-                      width: 84,
-                      height: 84,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: const AlwaysStoppedAnimation(
-                          AppColors.primary,
-                        ),
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.12,
-                        ),
-                      ),
-                    ),
-                  EnhancedPlayButton(
-                    isPlaying: isPlaying,
-                    size: 76,
-                    showGlow: isPlaying,
-                    onPressed: onPlayPause,
-                  ),
-                ],
-              ),
-              _ControlButton(
-                icon: Icons.skip_next_rounded,
-                size: 28,
-                discSize: 48,
-                tone: BrightIconTone.violet,
-                alwaysBright: true,
-                onPressed: onNext,
-              ),
-              _ControlButton(
-                icon: repeatMode == LoopMode.one
-                    ? Icons.repeat_one_rounded
-                    : Icons.repeat_rounded,
-                isActive: repeatMode != LoopMode.off,
-                tone: BrightIconTone.pink,
-                onPressed: onRepeat,
-              ),
-            ],
-          ),
+        _ControlButton(
+          icon: Icons.skip_previous_rounded,
+          size: 28,
+          discSize: 52,
+          tone: BrightIconTone.violet,
+          alwaysBright: true,
+          onPressed: onPrevious,
         ),
-      ),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            if (isBuffering)
+              SizedBox(
+                width: 88,
+                height: 88,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+                ),
+              ),
+            EnhancedPlayButton(
+              isPlaying: isPlaying,
+              size: 80,
+              showGlow: isPlaying,
+              onPressed: onPlayPause,
+            ),
+          ],
+        ),
+        _ControlButton(
+          icon: Icons.skip_next_rounded,
+          size: 28,
+          discSize: 52,
+          tone: BrightIconTone.violet,
+          alwaysBright: true,
+          onPressed: onNext,
+        ),
+        _ControlButton(
+          icon: repeatMode == LoopMode.one
+              ? Icons.repeat_one_rounded
+              : Icons.repeat_rounded,
+          isActive: repeatMode != LoopMode.off,
+          tone: BrightIconTone.pink,
+          onPressed: onRepeat,
+        ),
+      ],
     );
   }
 }
 
-/// A glass transport control with a bright gradient glyph.
+/// A clean transport control button — no glass disc background, just a
+/// transparent round tap target. Active state colors the glyph only.
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final bool isActive;
@@ -704,65 +673,12 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = tone.stops;
-    final isLight = AppColors.mode == AppThemeMode.light;
     return GestureDetector(
       onTap: onPressed,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
+      child: SizedBox(
         width: discSize,
         height: discSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: isActive
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colors.first.withValues(alpha: isLight ? 0.18 : 0.28),
-                    colors.last.withValues(alpha: isLight ? 0.08 : 0.10),
-                  ],
-                )
-              : LinearGradient(
-                  colors: [
-                    isLight
-                        ? Colors.white.withValues(alpha: 0.92)
-                        : AppColors.glassBase.withValues(alpha: 0.32),
-                    isLight
-                        ? Colors.white.withValues(alpha: 0.72)
-                        : AppColors.glassBase.withValues(alpha: 0.14),
-                  ],
-                ),
-          border: Border.all(
-            color: isActive
-                ? colors.first.withValues(alpha: isLight ? 0.28 : 0.42)
-                : isLight
-                ? AppColors.hairline
-                : AppColors.glassBorder,
-            width: 0.7,
-          ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: colors.first.withValues(
-                      alpha: isLight ? 0.18 : 0.28,
-                    ),
-                    blurRadius: isLight ? 16 : 22,
-                    spreadRadius: -6,
-                  ),
-                ]
-              : isLight
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
         child: Center(
           child: BrightIcon(
             icon: icon,
