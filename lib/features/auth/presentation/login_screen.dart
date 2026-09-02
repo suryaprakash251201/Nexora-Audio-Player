@@ -7,6 +7,7 @@ import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/config/app_config.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../providers/auth_provider.dart';
 
@@ -263,13 +264,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _field(
                             controller: _userController,
                             hint: 'Username (admin)',
-                            icon: Icons.person_outline,
+                            icon: Icons.person_outline_rounded,
+                            tone: BrightIconTone.violet,
                           ),
                           const SizedBox(height: 12),
                           EnhancedGlassSurface(
-                            opacity: 0.3,
-                            blur: 15,
-                            borderRadius: BorderRadius.circular(14),
+                            opacity: 0.35,
+                            blur: 18,
+                            borderRadius: BorderRadius.circular(16),
                             child: TextField(
                               controller: _passController,
                               obscureText: _obscure,
@@ -277,16 +279,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               decoration: InputDecoration(
                                 hintText: 'Password',
                                 hintStyle: TextStyle(color: AppColors.textDim),
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  color: AppColors.textMuted,
+                                prefixIcon: const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: BrightIcon(
+                                    icon: Icons.lock_outline_rounded,
+                                    tone: BrightIconTone.pink,
+                                    size: 20,
+                                    active: true,
+                                  ),
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscure
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
                                     color: AppColors.textMuted,
+                                    size: 20,
                                   ),
                                   onPressed: () =>
                                       setState(() => _obscure = !_obscure),
@@ -420,22 +428,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    BrightIconTone tone = BrightIconTone.sky,
     String? helper,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         EnhancedGlassSurface(
-          opacity: 0.3,
-          blur: 15,
-          borderRadius: BorderRadius.circular(14),
+          opacity: 0.35,
+          blur: 18,
+          borderRadius: BorderRadius.circular(16),
           child: TextField(
             controller: controller,
             style: TextStyle(color: AppColors.text),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: AppColors.textDim, fontSize: 13),
-              prefixIcon: Icon(icon, color: AppColors.textMuted),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12),
+                child: BrightIcon(
+                  icon: icon,
+                  tone: tone,
+                  size: 20,
+                  active: true,
+                ),
+              ),
               filled: false,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(

@@ -10,6 +10,7 @@ import '../../../domain/entities/song.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/animations/app_animations.dart';
 
@@ -57,27 +58,22 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
         elevation: 0,
         title: Text(
           'Playlists',
-          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: AppColors.text,
+            fontWeight: FontWeight.w800,
+            fontSize: 24,
+            letterSpacing: -0.4,
+          ),
         ),
         actions: [
           IconButton(
             tooltip: _grid ? 'List view' : 'Grid view',
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.15),
-                    AppColors.secondary.withValues(alpha: 0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                _grid ? Icons.view_list_rounded : Icons.grid_view_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
+            icon: GlassBrightIcon(
+              icon: _grid ? Icons.view_list_rounded : Icons.grid_view_rounded,
+              tone: BrightIconTone.cyan,
+              size: 38,
+              iconSize: 20,
+              active: true,
             ),
             onPressed: () => setState(() => _grid = !_grid),
           ),
@@ -97,22 +93,13 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.2),
-                      AppColors.secondary.withValues(alpha: 0.15),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.queue_music_rounded,
-                  color: AppColors.primary,
-                  size: 32,
-                ),
+              const GlassBrightIcon(
+                icon: Icons.queue_music_rounded,
+                tone: BrightIconTone.emerald,
+                size: 64,
+                iconSize: 32,
+                active: true,
+                showGlow: true,
               ),
               const SizedBox(height: 16),
               Text(
@@ -267,97 +254,7 @@ final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
   return covers;
 });
 
-class _PlaylistTile extends ConsumerWidget {
-  final Playlist playlist;
-  const _PlaylistTile({required this.playlist});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
-    return GlassCard(
-      borderRadius: 18,
-      onTap: () => context.push('/playlists/${playlist.id}', extra: playlist),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: coversAsync.when(
-                    data: (urls) => PlaylistCover(
-                      artworkUrls: urls,
-                      borderRadius: 18,
-                      title: playlist.name,
-                    ),
-                    loading: () => PlaylistCover(
-                      artworkUrls: const [],
-                      borderRadius: 18,
-                      title: playlist.name,
-                    ),
-                    error: (_, __) => PlaylistCover(
-                      artworkUrls: const [],
-                      borderRadius: 18,
-                      title: playlist.name,
-                    ),
-                  ),
-                ),
-                // Track count badge
-                Positioned(
-                  left: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      '${playlist.trackCount ?? 0}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              playlist.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '${playlist.trackCount ?? 0} songs',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _PlaylistGrid extends StatelessWidget {
   final List<Playlist> list;
@@ -697,36 +594,4 @@ class _ModernPlaylistRow extends ConsumerWidget {
   }
 }
 
-class _PlaylistCoverBadge extends ConsumerWidget {
-  final Playlist playlist;
-  const _PlaylistCoverBadge({required this.playlist});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coversAsync = ref.watch(_playlistCoversProvider(playlist));
-    return SizedBox(
-      width: 56,
-      height: 56,
-      child: coversAsync.when(
-        data: (urls) => PlaylistCover(
-          artworkUrls: urls,
-          borderRadius: 12,
-          title: playlist.name,
-          emptyIconSize: 24,
-        ),
-        loading: () => PlaylistCover(
-          artworkUrls: const [],
-          borderRadius: 12,
-          title: playlist.name,
-          emptyIconSize: 24,
-        ),
-        error: (_, __) => PlaylistCover(
-          artworkUrls: const [],
-          borderRadius: 12,
-          title: playlist.name,
-          emptyIconSize: 24,
-        ),
-      ),
-    );
-  }
-}

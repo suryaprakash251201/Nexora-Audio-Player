@@ -5,6 +5,7 @@ import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/enhanced_player_widgets.dart';
 import '../../../ui/animations/app_animations.dart';
 import '../providers/search_provider.dart';
@@ -214,7 +215,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       padding: const EdgeInsets.only(bottom: 140),
                       children: [
                         if (res.songs.isNotEmpty) ...[
-                          _resultHeader('Songs', Icons.music_note_rounded),
+                          _resultHeader('Songs', Icons.music_note_rounded, BrightIconTone.violet),
                           ...res.songs.map(
                             (s) => SlideInAnimation(
                               child: _SongResultTile(
@@ -230,17 +231,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ),
                         ],
                         if (res.albums.isNotEmpty) ...[
-                          _resultHeader('Albums', Icons.album_rounded),
+                          _resultHeader('Albums', Icons.album_rounded, BrightIconTone.pink),
                           ...res.albums.map((a) => SlideInAnimation(
                             child: _AlbumResultTile(album: a),
                           )),
                         ],
                         if (res.artists.isNotEmpty) ...[
-                          _resultHeader('Artists', Icons.person_rounded),
+                          _resultHeader('Artists', Icons.person_rounded, BrightIconTone.cyan),
                           ...res.artists.map(
                             (ar) => SlideInAnimation(
                               child: GlassCard(
-                                borderRadius: 16,
+                                borderRadius: 18,
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 4,
@@ -248,32 +249,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppColors.primary.withValues(alpha: 0.15),
-                                            AppColors.secondary.withValues(alpha: 0.1),
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                          color: AppColors.border,
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.person_rounded,
-                                        color: AppColors.primary,
-                                      ),
+                                    const GlassBrightIcon(
+                                      icon: Icons.person_rounded,
+                                      tone: BrightIconTone.cyan,
+                                      size: 44,
+                                      iconSize: 22,
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(
                                       child: Text(
                                         ar.name,
-                                        style: TextStyle(color: AppColors.text),
+                                        style: TextStyle(
+                                          color: AppColors.text,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -283,11 +273,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ),
                         ],
                         if (res.playlists.isNotEmpty) ...[
-                          _resultHeader('Playlists', Icons.queue_music_rounded),
+                          _resultHeader('Playlists', Icons.queue_music_rounded, BrightIconTone.emerald),
                           ...res.playlists.map(
                             (p) => SlideInAnimation(
                               child: GlassCard(
-                                borderRadius: 16,
+                                borderRadius: 18,
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 4,
@@ -295,22 +285,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppColors.primary.withValues(alpha: 0.15),
-                                            AppColors.secondary.withValues(alpha: 0.1),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.queue_music_rounded,
-                                        color: AppColors.primary,
-                                      ),
+                                    const GlassBrightIcon(
+                                      icon: Icons.queue_music_rounded,
+                                      tone: BrightIconTone.emerald,
+                                      size: 44,
+                                      iconSize: 22,
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(
@@ -319,11 +298,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         children: [
                                           Text(
                                             p.name,
-                                            style: TextStyle(color: AppColors.text),
+                                            style: TextStyle(
+                                              color: AppColors.text,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
                                           ),
                                           Text(
                                             '${p.trackCount ?? 0} tracks',
-                                            style: TextStyle(color: AppColors.textMuted),
+                                            style: TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -347,31 +333,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _resultHeader(String title, IconData icon) {
+  Widget _resultHeader(String title, IconData icon, [BrightIconTone tone = BrightIconTone.violet]) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.15),
-                  AppColors.secondary.withValues(alpha: 0.1),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: AppColors.primary),
+          GlassBrightIcon(
+            icon: icon,
+            tone: tone,
+            size: 38,
+            iconSize: 18,
+            active: true,
+            showGlow: true,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Text(
             title,
             style: TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w700,
-              fontSize: 17,
+              fontSize: 18,
+              letterSpacing: -0.3,
             ),
           ),
         ],

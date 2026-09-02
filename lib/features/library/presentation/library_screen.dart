@@ -46,27 +46,52 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   'Library',
                   style: TextStyle(
                     color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
+                    letterSpacing: -0.4,
                   ),
                 ),
-                bottom: TabBar(
-                  controller: _tab,
-                  indicatorColor: AppColors.primary,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelColor: AppColors.text,
-                  unselectedLabelColor: AppColors.textDim,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(52),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        width: 0.6,
+                      ),
+                    ),
+                    child: TabBar(
+                      controller: _tab,
+                      indicator: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: AppColors.textDim,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: 'Songs'),
+                        Tab(text: 'Folders'),
+                        Tab(text: 'Downloads'),
+                      ],
+                    ),
                   ),
-                  dividerColor: AppColors.border,
-                  indicatorWeight: 3,
-                  tabs: const [
-                    Tab(text: 'Songs'),
-                    Tab(text: 'Folders'),
-                    Tab(text: 'Downloads'),
-                  ],
                 ),
               ),
             ];

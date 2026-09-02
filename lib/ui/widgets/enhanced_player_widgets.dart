@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'bright_icons.dart';
-import 'enhanced_glass.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED PLAY BUTTON — With rotating gradient ring
@@ -567,30 +566,45 @@ class GlassMiniPlayer extends StatelessWidget {
                       const SizedBox(width: 2),
                       _GlassIconButton(
                         icon: Icons.skip_next_rounded,
+                        tone: BrightIconTone.sky,
+                        isActive: true,
                         onPressed: onNext,
                       ),
                       if (onDismiss != null) ...[
                         const SizedBox(width: 2),
                         _GlassIconButton(
                           icon: Icons.close_rounded,
+                          tone: BrightIconTone.rose,
                           onPressed: onDismiss!,
-                          color: AppColors.textDim,
                         ),
                       ],
                     ],
                   ),
                 ),
-                // Thin inline progress
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 2,
-                    backgroundColor: AppColors.textDim.withValues(alpha: 0.10),
-                    valueColor: AlwaysStoppedAnimation(
-                      AppColors.primary.withValues(alpha: 0.95),
+                // Glowing gradient inline progress line
+                Stack(
+                  children: [
+                    Container(
+                      height: 2.5,
+                      color: AppColors.textDim.withValues(alpha: 0.12),
                     ),
-                  ),
+                    FractionallySizedBox(
+                      widthFactor: progress.clamp(0.0, 1.0),
+                      child: Container(
+                        height: 2.5,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.6),
+                              blurRadius: 6,
+                              spreadRadius: 0.5,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -601,27 +615,70 @@ class GlassMiniPlayer extends StatelessWidget {
   }
 }
 
-class _MiniPlayButton extends StatelessWidget {
+class _MiniPlayButton extends StatefulWidget {
   final bool isPlaying;
   final VoidCallback onPressed;
   const _MiniPlayButton({required this.isPlaying, required this.onPressed});
 
   @override
+  State<_MiniPlayButton> createState() => _MiniPlayButtonState();
+}
+
+class _MiniPlayButtonState extends State<_MiniPlayButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _c;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 140),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.88).animate(
+      CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 36,
-        height: 36,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: AppColors.primaryGradient,
-        ),
-        child: Icon(
-          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          color: Colors.white,
-          size: 20,
+      onTapDown: (_) => _c.forward(),
+      onTapUp: (_) {
+        _c.reverse();
+        widget.onPressed();
+      },
+      onTapCancel: () => _c.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: 38,
+          height: 38,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.primaryGradient,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.45),
+                blurRadius: 14,
+                spreadRadius: -1,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(
+            widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
         ),
       ),
     );
@@ -632,13 +689,13 @@ class _GlassIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final bool isActive;
-  final Color? color;
+  final BrightIconTone tone;
 
   const _GlassIconButton({
     required this.icon,
     required this.onPressed,
     this.isActive = false,
-    this.color,
+    this.tone = BrightIconTone.violet,
   });
 
   @override
@@ -651,16 +708,23 @@ class _GlassIconButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isActive
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
+              ? tone.base.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.06),
           border: Border.all(
             color: isActive
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : Colors.transparent,
-            width: 0.5,
+                ? tone.base.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.12),
+            width: 0.6,
           ),
         ),
-        child: Icon(icon, color: color ?? AppColors.text, size: 22),
+        child: Center(
+          child: BrightIcon(
+            icon: icon,
+            size: 20,
+            tone: tone,
+            active: isActive,
+          ),
+        ),
       ),
     );
   }

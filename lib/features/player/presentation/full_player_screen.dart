@@ -10,7 +10,6 @@ import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/enhanced_player_widgets.dart';
 import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/premium_widgets.dart';
-import '../../../ui/animations/app_animations.dart';
 import '../providers/player_provider.dart';
 import '../providers/sleep_timer_provider.dart';
 import 'cassette_player.dart';
@@ -266,12 +265,13 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                                     children: [
                                       _IconGlow(
                                         icon: Icons.queue_music_rounded,
+                                        tone: BrightIconTone.violet,
                                         onTap: () => _showQueue(context),
                                       ),
                                       const SizedBox(width: 12),
                                       _IconGlow(
                                         icon: Icons.bedtime_rounded,
-                                        color: AppColors.secondary,
+                                        tone: BrightIconTone.cyan,
                                         onTap: () =>
                                             _showSleepTimerSheet(context, ref),
                                       ),
@@ -283,7 +283,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                                       const SizedBox(width: 12),
                                       _IconGlow(
                                         icon: Icons.more_horiz_rounded,
-                                        color: AppColors.textMuted,
+                                        tone: BrightIconTone.pink,
                                         onTap: () {},
                                       ),
                                     ],
@@ -588,105 +588,80 @@ class _TransportConsole extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Modern transport: NO container background. Controls float over the
-    // scrim, each button is a clean disc (light=ink-on-white, dark=glass).
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        _ControlButton(
-          icon: Icons.shuffle_rounded,
-          isActive: shuffle,
-          tone: BrightIconTone.cyan,
-          onPressed: onShuffle,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 0.6,
         ),
-        _ControlButton(
-          icon: Icons.skip_previous_rounded,
-          size: 28,
-          discSize: 52,
-          tone: BrightIconTone.violet,
-          alwaysBright: true,
-          onPressed: onPrevious,
-        ),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            if (isBuffering)
-              SizedBox(
-                width: 88,
-                height: 88,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.10),
-                ),
-              ),
-            EnhancedPlayButton(
-              isPlaying: isPlaying,
-              size: 80,
-              showGlow: isPlaying,
-              onPressed: onPlayPause,
-            ),
-          ],
-        ),
-        _ControlButton(
-          icon: Icons.skip_next_rounded,
-          size: 28,
-          discSize: 52,
-          tone: BrightIconTone.violet,
-          alwaysBright: true,
-          onPressed: onNext,
-        ),
-        _ControlButton(
-          icon: repeatMode == LoopMode.one
-              ? Icons.repeat_one_rounded
-              : Icons.repeat_rounded,
-          isActive: repeatMode != LoopMode.off,
-          tone: BrightIconTone.pink,
-          onPressed: onRepeat,
-        ),
-      ],
-    );
-  }
-}
-
-/// A clean transport control button — no glass disc background, just a
-/// transparent round tap target. Active state colors the glyph only.
-class _ControlButton extends StatelessWidget {
-  final IconData icon;
-  final bool isActive;
-  final double size;
-  final double discSize;
-  final BrightIconTone tone;
-  final bool alwaysBright;
-  final VoidCallback onPressed;
-
-  const _ControlButton({
-    required this.icon,
-    this.isActive = false,
-    this.size = 26,
-    this.discSize = 48,
-    this.tone = BrightIconTone.violet,
-    this.alwaysBright = false,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: discSize,
-        height: discSize,
-        child: Center(
-          child: BrightIcon(
-            icon: icon,
-            size: size,
-            tone: tone,
-            active: isActive || alwaysBright,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          BrightIconButton(
+            icon: Icons.shuffle_rounded,
+            active: shuffle,
+            tone: BrightIconTone.cyan,
+            size: 46,
+            iconSize: 22,
+            onTap: onShuffle,
+            tooltip: 'Shuffle',
           ),
-        ),
+          BrightIconButton(
+            icon: Icons.skip_previous_rounded,
+            size: 52,
+            iconSize: 28,
+            tone: BrightIconTone.sky,
+            active: true,
+            onTap: onPrevious,
+            tooltip: 'Previous',
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              if (isBuffering)
+                SizedBox(
+                  width: 88,
+                  height: 88,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+                  ),
+                ),
+              EnhancedPlayButton(
+                isPlaying: isPlaying,
+                size: 76,
+                showGlow: isPlaying,
+                onPressed: onPlayPause,
+              ),
+            ],
+          ),
+          BrightIconButton(
+            icon: Icons.skip_next_rounded,
+            size: 52,
+            iconSize: 28,
+            tone: BrightIconTone.sky,
+            active: true,
+            onTap: onNext,
+            tooltip: 'Next',
+          ),
+          BrightIconButton(
+            icon: repeatMode == LoopMode.one
+                ? Icons.repeat_one_rounded
+                : Icons.repeat_rounded,
+            active: repeatMode != LoopMode.off,
+            tone: BrightIconTone.pink,
+            size: 46,
+            iconSize: 22,
+            onTap: onRepeat,
+            tooltip: 'Repeat',
+          ),
+        ],
       ),
     );
   }
@@ -699,39 +674,23 @@ class _ControlButton extends StatelessWidget {
 class _IconGlow extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final Color? color;
+  final BrightIconTone tone;
 
-  const _IconGlow({required this.icon, required this.onTap, this.color});
+  const _IconGlow({
+    required this.icon,
+    required this.onTap,
+    this.tone = BrightIconTone.violet,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textMuted;
-    final isLight = AppColors.mode == AppThemeMode.light;
-    return GestureDetector(
+    return BrightIconButton(
+      icon: icon,
+      tone: tone,
+      size: 44,
+      iconSize: 20,
+      active: true,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: isLight
-              ? Colors.white.withValues(alpha: 0.86)
-              : c.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isLight ? AppColors.hairline : c.withValues(alpha: 0.14),
-            width: 0.6,
-          ),
-          boxShadow: isLight
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Icon(icon, color: c, size: 20),
-      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/bright_icons.dart';
 import '../../../ui/widgets/premium_widgets.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
@@ -467,25 +468,25 @@ class HomeScreen extends ConsumerWidget {
     final actions = [
       (
         Icons.library_music_rounded,
-        AppColors.primary,
+        BrightIconTone.violet,
         'Library',
         () => context.push('/library'),
       ),
       (
         Icons.queue_music_rounded,
-        AppColors.secondary,
+        BrightIconTone.cyan,
         'Playlists',
         () => context.push('/playlists'),
       ),
       (
         Icons.favorite_rounded,
-        AppColors.tertiary,
+        BrightIconTone.pink,
         'Favorites',
         () => context.push('/favorites'),
       ),
       (
         Icons.search_rounded,
-        AppColors.success,
+        BrightIconTone.emerald,
         'Search',
         () => context.push('/search'),
       ),
@@ -496,13 +497,13 @@ class HomeScreen extends ConsumerWidget {
       child: Row(
         children: [
           for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(width: 12),
+            if (i > 0) const SizedBox(width: 10),
             Expanded(
               child: SlideInAnimation(
-                delay: Duration(milliseconds: i * 100),
+                delay: Duration(milliseconds: i * 80),
                 child: _QuickAction(
                   icon: actions[i].$1,
-                  color: actions[i].$2,
+                  tone: actions[i].$2,
                   label: actions[i].$3,
                   onTap: actions[i].$4,
                 ),
@@ -669,12 +670,12 @@ class _ActionButton extends StatelessWidget {
 
 class _QuickAction extends StatelessWidget {
   final IconData icon;
-  final Color color;
+  final BrightIconTone tone;
   final String label;
   final VoidCallback onTap;
   const _QuickAction({
     required this.icon,
-    required this.color,
+    required this.tone,
     required this.label,
     required this.onTap,
   });
@@ -685,44 +686,28 @@ class _QuickAction extends StatelessWidget {
       onTap: onTap,
       child: GlassCard(
         borderRadius: 20,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color.withValues(alpha: 0.3),
-                    color.withValues(alpha: 0.1),
-                  ],
-                ),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.35),
-                  width: 0.6,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: color, size: 22),
+            GlassBrightIcon(
+              icon: icon,
+              tone: tone,
+              size: 48,
+              iconSize: 22,
+              active: true,
+              showGlow: true,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppColors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
               ),
             ),
           ],
@@ -881,102 +866,109 @@ class _SongCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 160,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ArtworkImage(
-                  url: song.coverUrl,
-                  size: 160,
-                  borderRadius: 20,
-                  showShadow: true,
-                ),
-                // Conic gradient rim
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: SweepGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha: 0.0),
-                            AppColors.secondary.withValues(alpha: 0.4),
-                            AppColors.tertiary.withValues(alpha: 0.3),
-                            AppColors.primary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Play overlay pill
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.background.withValues(alpha: 0.7),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 0.6,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                          blurRadius: 16,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.play_arrow_rounded,
-                      color: AppColors.text,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              song.artist ?? 'Unknown',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-            if (song.lossless == true) ...[
-              const SizedBox(height: 8),
-              Row(
+      child: GlassCard(
+        borderRadius: 22,
+        padding: const EdgeInsets.all(10),
+        child: SizedBox(
+          width: 144,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
                 children: [
-                  const GradientBadge(
-                    text: 'LOSSLESS',
-                    color: AppColors.secondary,
+                  ArtworkImage(
+                    url: song.coverUrl,
+                    size: 144,
+                    borderRadius: 16,
+                    showShadow: true,
                   ),
-                  if (song.codec != null)
-                    GradientBadge(text: (song.codec as String).toUpperCase()),
+                  // Conic gradient rim
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: SweepGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.0),
+                              AppColors.secondary.withValues(alpha: 0.4),
+                              AppColors.tertiary.withValues(alpha: 0.3),
+                              AppColors.primary.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Glowing Play overlay pill
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: AppColors.primaryGradient,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.55),
+                            blurRadius: 14,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ] else if (song.codec != null) ...[
-              const SizedBox(height: 8),
-              GradientBadge(text: (song.codec as String).toUpperCase()),
+              const SizedBox(height: 10),
+              Text(
+                song.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                song.artist ?? 'Unknown Artist',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (song.lossless == true) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const GradientBadge(
+                      text: 'LOSSLESS',
+                      color: AppColors.secondary,
+                    ),
+                    if (song.codec != null)
+                      GradientBadge(text: (song.codec as String).toUpperCase()),
+                  ],
+                ),
+              ] else if (song.codec != null) ...[
+                const SizedBox(height: 6),
+                GradientBadge(text: (song.codec as String).toUpperCase()),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1001,64 +993,72 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 120,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ArtworkImage(
-                  url: song?.coverUrl,
-                  size: 120,
-                  borderRadius: 16,
-                  showShadow: true,
-                ),
-                if (onTap != null)
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.background.withValues(alpha: 0.65),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 0.6,
+      child: GlassCard(
+        borderRadius: 20,
+        padding: const EdgeInsets.all(8),
+        child: SizedBox(
+          width: 116,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                children: [
+                  ArtworkImage(
+                    url: song?.coverUrl,
+                    size: 116,
+                    borderRadius: 14,
+                    showShadow: true,
+                  ),
+                  if (onTap != null)
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppColors.secondaryGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.secondary.withValues(alpha: 0.5),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 18,
                         ),
                       ),
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        color: AppColors.text,
-                        size: 20,
-                      ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              song?.title ?? fallbackId,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                ],
               ),
-            ),
-            if (song?.artist != null) ...[
-              const SizedBox(height: 3),
+              const SizedBox(height: 8),
               Text(
-                song.artist as String,
+                song?.title ?? fallbackId,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              if (song?.artist != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  song.artist as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 10.5),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1078,56 +1078,67 @@ class _AlbumCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 170,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ArtworkImage(
-                  url: album.coverUrl,
-                  size: 170,
-                  borderRadius: 20,
-                  showShadow: true,
-                ),
-                if (album.trackCount != null)
-                  Positioned(
-                    left: 10,
-                    top: 10,
-                    child: GlassChip(
-                      color: AppColors.primary,
-                      child: Text(
-                        '${album.trackCount} songs',
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+      child: GlassCard(
+        borderRadius: 22,
+        padding: const EdgeInsets.all(10),
+        child: SizedBox(
+          width: 148,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                children: [
+                  ArtworkImage(
+                    url: album.coverUrl,
+                    size: 148,
+                    borderRadius: 16,
+                    showShadow: true,
+                  ),
+                  if (album.trackCount != null)
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      child: GlassChip(
+                        color: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Text(
+                          '${album.trackCount} tracks',
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              album.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                ],
               ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              album.artist ?? 'Albums',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                album.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                album.artist ?? 'Album',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -489,21 +489,30 @@ class _SettingTile extends StatelessWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: Container(
-        width: 42,
-        height: 42,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              iconBg.withValues(alpha: 0.22),
-              iconBg.withValues(alpha: 0.1),
+              iconBg.withValues(alpha: 0.28),
+              iconBg.withValues(alpha: 0.12),
             ],
           ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: iconBg.withValues(alpha: 0.18), width: 0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: iconBg.withValues(alpha: 0.3), width: 0.6),
+          boxShadow: [
+            BoxShadow(
+              color: iconBg.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: showSpinner
             ? Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 child: CircularProgressIndicator(strokeWidth: 2, color: iconBg),
               )
             : Icon(icon, color: iconBg, size: 22),
@@ -514,8 +523,9 @@ class _SettingTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: AppColors.text,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.1,
         ),
       ),
       subtitle: subtitle != null
@@ -523,7 +533,11 @@ class _SettingTile extends StatelessWidget {
               subtitle!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             )
           : null,
       trailing: trailing,

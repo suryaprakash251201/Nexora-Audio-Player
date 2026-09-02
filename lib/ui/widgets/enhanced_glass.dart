@@ -26,7 +26,7 @@ class EnhancedGlassSurface extends StatelessWidget {
   const EnhancedGlassSurface({
     super.key,
     required this.child,
-    this.blur = 35.0,
+    this.blur = 30.0,
     this.opacity = 0.5,
     this.borderRadius,
     this.border,
@@ -42,21 +42,24 @@ class EnhancedGlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(24);
+    final isLight = AppColors.mode == AppThemeMode.light;
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: shadows ?? [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 30,
+            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.28),
+            blurRadius: 32,
             offset: const Offset(0, 12),
           ),
           if (showInnerGlow)
             BoxShadow(
-              color: (glowColor ?? AppColors.primary).withValues(alpha: 0.12),
-              blurRadius: glowRadius ?? 50,
-              spreadRadius: -8,
+              color: (glowColor ?? AppColors.primary).withValues(
+                alpha: isLight ? 0.15 : 0.22,
+              ),
+              blurRadius: glowRadius ?? 48,
+              spreadRadius: -4,
             ),
         ],
       ),
@@ -73,39 +76,46 @@ class EnhancedGlassSurface extends StatelessWidget {
                   LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.glassBase.withValues(alpha: opacity),
-                      AppColors.glassBase.withValues(alpha: opacity * 0.55),
-                    ],
+                    colors: isLight
+                        ? [
+                            Colors.white.withValues(alpha: 0.88),
+                            Colors.white.withValues(alpha: 0.65),
+                          ]
+                        : [
+                            AppColors.glassBase.withValues(alpha: opacity),
+                            AppColors.glassBase.withValues(alpha: opacity * 0.6),
+                          ],
                   ),
               border:
                   border ??
                   Border.all(
                     color: showInnerGlow
                         ? (glowColor ?? AppColors.primary).withValues(
-                            alpha: 0.35,
+                            alpha: 0.45,
                           )
-                        : AppColors.glassBorder,
-                    width: showInnerGlow ? 1.0 : 0.5,
+                        : (isLight ? AppColors.glassBorder : AppColors.glassBorderStrong),
+                    width: showInnerGlow ? 1.0 : 0.6,
                   ),
             ),
             child: Stack(
               children: [
-                // Top shimmer highlight
+                // Specular top highlight bevel
                 if (showShimmer)
                   Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: radius,
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.07),
-                            Colors.white.withValues(alpha: 0.0),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.3, 1.0],
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: radius,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: isLight ? 0.25 : 0.12),
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.0, 0.35, 1.0],
+                          ),
                         ),
                       ),
                     ),

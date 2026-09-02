@@ -7,7 +7,7 @@ import '../theme.dart';
 /// Vivid, saturated tones used to tint app icons.
 ///
 /// Each tone resolves to a two-stop gradient so glyphs read as "lit" rather
-/// than flat, which is what gives the icon set its bright, glassy look.
+/// than flat, giving the icon set its bright, glassy look.
 enum BrightIconTone {
   violet,
   cyan,
@@ -17,6 +17,9 @@ enum BrightIconTone {
   sky,
   rose,
   indigo,
+  sunset,
+  teal,
+  coral,
 }
 
 extension BrightIconToneX on BrightIconTone {
@@ -24,11 +27,11 @@ extension BrightIconToneX on BrightIconTone {
   List<Color> get stops {
     switch (this) {
       case BrightIconTone.violet:
-        return const [Color(0xFFA78BFA), Color(0xFF7C3AED)];
+        return const [Color(0xFFC084FC), Color(0xFF7C3AED)];
       case BrightIconTone.cyan:
-        return const [Color(0xFF22D3EE), Color(0xFF0891B2)];
+        return const [Color(0xFF38BDF8), Color(0xFF06B6D4)];
       case BrightIconTone.pink:
-        return const [Color(0xFFF472B6), Color(0xFFDB2777)];
+        return const [Color(0xFFF472B6), Color(0xFFE11D48)];
       case BrightIconTone.emerald:
         return const [Color(0xFF34D399), Color(0xFF059669)];
       case BrightIconTone.amber:
@@ -36,14 +39,23 @@ extension BrightIconToneX on BrightIconTone {
       case BrightIconTone.sky:
         return const [Color(0xFF60A5FA), Color(0xFF2563EB)];
       case BrightIconTone.rose:
-        return const [Color(0xFFFB7185), Color(0xFFE11D48)];
+        return const [Color(0xFFFB7185), Color(0xFFBE123C)];
       case BrightIconTone.indigo:
-        return const [Color(0xFF818CF8), Color(0xFF4F46E5)];
+        return const [Color(0xFF818CF8), Color(0xFF4338CA)];
+      case BrightIconTone.sunset:
+        return const [Color(0xFFFF7E5F), Color(0xFFFEB47B)];
+      case BrightIconTone.teal:
+        return const [Color(0xFF2DD4BF), Color(0xFF0F766E)];
+      case BrightIconTone.coral:
+        return const [Color(0xFFFF6B6B), Color(0xFFFF8E53)];
     }
   }
 
   /// Flat representative colour (useful for glows and shadows).
   Color get base => stops.first;
+
+  /// Outer glow color with preset opacity
+  Color get glowColor => base.withValues(alpha: 0.45);
 }
 
 /// An icon glyph painted with a bright gradient.
@@ -114,23 +126,23 @@ class GlassBrightIcon extends StatelessWidget {
         boxShadow: (active && showGlow)
             ? [
                 BoxShadow(
-                  color: colors.first.withValues(alpha: 0.35),
-                  blurRadius: size * 0.5,
-                  spreadRadius: -size * 0.12,
-                  offset: Offset(0, size * 0.12),
+                  color: colors.first.withValues(alpha: 0.38),
+                  blurRadius: size * 0.55,
+                  spreadRadius: -size * 0.1,
+                  offset: Offset(0, size * 0.1),
                 ),
               ]
             : null,
       ),
       child: ClipOval(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
                 color: active
-                    ? colors.first.withValues(alpha: 0.45)
+                    ? colors.first.withValues(alpha: 0.5)
                     : AppColors.glassBorder,
                 width: 0.8,
               ),
@@ -139,12 +151,12 @@ class GlassBrightIcon extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: active
                     ? [
-                        colors.first.withValues(alpha: 0.28),
-                        colors.last.withValues(alpha: 0.10),
+                        colors.first.withValues(alpha: 0.32),
+                        colors.last.withValues(alpha: 0.12),
                       ]
                     : [
-                        AppColors.glassBase.withValues(alpha: 0.35),
-                        AppColors.glassBase.withValues(alpha: 0.12),
+                        AppColors.glassBase.withValues(alpha: 0.4),
+                        AppColors.glassBase.withValues(alpha: 0.15),
                       ],
               ),
             ),
@@ -239,6 +251,125 @@ class _BrightIconButtonState extends State<BrightIconButton>
   }
 }
 
+/// A glowing interactive action button with glass container, optional border bloom, and haptic-like scale.
+class GlowIconButton extends StatefulWidget {
+  final IconData icon;
+  final BrightIconTone tone;
+  final double size;
+  final double iconSize;
+  final double borderRadius;
+  final VoidCallback? onTap;
+  final String? tooltip;
+  final bool isCircle;
+
+  const GlowIconButton({
+    super.key,
+    required this.icon,
+    this.tone = BrightIconTone.violet,
+    this.size = 46,
+    this.iconSize = 22,
+    this.borderRadius = 16,
+    this.onTap,
+    this.tooltip,
+    this.isCircle = false,
+  });
+
+  @override
+  State<GlowIconButton> createState() => _GlowIconButtonState();
+}
+
+class _GlowIconButtonState extends State<GlowIconButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 140),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.90,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = widget.tone.stops;
+    final r = widget.isCircle ? BorderRadius.circular(widget.size / 2) : BorderRadius.circular(widget.borderRadius);
+
+    Widget content = Container(
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withValues(alpha: 0.28),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: r,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colors.first.withValues(alpha: 0.25),
+                  colors.last.withValues(alpha: 0.08),
+                ],
+              ),
+              border: Border.all(
+                color: colors.first.withValues(alpha: 0.35),
+                width: 0.75,
+              ),
+            ),
+            child: Center(
+              child: BrightIcon(
+                icon: widget.icon,
+                size: widget.iconSize,
+                tone: widget.tone,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: widget.tooltip != null
+            ? Tooltip(message: widget.tooltip!, child: content)
+            : content,
+      ),
+    );
+  }
+}
+
 /// A rounded-rectangle glass "chip" containing a bright icon and a label.
 /// Used for quick actions and settings rows.
 class BrightIconChip extends StatelessWidget {
@@ -264,17 +395,24 @@ class BrightIconChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: tone.base.withValues(alpha: 0.3),
+            color: tone.base.withValues(alpha: 0.32),
             width: 0.8,
           ),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              tone.stops.first.withValues(alpha: 0.22),
+              tone.stops.first.withValues(alpha: 0.24),
               tone.stops.last.withValues(alpha: 0.08),
             ],
           ),
+          boxShadow: [
+            BoxShadow(
+              color: tone.base.withValues(alpha: 0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

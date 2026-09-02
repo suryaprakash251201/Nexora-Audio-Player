@@ -12,6 +12,7 @@ void main() {
         child: const NexoraApp(),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Nexora'), findsWidgets);
   });
 }

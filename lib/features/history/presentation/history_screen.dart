@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/repositories/history_repository.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
-import '../../../ui/widgets/artwork_image.dart';
-import '../../../ui/widgets/premium_widgets.dart';
+import '../../../ui/widgets/enhanced_glass.dart';
+import '../../../ui/widgets/enhanced_player_widgets.dart';
+import '../../../ui/widgets/bright_icons.dart';
+import '../../../ui/animations/app_animations.dart';
 import '../../player/providers/player_provider.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -16,111 +18,71 @@ class HistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('History'),
+        title: Text(
+          'History',
+          style: TextStyle(
+            color: AppColors.text,
+            fontWeight: FontWeight.w800,
+            fontSize: 24,
+            letterSpacing: -0.4,
+          ),
+        ),
         backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
+            icon: const GlassBrightIcon(
+              icon: Icons.delete_outline_rounded,
+              tone: BrightIconTone.rose,
+              size: 38,
+              iconSize: 20,
+              active: true,
+            ),
             onPressed: () {},
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: historyAsync.when(
-        data: (items) => items.isEmpty
-            ? const EmptyView(
-                title: 'No history',
-                subtitle: 'Played songs will appear here',
-                icon: Icons.history_rounded,
-              )
-            : RefreshIndicator(
-                onRefresh: () async => ref.invalidate(_historyProvider),
-                child: ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 100),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) =>
-                      Divider(color: AppColors.border, height: 1),
-                  itemBuilder: (c, i) {
-                    final h = items[i];
-                    final s = h.song;
-                    final isCurrent =
-                        ref.watch(playerProvider).currentTrack?.id == s?.id;
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 2,
-                      ),
-                      leading: isCurrent
-                          ? Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                ArtworkImage(
-                                  url: s?.coverUrl,
-                                  size: 48,
-                                  borderRadius: 10,
-                                ),
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Center(
-                                    child: NowPlayingIndicator(
-                                      height: 14,
-                                      width: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : ArtworkImage(
-                              url: s?.coverUrl,
-                              size: 48,
-                              borderRadius: 10,
-                            ),
-                      title: Text(
-                        s?.title ?? h.songId,
-                        style: TextStyle(
-                          color: isCurrent
-                              ? AppColors.primaryLight
-                              : AppColors.text,
-                          fontWeight: isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+      body: AuroraBackground(
+        child: historyAsync.when(
+          data: (items) => items.isEmpty
+              ? const EmptyView(
+                  title: 'No history',
+                  subtitle: 'Played songs will appear here',
+                  icon: Icons.history_rounded,
+                )
+              : RefreshIndicator(
+                  onRefresh: () async => ref.invalidate(_historyProvider),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 140),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    itemBuilder: (c, i) {
+                      final h = items[i];
+                      final s = h.song;
+                      final isCurrent =
+                          ref.watch(playerProvider).currentTrack?.id == s?.id;
+                      return SlideInAnimation(
+                        delay: Duration(milliseconds: (i % 10) * 40),
+                        child: GlassSongTile(
+                          artworkUrl: s?.coverUrl,
+                          title: s?.title ?? h.songId,
+                          subtitle: '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
+                          isCurrent: isCurrent,
+                          isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
+                          onTap: s != null
+                              ? () => ref.read(playerProvider.notifier).playSongs([s])
+                              : () {},
                         ),
-                      ),
-                      subtitle: Text(
-                        '${s?.artist ?? ''} • ${_timeAgo(h.playedAt)}',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      onTap: s != null
-                          ? () =>
-                                ref.read(playerProvider.notifier).playSongs([s])
-                          : null,
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-        loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toString(),
-          onRetry: () => ref.invalidate(_historyProvider),
+          loading: () => const LoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(_historyProvider),
+          ),
         ),
       ),
     );
