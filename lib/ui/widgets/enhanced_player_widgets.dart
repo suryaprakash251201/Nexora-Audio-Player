@@ -1,10 +1,14 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import 'waveform_visualizer.dart';
 
 /// Hi-Fi primary play/pause button. Single accent fill, calm press scale.
+/// Enhanced with optional breathing glow effect.
 class EnhancedPlayButton extends StatefulWidget {
   final bool isPlaying;
   final VoidCallback onPressed;
@@ -27,6 +31,7 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _scale;
+  late final AnimationController _glowController;
 
   @override
   void initState() {
@@ -38,18 +43,39 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
     _scale = Tween<double>(begin: 1.0, end: 0.94).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    );
+    if (widget.isPlaying && widget.showGlow) {
+      _glowController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant EnhancedPlayButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying && widget.showGlow) {
+      if (!_glowController.isAnimating) _glowController.repeat(reverse: true);
+    } else {
+      _glowController.stop();
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
+    Widget button = GestureDetector(
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _controller.forward();
+      },
       onTapUp: (_) {
         _controller.reverse();
         widget.onPressed();
@@ -65,10 +91,26 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.accent,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.25),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Center(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, anim) {
+                return ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(
+                    opacity: anim,
+                    child: child,
+                  ),
+                );
+              },
               child: Icon(
                 widget.isPlaying
                     ? Icons.pause_rounded
@@ -82,6 +124,32 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
         ),
       ),
     );
+
+    if (widget.showGlow && widget.isPlaying) {
+      button = AnimatedBuilder(
+        animation: _glowController,
+        builder: (_, child) {
+          return Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accent.withValues(
+                    alpha: 0.15 * _glowController.value,
+                  ),
+                  blurRadius: 30 + 20 * _glowController.value,
+                  spreadRadius: 4 * _glowController.value,
+                ),
+              ],
+            ),
+            child: child,
+          );
+        },
+        child: button,
+      );
+    }
+
+    return button;
   }
 }
 
@@ -803,6 +871,322 @@ class GlassSongTile extends StatelessWidget {
   }
 }
 
+/// Premium animated icon button with scale and glow effects.
+class AnimatedIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final double size;
+  final Color? color;
+  final bool isActive;
+  final bool showGlow;
+
+  const AnimatedIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.size = 24,
+    this.color,
+    this.isActive = false,
+    this.showGlow = false,
+  });
+
+  @override
+  State<AnimatedIconButton> createState() => _AnimatedIconButtonState();
+}
+
+class _AnimatedIconButtonState extends State<AnimatedIconButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: AppColors.durFast,
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.color ??
+        (widget.isActive ? AppColors.accent : AppColors.text);
+
+    Widget button = GestureDetector(
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _controller.forward();
+      },
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onPressed();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (_, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Icon(
+          widget.icon,
+          color: color,
+          size: widget.size,
+        ),
+      ),
+    );
+
+    if (widget.showGlow && widget.isActive) {
+      button = Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.3),
+              blurRadius: 15,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: button,
+      );
+    }
+
+    return button;
+  }
+}
+
+/// A premium volume slider with custom thumb and track styling.
+class PremiumVolumeSlider extends StatelessWidget {
+  final double volume;
+  final ValueChanged<double> onChanged;
+
+  const PremiumVolumeSlider({
+    super.key,
+    required this.volume,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          volume == 0
+              ? Icons.volume_off_rounded
+              : volume < 0.5
+                  ? Icons.volume_down_rounded
+                  : Icons.volume_up_rounded,
+          color: AppColors.textMuted,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 3,
+              activeTrackColor: AppColors.accent,
+              inactiveTrackColor: AppColors.surfaceHigh,
+              thumbColor: AppColors.text,
+              overlayColor: AppColors.accent.withValues(alpha: 0.15),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+            ),
+            child: Slider(
+              value: volume.clamp(0.0, 1.0),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A premium audio quality badge showing bitrate/format info.
+class AudioQualityBadge extends StatelessWidget {
+  final String format;
+  final int? bitrate;
+  final bool isHiRes;
+
+  const AudioQualityBadge({
+    super.key,
+    required this.format,
+    this.bitrate,
+    this.isHiRes = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isHiRes
+            ? AppColors.accent.withValues(alpha: 0.15)
+            : AppColors.surfaceHigh.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isHiRes
+              ? AppColors.accent.withValues(alpha: 0.3)
+              : AppColors.border.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isHiRes) ...[
+            Icon(
+              Icons.high_quality_rounded,
+              color: AppColors.accent,
+              size: 12,
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            bitrate != null ? '$format ${bitrate! ~/ 1000}kbps' : format,
+            style: TextStyle(
+              color: isHiRes ? AppColors.accent : AppColors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A premium feature card for the home screen with hover effects.
+class PremiumFeatureCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color? accentColor;
+  final VoidCallback? onTap;
+
+  const PremiumFeatureCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.accentColor,
+    this.onTap,
+  });
+
+  @override
+  State<PremiumFeatureCard> createState() => _PremiumFeatureCardState();
+}
+
+class _PremiumFeatureCardState extends State<PremiumFeatureCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: AppColors.durFast,
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = widget.accentColor ?? AppColors.accent;
+
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (_, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.3),
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowColor,
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: accentColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.subtitle,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact animated equalizer bars used as a compact "now playing" indicator.
 class _MiniBars extends StatefulWidget {
   final Color color;
   const _MiniBars({required this.color});

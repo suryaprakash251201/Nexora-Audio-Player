@@ -7,6 +7,7 @@ import '../../../data/api/server_api.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/theme_provider.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
+import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/player_visual_mode_provider.dart';
 import '../../../ui/nexora/nexora_dialog.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -42,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
             title: 'PLAYBACK',
             children: [
               _SettingTile(
-                icon: Icons.tune_rounded,
+                glyph: NexoraGlyphKind.waveform,
                 title: 'Equalizer',
                 subtitle: 'Audiophile 8-band EQ',
                 onTap: () => context.push('/equalizer'),
@@ -51,7 +52,7 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (context, ref, _) {
                   final timer = ref.watch(sleepTimerProvider);
                   return _SettingTile(
-                    icon: Icons.bedtime_outlined,
+                    glyph: NexoraGlyphKind.night,
                     title: 'Sleep timer',
                     subtitle: timer.isActive ? timer.label : 'Off',
                     trailing: Switch.adaptive(
@@ -69,7 +70,7 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
               _SettingTile(
-                icon: Icons.high_quality_outlined,
+                glyph: NexoraGlyphKind.hiRes,
                 title: 'Audio quality',
                 subtitle: 'Original (server) • No transcoding',
               ),
@@ -94,6 +95,12 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.sync_rounded,
                 title: 'Sync',
                 subtitle: 'Background sync is automatic',
+              ),
+              _SettingTile(
+                glyph: NexoraGlyphKind.stats,
+                title: 'Your stats',
+                subtitle: 'Listening time, peak hours, top artists',
+                onTap: () => context.push('/stats'),
               ),
             ],
           ),
@@ -418,7 +425,10 @@ class _SectionGroup extends StatelessWidget {
 }
 
 class _SettingTile extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+
+  /// Optional custom-drawn glyph. Takes precedence over [icon].
+  final NexoraGlyphKind? glyph;
   final Color? iconColor;
   final String title;
   final String? subtitle;
@@ -426,7 +436,8 @@ class _SettingTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   _SettingTile({
-    required this.icon,
+    this.icon,
+    this.glyph,
     this.iconColor,
     required this.title,
     this.subtitle,
@@ -451,7 +462,9 @@ class _SettingTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppColors.border, width: 0.6),
               ),
-              child: Icon(icon, color: c, size: 18),
+              child: glyph != null
+                  ? NexoraGlyph(kind: glyph!, size: 18, color: c)
+                  : Icon(icon ?? Icons.settings_outlined, color: c, size: 18),
             ),
             const SizedBox(width: 14),
             Expanded(

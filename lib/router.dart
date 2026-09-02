@@ -18,6 +18,7 @@ import 'features/settings/presentation/downloads_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/favorites/presentation/favorites_screen.dart';
 import 'features/equalizer/presentation/equalizer_screen.dart';
+import 'features/stats/presentation/stats_screen.dart';
 import 'features/albums/presentation/album_detail_screen.dart';
 import 'features/artists/presentation/artist_detail_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
@@ -125,6 +126,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (c, s) => const FavoritesScreen(),
           ),
           GoRoute(path: '/history', builder: (c, s) => const HistoryScreen()),
+          GoRoute(path: '/stats', builder: (c, s) => const StatsScreen()),
           GoRoute(path: '/downloads', builder: (c, s) => const DownloadsScreen()),
           GoRoute(
             path: '/equalizer',

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
+import 'package:audio_service/audio_service.dart';
 
 import '../../../ui/nexora/nexora_artwork.dart';
 import '../../../ui/nexora/nexora_controls.dart';
@@ -17,6 +18,8 @@ import '../../../ui/nexora/player_visual_mode_provider.dart';
 import '../../../ui/theme.dart';
 import '../providers/player_provider.dart';
 import '../providers/sleep_timer_provider.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
+import '../../../domain/entities/song.dart';
 import 'cassette_player.dart';
 
 // ═══════════════════════════════════════════════════════════════
@@ -182,6 +185,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                   const SizedBox(height: NexoraSpacing.s12),
                                   _SecondaryActions(
                                     onQueue: () => _showQueue(context),
+                                    onAddToPlaylist: () =>
+                                        _addToPlaylist(context, track),
                                     onSpeed: () => _cycleSpeed(
                                       notifier,
                                       state.playbackSpeed,
@@ -218,6 +223,21 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
   }
 
   String _speedLabel(double s) => s == 1.0 ? '1x' : '${s}x';
+
+  /// Files the current track into a playlist without leaving the player.
+  void _addToPlaylist(BuildContext context, MediaItem item) {
+    showAddToPlaylistSheet(
+      context,
+      song: Song(
+        id: (item.extras?['songId'] as String?) ?? item.id,
+        title: item.title,
+        artist: item.artist,
+        album: item.album,
+        coverUrl: item.artUri?.toString(),
+        streamUrl: item.id,
+      ),
+    );
+  }
 
   void _showQueue(BuildContext context) {
     final state = ref.read(playerProvider);
@@ -727,7 +747,11 @@ class _ArtworkStage extends StatelessWidget {
       case PlayerVisualMode.modern:
         return Column(
           children: [
-            NexoraArtwork(url: artworkUrl, size: size),
+            _BreathingArtwork(
+              isPlaying: isPlaying,
+              size: size,
+              artworkUrl: artworkUrl,
+            ),
             const SizedBox(height: NexoraSpacing.s12),
             _PulseDot(active: isPlaying),
           ],
@@ -750,6 +774,86 @@ class _ArtworkStage extends StatelessWidget {
       case PlayerVisualMode.minimal:
         return NexoraArtwork(url: artworkUrl, size: size * 0.85);
     }
+  }
+}
+
+/// Slow "breathing" scale plus an accent bloom applied to the artwork while
+/// audio is playing. Comes to rest when paused so the stage reads as idle.
+class _BreathingArtwork extends StatefulWidget {
+  final bool isPlaying;
+  final double size;
+  final String? artworkUrl;
+
+  const _BreathingArtwork({
+    required this.isPlaying,
+    required this.size,
+    required this.artworkUrl,
+  });
+
+  @override
+  State<_BreathingArtwork> createState() => _BreathingArtworkState();
+}
+
+class _BreathingArtworkState extends State<_BreathingArtwork>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 1.02).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+    if (widget.isPlaying) _controller.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BreathingArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying) {
+      if (!_controller.isAnimating) _controller.repeat(reverse: true);
+    } else if (_controller.isAnimating) {
+      _controller
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        return Transform.scale(
+          scale: _scale.value,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: NexoraRadius.artwork,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accent.withValues(alpha: 0.08 + 0.12 * t),
+                  blurRadius: 34,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: NexoraArtwork(url: widget.artworkUrl, size: widget.size),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -982,12 +1086,14 @@ class _TrackIdentity extends StatelessWidget {
 class _SecondaryActions extends StatelessWidget {
   final VoidCallback onQueue;
   final VoidCallback onSpeed;
+  final VoidCallback onAddToPlaylist;
   final String speedLabel;
   final bool speedActive;
 
   const _SecondaryActions({
     required this.onQueue,
     required this.onSpeed,
+    required this.onAddToPlaylist,
     required this.speedLabel,
     required this.speedActive,
   });
@@ -997,6 +1103,13 @@ class _SecondaryActions extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        _Pill(
+          icon: Icons.playlist_add_rounded,
+          active: false,
+          onTap: onAddToPlaylist,
+          tooltip: 'Add to playlist',
+        ),
+        const SizedBox(width: 16),
         _Pill(
           icon: Icons.queue_music_rounded,
           active: false,

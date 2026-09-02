@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nexora — Design Direction</title>
+<style>
+  :root {
+    --bg: #070A12;
+    --surface: #0F141E;
+    --surfaceRaised: #141E2E;
+    --surfaceHigh: #1A2335;
+    --border: #1E2A3F;
+    --hairline: #162032;
+    --text: #E6EAF0;
+    --textMuted: #8A9AB8;
+    --textDim: #5B6B8A;
+    --accent: #3A7BFF;
+    --accentSoft: #5B94FF;
+    --success: #4ECDC4;
+    --error: #E84855;
+    --r8: 8px; --r12: 12px; --r16: 16px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 28px 90px; }
+
+  header.hero { margin-bottom: 56px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--accent); font-size: 11px; font-weight: 800;
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px;
+  }
+  h1 { font-size: 40px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.08; }
+  h1 em { font-style: normal; color: var(--textMuted); }
+  .lede { color: var(--textMuted); font-size: 15px; max-width: 620px; margin-top: 14px; }
+
+  h2 {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.6px;
+    text-transform: uppercase; color: var(--textDim);
+    margin: 52px 0 18px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* ── Palette ─────────────────────────────── */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
+  .swatch {
+    border: 1px solid var(--border); border-radius: var(--r12);
+    overflow: hidden; background: var(--surface);
+  }
+  .swatch .chip { height: 68px; }
+  .swatch .meta { padding: 10px 12px; }
+  .swatch .name { font-size: 12px; font-weight: 600; }
+  .swatch .hex { font-size: 11px; color: var(--textDim); font-family: ui-monospace, monospace; margin-top: 2px; }
+
+  /* ── Glyph gallery ───────────────────────── */
+  .glyphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 1fr)); gap: 12px; }
+  .glyph {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r12); padding: 22px 12px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .glyph svg { display: block; }
+  .glyph .label { font-size: 11px; color: var(--textMuted); font-weight: 500; letter-spacing: .2px; }
+
+  /* ── Motion ──────────────────────────────── */
+  .motion { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
+  .motion .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r12); padding: 16px;
+  }
+  .motion .k { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .motion .v { font-size: 11.5px; color: var(--textMuted); font-family: ui-monospace, monospace; }
+  .motion .bar { height: 3px; border-radius: 2px; background: var(--surfaceHigh); margin-top: 14px; overflow: hidden; }
+  .motion .bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+  .motion .card:nth-child(1) .bar i { width: 26%; animation: slide 1.1s cubic-bezier(0,0,.2,1) infinite alternate; }
+  .motion .card:nth-child(2) .bar i { width: 52%; animation: slide 1.1s cubic-bezier(.4,0,1,1) .1s infinite alternate; }
+  .motion .card:nth-child(3) .bar i { width: 78%; animation: slide 1.1s cubic-bezier(.2,0,0,1) .2s infinite alternate; }
+  .motion .card:nth-child(4) .bar i { width: 96%; animation: slide 1.1s cubic-bezier(.34,1.56,.64,1) .3s infinite alternate; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+  /* ── Device mockups ──────────────────────── */
+  .devices { display: flex; flex-wrap: wrap; gap: 34px; align-items: flex-start; }
+  .device {
+    width: 316px; flex: 0 0 auto;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 30px; padding: 9px;
+    box-shadow: 0 34px 70px rgba(0,0,0,.55);
+  }
+  .screen {
+    position: relative; border-radius: 23px; overflow: hidden;
+    height: 660px; background: var(--bg);
+  }
+  .aurora { position: absolute; inset: 0; pointer-events: none; }
+  .aurora::before, .aurora::after {
+    content: ''; position: absolute; border-radius: 50%; filter: blur(46px);
+  }
+  .aurora::before {
+    width: 300px; height: 300px; left: -120px; top: -110px;
+    background: radial-gradient(circle, rgba(58,123,255,.28), transparent 68%);
+    animation: drift 14s ease-in-out infinite alternate;
+  }
+  .aurora::after {
+    width: 270px; height: 270px; right: -110px; top: 120px;
+    background: radial-gradient(circle, rgba(91,148,255,.18), transparent 68%);
+    animation: drift 11s ease-in-out .6s infinite alternate-reverse;
+  }
+  @keyframes drift { from { transform: translate(0,0); } to { transform: translate(26px, 34px); } }
+
+  .content { position: relative; height: 100%; overflow-y: auto; padding-bottom: 26px; }
+  .content::-webkit-scrollbar { width: 0; }
+
+  .appbar { display: flex; align-items: center; padding: 15px 17px 9px; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 8px; flex: 0 0 auto;
+    background: linear-gradient(135deg, #1A2335, #0F141E);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+  }
+  .wordmark { font-size: 11.5px; font-weight: 800; letter-spacing: 2.6px; margin-left: 9px; }
+  .appbar .spacer { flex: 1; }
+  .dot { width: 30px; height: 30px; display: grid; place-items: center; }
+
+  .sec { padding: 0 18px; }
+  .greet-tag { display: flex; align-items: center; gap: 6px; color: var(--accent); font-size: 9.5px; font-weight: 800; letter-spacing: 1.4px; }
+  .greet-h { font-size: 27px; font-weight: 700; letter-spacing: -.9px; margin-top: 7px; }
+
+  .quick { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 20px; }
+  .qa {
+    background: rgba(15,20,30,.66); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 4px 9px; text-align: center;
+  }
+  .qa .ql { font-size: 8.5px; color: var(--textMuted); font-weight: 600; margin-top: 7px; }
+
+  .hero-card {
+    margin-top: 22px; padding: 13px; border-radius: var(--r16);
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--surface), #16233a);
+    box-shadow: 0 8px 18px rgba(0,0,0,.30);
+  }
+  .hero-row { display: flex; align-items: center; gap: 11px; }
+  .art {
+    border-radius: 8px; flex: 0 0 auto;
+    background: linear-gradient(135deg, #2A3A5C, #16233a);
+    border: 1px solid var(--border);
+  }
+  .art.sm { width: 54px; height: 54px; }
+  .np { display: flex; align-items: center; gap: 7px; }
+  .np span { color: var(--accent); font-size: 8.5px; font-weight: 800; letter-spacing: 1.2px; }
+  .hero-title { font-size: 13.5px; font-weight: 700; margin-top: 5px; letter-spacing: -.2px; }
+  .hero-sub { font-size: 10.5px; color: var(--textMuted); margin-top: 2px; }
+  .play {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+    display: grid; place-items: center; flex: 0 0 auto;
+    box-shadow: 0 0 18px rgba(58,123,255,.4);
+  }
+  .prog { height: 2.5px; background: var(--surfaceHigh); border-radius: 2px; margin-top: 11px; overflow: hidden; }
+  .prog i { display: block; height: 100%; width: 38%; background: var(--accent); border-radius: 2px; }
+
+  .eq { display: flex; align-items: flex-end; gap: 2.5px; height: 12px; }
+  .eq i { width: 2.5px; background: var(--accent); border-radius: 2px; animation: eq .8s ease-in-out infinite alternate; }
+  .eq i:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .eq i:nth-child(2) { height: 90%; animation-delay: .18s; }
+  .eq i:nth-child(3) { height: 60%; animation-delay: .36s; }
+  .eq i:nth-child(4) { height: 100%; animation-delay: .54s; }
+  @keyframes eq { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
+
+  .shead { display: flex; align-items: baseline; margin-top: 26px; }
+  .shead h3 { font-size: 17px; font-weight: 700; letter-spacing: -.4px; flex: 1; }
+  .shead a { color: var(--accent); font-size: 10.5px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 1px; }
+
+  .row { display: flex; gap: 13px; margin-top: 11px; overflow: hidden; }
+  .card-s { flex: 0 0 auto; width: 108px; }
+  .card-s .thumb { width: 108px; height: 108px; border-radius: 8px; background: linear-gradient(135deg, #22304d, #131b2b); border: 1px solid var(--border); }
+  .card-s .t { font-size: 11px; font-weight: 600; margin-top: 7px; }
+  .card-s .s { font-size: 9.5px; color: var(--textMuted); margin-top: 1px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 13px; margin-top: 11px; }
+  .grid .thumb { aspect-ratio: 1; border-radius: 8px; background: linear-gradient(135deg, #22304d, #131b2b); border: 1px solid var(--border); }
+
+  /* Stats screen specifics */
+  .stat-card {
+    margin-top: 4px; padding: 18px; border-radius: var(--r16);
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--surface), #16233a);
+  }
+  .stat-tag { display: flex; align-items: center; gap: 7px; color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: 1.3px; }
+  .stat-big { font-size: 40px; font-weight: 700; letter-spacing: -1.5px; margin-top: 13px; line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--textMuted); margin-top: 9px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin-top: 15px; }
+  .metric { background: rgba(15,20,30,.66); border: 1px solid var(--border); border-radius: var(--r16); padding: 13px 11px 11px; }
+  .metric .mv { font-size: 20px; font-weight: 700; letter-spacing: -.5px; margin-top: 10px; }
+  .metric .ml { font-size: 9.5px; color: var(--textMuted); margin-top: 4px; }
+
+  .panel { background: rgba(15,20,30,.66); border: 1px solid var(--border); border-radius: var(--r16); padding: 16px 14px 12px; margin-top: 11px; }
+  .panel-h { display: flex; align-items: baseline; }
+  .panel-h h4 { font-size: 12.5px; font-weight: 600; flex: 1; }
+  .panel-h span { font-size: 10px; color: var(--textMuted); font-weight: 600; }
+
+  .chart { display: flex; align-items: flex-end; gap: 3px; height: 62px; margin-top: 17px; }
+  .chart i { flex: 1; background: var(--surfaceHigh); border-radius: 2px; }
+  .chart i.hi { background: var(--accent); }
+  .hours { display: flex; justify-content: space-between; margin-top: 7px; }
+  .hours span { font-size: 8.5px; color: var(--textDim); font-weight: 600; }
+
+  .artist { padding: 9px 2px; }
+  .artist-row { display: flex; align-items: center; gap: 10px; }
+  .artist-row .rk { font-size: 9.5px; color: var(--textDim); font-weight: 700; }
+  .artist-row .nm { font-size: 12px; font-weight: 600; flex: 1; }
+  .artist-row .mm { font-size: 10px; color: var(--textMuted); font-weight: 600; }
+  .abar { height: 3px; background: var(--surfaceHigh); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .abar i { display: block; height: 100%; background: rgba(58,123,255,.85); border-radius: 2px; }
+
+  .note {
+    margin-top: 56px; padding: 20px 22px; border-radius: var(--r16);
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--textMuted); font-size: 13.5px; line-height: 1.65;
+  }
+  .note strong { color: var(--text); font-weight: 600; }
+  .note code {
+    font-family: ui-monospace, monospace; font-size: 12px;
+    background: var(--surfaceHigh); padding: 1.5px 6px; border-radius: 4px; color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+      Nexora · Design direction
+    </div>
+    <h1>An audiophile player that <em>feels like hardware.</em></h1>
+    <p class="lede">
+      A restrained blue-black studio palette, a single accent reserved for meaning, custom-drawn
+      glyphs instead of generic Material icons, and motion that assembles the screen rather than
+      simply showing it.
+    </p>
+  </header>
+
+  <h2>Palette</h2>
+  <div class="swatches">
+    <div class="swatch"><div class="chip" style="background:#070A12"></div><div class="meta"><div class="name">Background</div><div class="hex">#070A12</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#0F141E"></div><div class="meta"><div class="name">Surface</div><div class="hex">#0F141E</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#141E2E"></div><div class="meta"><div class="name">Surface raised</div><div class="hex">#141E2E</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#1A2335"></div><div class="meta"><div class="name">Surface high</div><div class="hex">#1A2335</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#3A7BFF"></div><div class="meta"><div class="name">Accent</div><div class="hex">#3A7BFF</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#5B94FF"></div><div class="meta"><div class="name">Accent soft</div><div class="hex">#5B94FF</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#E6EAF0"></div><div class="meta"><div class="name">Text</div><div class="hex">#E6EAF0</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#8A9AB8"></div><div class="meta"><div class="name">Text muted</div><div class="hex">#8A9AB8</div></div></div>
+  </div>
+
+  <h2>Custom iconography</h2>
+  <div class="glyphs">
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="12" r="5.3"/><circle cx="12" cy="12" r="1.7" fill="#E6EAF0" stroke="none"/></svg>
+      <div class="label">Vinyl</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 15.5v-7M6 19.5v-15M9.5 22V2M13 17.5v-11M16.5 20v-16M20 14v-4"/></svg>
+      <div class="label">Waveform</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8" stroke-linejoin="round"><path d="M12 1.5 22.5 12 12 22.5 1.5 12z"/><path d="M12 7.7 16.3 12 12 16.3 7.7 12z"/></svg>
+      <div class="label">Hi-Res</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 17.8q6.8-14.4 12.4-4.6"/><path d="M10 11q6 9.6 12.5-4.8"/></svg>
+      <div class="label">Crossfade</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8"><rect x="0.8" y="7.5" width="10.6" height="9" rx="2.1"/><rect x="11.4" y="7.5" width="10.6" height="9" rx="2.1"/></svg>
+      <div class="label">Gapless</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8"><rect x="1.5" y="7.7" width="21" height="12.5" rx="2.2"/><path d="M7.2 5.6a6.6 5.1 0 0 1 9.6 0"/></svg>
+      <div class="label">Cast</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8"><rect x="1" y="14.9" width="5.2" height="9.1" rx="2.2"/><rect x="9.4" y="8.2" width="5.2" height="15.8" rx="2.2"/><rect x="17.8" y="1" width="5.2" height="23" rx="2.2"/></svg>
+      <div class="label">Stats</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.8" stroke-linecap="round"><path d="M1 6.2h13.4M1 12h13.4M1 17.8h13.4"/><path d="M17.8 16.8V6.7"/><circle cx="17.8" cy="18.7" r="2.2" fill="#E6EAF0" stroke="none"/></svg>
+      <div class="label">Playlist</div>
+    </div>
+    <div class="glyph">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="#E6EAF0"><path d="M15.6 3.4a9 9 0 1 0 5 8.4 7.2 7.2 0 0 1-5-8.4z"/></svg>
+      <div class="label">Night</div>
+    </div>
+  </div>
+
+  <h2>Motion</h2>
+  <div class="motion">
+    <div class="card"><div class="k">Decelerate</div><div class="v">cubic-bezier(0, 0, .2, 1)</div><div class="bar"><i></i></div></div>
+    <div class="card"><div class="k">Accelerate</div><div class="v">cubic-bezier(.4, 0, 1, 1)</div><div class="bar"><i></i></div></div>
+    <div class="card"><div class="k">Emphasized</div><div class="v">cubic-bezier(.2, 0, 0, 1)</div><div class="bar"><i></i></div></div>
+    <div class="card"><div class="k">Overshoot</div><div class="v">cubic-bezier(.34, 1.56, .64, 1)</div><div class="bar"><i></i></div></div>
+  </div>
+
+  <h2>Home — assembled, not just shown</h2>
+  <div class="devices">
+    <div class="device">
+      <div class="screen">
+        <div class="aurora"></div>
+        <div class="content">
+          <div class="appbar">
+            <div class="logo">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+            </div>
+            <div class="wordmark">NEXORA</div>
+            <div class="spacer"></div>
+            <div class="dot"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></div>
+            <div class="dot"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.4-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></div>
+          </div>
+
+          <div class="sec">
+            <div class="greet-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+              GOOD EVENING
+            </div>
+            <div class="greet-h">Your library</div>
+
+            <div class="quick">
+              <div class="qa">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+                <div class="ql">Shuffle all</div>
+              </div>
+              <div class="qa">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#3A7BFF"><path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.4a4.6 4.6 0 0 1 8 3.2C20 16.1 12 21 12 21z"/></svg>
+                <div class="ql">Favorites</div>
+              </div>
+              <div class="qa">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+                <div class="ql">Downloads</div>
+              </div>
+              <div class="qa">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="2"><rect x="1" y="14.9" width="5.2" height="9.1" rx="2.2"/><rect x="9.4" y="8.2" width="5.2" height="15.8" rx="2.2"/><rect x="17.8" y="1" width="5.2" height="23" rx="2.2"/></svg>
+                <div class="ql">Your stats</div>
+              </div>
+            </div>
+
+            <div class="hero-card">
+              <div class="hero-row">
+                <div class="art sm"></div>
+                <div style="flex:1;min-width:0">
+                  <div class="np">
+                    <div class="eq"><i></i><i></i><i></i><i></i></div>
+                    <span>NOW PLAYING</span>
+                  </div>
+                  <div class="hero-title">Midnight Sessions</div>
+                  <div class="hero-sub">Unknown Artist</div>
+                </div>
+                <div class="play">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1.4"/><rect x="14" y="5" width="4" height="14" rx="1.4"/></svg>
+                </div>
+              </div>
+              <div class="prog"><i></i></div>
+            </div>
+
+            <div class="shead"><h3>Recently Added</h3><a href="#">See all ›</a></div>
+            <div class="row">
+              <div class="card-s"><div class="thumb"></div><div class="t">Blue Horizon</div><div class="s">A. Rivers</div></div>
+              <div class="card-s"><div class="thumb"></div><div class="t">Nightfall</div><div class="s">K. Ito</div></div>
+            </div>
+
+            <div class="shead"><h3>Albums</h3><a href="#">See all ›</a></div>
+            <div class="grid">
+              <div><div class="thumb"></div><div class="card-s" style="width:auto"><div class="t">Analog Dreams</div><div class="s">12 tracks</div></div></div>
+              <div><div class="thumb"></div><div class="card-s" style="width:auto"><div class="t">Studio Live</div><div class="s">9 tracks</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="device">
+      <div class="screen">
+        <div class="aurora"></div>
+        <div class="content">
+          <div class="appbar" style="padding-bottom:6px">
+            <div class="dot"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6EAF0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+            <div style="font-size:20px;font-weight:700;letter-spacing:-.5px;margin-left:4px">Your stats</div>
+          </div>
+
+          <div class="sec">
+            <div class="stat-card">
+              <div class="stat-tag">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="14.9" width="5.2" height="9.1" rx="2.2"/><rect x="9.4" y="8.2" width="5.2" height="15.8" rx="2.2"/><rect x="17.8" y="1" width="5.2" height="23" rx="2.2"/></svg>
+                TOTAL LISTENING TIME
+              </div>
+              <div class="stat-big">128.4 h</div>
+              <div class="stat-sub">412 plays across 96 tracks</div>
+            </div>
+
+            <div class="metrics">
+              <div class="metric">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+                <div class="mv">412</div><div class="ml">Plays</div>
+              </div>
+              <div class="metric">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A7BFF" stroke-width="1.9"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="12" r="5.3"/><circle cx="12" cy="12" r="1.7" fill="#3A7BFF" stroke="none"/></svg>
+                <div class="mv">5</div><div class="ml">Artists</div>
+              </div>
+              <div class="metric">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#3A7BFF"><path d="M15.6 3.4a9 9 0 1 0 5 8.4 7.2 7.2 0 0 1-5-8.4z"/></svg>
+                <div class="mv">12</div><div class="ml">Day streak</div>
+              </div>
+            </div>
+
+            <div class="shead" style="margin-top:22px"><h3 style="font-size:16px">Listening by hour</h3></div>
+            <div class="panel">
+              <div class="panel-h"><h4>When you listen</h4><span>peak 20:00</span></div>
+              <div class="chart">
+                <i style="height:12%"></i><i style="height:8%"></i><i style="height:5%"></i><i style="height:4%"></i>
+                <i style="height:6%"></i><i style="height:14%"></i><i style="height:26%"></i><i style="height:38%"></i>
+                <i style="height:34%"></i><i style="height:28%"></i><i style="height:30%"></i><i style="height:36%"></i>
+                <i style="height:44%"></i><i style="height:40%"></i><i style="height:48%"></i><i style="height:55%"></i>
+                <i style="height:62%"></i><i style="height:70%"></i><i style="height:82%"></i><i class="hi" style="height:100%"></i>
+                <i style="height:74%"></i><i style="height:46%"></i><i style="height:26%"></i><i style="height:15%"></i>
+              </div>
+              <div class="hours"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+            </div>
+
+            <div class="shead" style="margin-top:22px"><h3 style="font-size:16px">Top artists</h3></div>
+            <div class="panel" style="padding:6px 14px">
+              <div class="artist"><div class="artist-row"><span class="rk">01</span><span class="nm">K. Ito</span><span class="mm">412 min</span></div><div class="abar"><i style="width:100%"></i></div></div>
+              <div class="artist"><div class="artist-row"><span class="rk">02</span><span class="nm">A. Rivers</span><span class="mm">318 min</span></div><div class="abar"><i style="width:77%"></i></div></div>
+              <div class="artist"><div class="artist-row"><span class="rk">03</span><span class="nm">Sable Trio</span><span class="mm">204 min</span></div><div class="abar"><i style="width:49%"></i></div></div>
+              <div class="artist"><div class="artist-row"><span class="rk">04</span><span class="nm">M. Duval</span><span class="mm">151 min</span></div><div class="abar"><i style="width:37%"></i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>What changed in the code.</strong> The project previously had
+    <strong>16 compile errors</strong> across <code>enhanced_player_widgets.dart</code>,
+    <code>shimmer_loading.dart</code>, <code>shimmer_skeletons.dart</code> and
+    <code>enhanced_animations.dart</code> — it did not build. Those are fixed and
+    <code>flutter analyze</code> now reports <strong>0 errors</strong>.
+    On top of that: a new design-system layer
+    (<code>nexora_motion</code>, <code>nexora_icons</code>, <code>nexora_surfaces</code>),
+    a rebuilt Home screen with staggered entrances and quick actions, a new
+    <strong>Your stats</strong> feature, an <strong>Add to playlist</strong> flow from the
+    player, and a breathing artwork animation in the full player.
+  </div>
+
+</div>
+</body>
+</html>

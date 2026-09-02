@@ -105,10 +105,37 @@ class AppColors {
   static const Color secondaryLight = accent;
   static const Color tertiary = accent;
 
+  // ── Dynamic Ambient Colors (derived from artwork) ──────────
+  static Color ambientTint = const Color(0xFF141E2E);
+  static Color ambientGlow = const Color(0xFF1A2335);
+
+  // ── Glassmorphism enhanced ─────────────────────────────────
   static Color get glassBase => surface;
   static Color get glassHighlight => surfaceHigh;
   static Color get glassBorder => border;
   static Color get glassBorderStrong => border;
+
+  /// Enhanced glass with ambient tint support
+  static Color glassWithTint(Color base) {
+    return Color.alphaBlend(ambientTint.withValues(alpha: 0.15), base);
+  }
+
+  /// Glow color for active elements
+  static Color get glowColor => accent.withValues(alpha: 0.3);
+
+  /// Shadow colors for elevated cards
+  static Color get shadowColor =>
+      mode == AppThemeMode.dark
+          ? const Color(0xFF000000).withValues(alpha: 0.4)
+          : const Color(0xFF000000).withValues(alpha: 0.1);
+
+  /// Premium surface for featured content
+  static Color get premiumSurface {
+    if (mode == AppThemeMode.dark) {
+      return const Color(0xFF0D1320);
+    }
+    return const Color(0xFFF8FAFF);
+  }
 
   /// Spacing scale used throughout the app.
   static const double s4 = 4;
@@ -120,11 +147,28 @@ class AppColors {
   static const double s32 = 32;
   static const double s40 = 40;
   static const double s48 = 48;
+  static const double s64 = 64;
+  static const double s80 = 80;
 
   /// Shape scale.
   static const double r8 = 8;
   static const double r12 = 12;
   static const double r16 = 16;
+  static const double r20 = 20;
+  static const double r24 = 24;
+  static const double rFull = 999;
+
+  /// Animation durations
+  static const Duration durFast = Duration(milliseconds: 120);
+  static const Duration durNormal = Duration(milliseconds: 220);
+  static const Duration durSlow = Duration(milliseconds: 350);
+  static const Duration durPage = Duration(milliseconds: 420);
+
+  /// Shimmer colors for loading skeletons
+  static Color get shimmerBase =>
+      mode == AppThemeMode.dark ? const Color(0xFF0F141E) : const Color(0xFFE8EEF6);
+  static Color get shimmerHighlight =>
+      mode == AppThemeMode.dark ? const Color(0xFF1A2335) : const Color(0xFFF0F3F8);
 
   /// Editorially tuned gradients (very subtle, used rarely).
   static const LinearGradient subtleVerticalFade = LinearGradient(
