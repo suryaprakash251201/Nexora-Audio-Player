@@ -1,7 +1,6 @@
-import 'dart:ui';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 
@@ -29,8 +28,7 @@ class FullPlayerScreen extends ConsumerStatefulWidget {
   ConsumerState<FullPlayerScreen> createState() => _FullPlayerScreenState();
 }
 
-class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
-    with SingleTickerProviderStateMixin {
+class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(playerProvider);
@@ -402,7 +400,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                           if (track.artist != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              track.artist,
+                              track.artist ?? '',
                               style: const TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,

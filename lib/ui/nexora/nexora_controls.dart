@@ -16,11 +16,11 @@ class NexoraPlaybackControls extends ConsumerWidget {
   final bool isBuffering;
   final bool shuffle;
   final LoopMode repeatMode;
-  final ValueChanged onShuffle;
-  final ValueChanged onPrevious;
-  final ValueChanged onPlayPause;
-  final ValueChanged onNext;
-  final ValueChanged onRepeat;
+  final VoidCallback onShuffle;
+  final VoidCallback onPrevious;
+  final VoidCallback onPlayPause;
+  final VoidCallback onNext;
+  final VoidCallback onRepeat;
 
   const NexoraPlaybackControls({
     super.key,
