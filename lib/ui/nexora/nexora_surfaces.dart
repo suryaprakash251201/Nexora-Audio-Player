@@ -6,10 +6,7 @@ import 'nexora_primitives.dart';
 import 'nexora_tokens.dart';
 
 /// Slow-moving ambient light that sits behind a screen's content.
-///
-/// The effect is intentionally faint: it gives flat near-black surfaces a
-/// sense of depth without competing with artwork. Painting is wrapped in a
-/// [RepaintBoundary] so the ~18s drift never invalidates the content above.
+/// Faint depth without competing with artwork. Wrapped in [RepaintBoundary].
 class NexoraAurora extends StatefulWidget {
   const NexoraAurora({
     super.key,
@@ -18,12 +15,8 @@ class NexoraAurora extends StatefulWidget {
     this.duration = const Duration(seconds: 18),
   });
 
-  /// Scales every blob's opacity. `0` renders a flat background.
   final double intensity;
-
-  /// Overrides the blob colour (defaults to the accent).
   final Color? tint;
-
   final Duration duration;
 
   @override
@@ -157,15 +150,13 @@ class _Blob {
   final double alpha;
 }
 
-/// A surface with a subtle diagonal gradient, hairline border and soft depth.
-///
-/// Prefer this over a plain `Container` for anything that should read as a
-/// distinct piece of content (hero cards, featured rows, stat tiles).
+/// Premium card with subtle gradient, refined border and layered shadows.
+/// The default surface for hero cards, stat tiles and featured content.
 class NexoraGradientCard extends StatelessWidget {
   const NexoraGradientCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(18),
     this.borderRadius,
     this.tint,
     this.onTap,
@@ -174,8 +165,6 @@ class NexoraGradientCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   final BorderRadius? borderRadius;
-
-  /// Colour blended into the card's lower corner. Defaults to the accent.
   final Color? tint;
   final VoidCallback? onTap;
 
@@ -189,30 +178,69 @@ class NexoraGradientCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: radius,
-        border: Border.all(color: AppColors.border, width: 0.6),
+        border: Border.all(
+          color: isDark
+              ? AppColors.border.withValues(alpha: 0.9)
+              : AppColors.border.withValues(alpha: 0.7),
+          width: 0.8,
+        ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.surface,
-            Color.alphaBlend(accent.withValues(alpha: 0.07), AppColors.surface),
+            isDark ? AppColors.card : Colors.white,
+            Color.alphaBlend(
+              accent.withValues(alpha: isDark ? 0.08 : 0.05),
+              isDark ? AppColors.card : Colors.white,
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(
-              0xFF000000,
-            ).withValues(alpha: isDark ? 0.30 : 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: NexoraShadow.card(isDark),
       ),
       child: child,
     );
 
     if (onTap == null) return card;
     return NexoraPressable(onTap: onTap, child: card);
+  }
+}
+
+/// Elevated card — solid surface, stronger shadow. Use for grouped
+/// settings sections or any content that must clearly float.
+class NexoraElevatedCard extends StatelessWidget {
+  const NexoraElevatedCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.borderRadius,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final radius = borderRadius ?? NexoraRadius.card;
+    return Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: radius,
+        border: Border.all(
+          color: isDark
+              ? AppColors.border.withValues(alpha: 0.85)
+              : AppColors.border,
+          width: 0.7,
+        ),
+        boxShadow: NexoraShadow.card(isDark),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -265,10 +293,10 @@ class NexoraHiResBadge extends StatelessWidget {
         vertical: compact ? 3 : 4,
       ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: AppColors.accent.withValues(alpha: 0.5),
-          width: 0.8,
+          color: AppColors.accent.withValues(alpha: 0.45),
+          width: 0.7,
         ),
         color: AppColors.accent.withValues(alpha: 0.10),
       ),
@@ -287,7 +315,7 @@ class NexoraHiResBadge extends StatelessWidget {
               color: AppColors.accent,
               fontSize: compact ? 8.5 : 9.5,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+              letterSpacing: 0.7,
             ),
           ),
         ],

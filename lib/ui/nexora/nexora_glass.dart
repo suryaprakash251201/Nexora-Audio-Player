@@ -4,13 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// A true glassmorphism surface that uses [BackdropFilter] to blur whatever
-/// is painted beneath it. Use this for floating chrome (nav bar, mini
-/// player, sheets, dialogs, app bars) where you want the user to feel the
-/// content scrolling behind the surface.
-///
-/// The class falls back gracefully to a flat translucent surface on
-/// devices that can't run the blur (e.g. some headless test environments).
+/// True glassmorphism surface with [BackdropFilter] blur.
+/// Used for floating chrome: nav bar, mini player, app bars, sheets.
 class NexoraGlass extends StatelessWidget {
   const NexoraGlass({
     super.key,
@@ -29,42 +24,18 @@ class NexoraGlass extends StatelessWidget {
     this.clip = true,
   });
 
-  /// The widget rendered inside the glass surface.
   final Widget child;
-
-  /// Corner radius. Defaults to [NexoraRadius.card] when null.
   final BorderRadius? borderRadius;
-
-  /// Inner padding.
   final EdgeInsetsGeometry? padding;
-
-  /// Outer margin (applied outside the rounded shape, useful for shadows).
   final EdgeInsetsGeometry? margin;
-
-  /// Strength of the backdrop blur (sigma). Higher = more frosted.
   final double blur;
-
-  /// Opacity of the dark/light tint laid on top of the blurred surface.
   final double tintAlpha;
-
-  /// Opacity of the inner highlight stroke that simulates a thin specular.
   final double highlightAlpha;
-
-  /// Opacity of the hairline border.
   final double borderAlpha;
   final double borderWidth;
-
-  /// Optional custom border. Overrides [borderAlpha]/[borderWidth].
   final Border? border;
-
-  /// Optional gradient overlay drawn on top of the blur (for accent washes).
   final Gradient? gradient;
-
-  /// Optional shadow for elevated glass cards.
   final List<BoxShadow>? shadow;
-
-  /// Whether to clip children to the rounded shape. Disable when the
-  /// caller manages clipping (e.g. inside another [ClipRRect]).
   final bool clip;
 
   @override
@@ -72,8 +43,6 @@ class NexoraGlass extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(20);
     final isDark = AppColors.mode == AppThemeMode.dark;
 
-    // The tint blends a low-opacity surface color so dark/light modes both
-    // read as "frosted" rather than as a colored fill.
     final tintColor = isDark
         ? Colors.black.withValues(alpha: tintAlpha)
         : Colors.white.withValues(alpha: tintAlpha);
@@ -85,7 +54,6 @@ class NexoraGlass extends StatelessWidget {
       width: borderWidth,
     );
 
-    // Inner surface: clipped + blurred + tinted.
     Widget inner = ClipRRect(
       borderRadius: radius,
       child: BackdropFilter(
@@ -93,7 +61,6 @@ class NexoraGlass extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            // Don't set both color and gradient — BoxDecoration forbids it.
             color: gradient != null ? null : tintColor,
             borderRadius: radius,
             gradient: gradient,
@@ -101,8 +68,7 @@ class NexoraGlass extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // Specular highlight along the top edge to suggest a curved
-              // glass plate lit from above.
+              // Top specular highlight — soft studio light.
               Positioned.fill(
                 child: IgnorePointer(
                   child: DecoratedBox(
@@ -115,13 +81,12 @@ class NexoraGlass extends StatelessWidget {
                           Colors.white.withValues(alpha: highlightAlpha),
                           Colors.white.withValues(alpha: 0),
                         ],
-                        stops: const [0.0, 0.55],
+                        stops: const [0.0, 0.50],
                       ),
                     ),
                   ),
                 ),
               ),
-              // The actual content.
               child,
             ],
           ),
@@ -139,14 +104,14 @@ class NexoraGlass extends StatelessWidget {
             shadow ??
             [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                color: Colors.black.withValues(alpha: isDark ? 0.38 : 0.11),
                 blurRadius: 28,
-                offset: const Offset(0, 12),
+                offset: const Offset(0, 14),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
       ),
@@ -155,17 +120,16 @@ class NexoraGlass extends StatelessWidget {
   }
 }
 
-/// A specialized [NexoraGlass] tuned for the bottom nav dock. It uses a
-/// slightly stronger blur and a smaller radius, and accepts the optional
-/// safe-area inset so the surface sits flush against the bottom edge.
+/// Optimized glass dock for the bottom navigation bar.
+/// Pinned to the very bottom with refined blur and tighter margins.
 class NexoraGlassDock extends StatelessWidget {
   const NexoraGlassDock({
     super.key,
     required this.child,
-    this.borderRadius = const BorderRadius.all(Radius.circular(22)),
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-    this.margin = const EdgeInsets.fromLTRB(12, 0, 12, 8),
-    this.horizontalMargin = 12,
+    this.borderRadius = const BorderRadius.all(Radius.circular(24)),
+    this.padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+    this.margin = const EdgeInsets.fromLTRB(10, 0, 10, 10),
+    this.horizontalMargin = 10,
   });
 
   final Widget child;
@@ -180,10 +144,31 @@ class NexoraGlassDock extends StatelessWidget {
       borderRadius: borderRadius,
       padding: padding,
       margin: margin,
-      blur: 26,
-      tintAlpha: 0.58,
-      borderAlpha: 0.40,
+      blur: 28,
+      tintAlpha: 0.62,
+      borderAlpha: 0.38,
       borderWidth: 0.7,
+      child: child,
+    );
+  }
+}
+
+/// Glass for the mini player — matches the dock but slightly less blur
+/// so the artwork remains crisp.
+class NexoraMiniGlass extends StatelessWidget {
+  const NexoraMiniGlass({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return NexoraGlass(
+      borderRadius: BorderRadius.circular(16),
+      padding: EdgeInsets.zero,
+      blur: 24,
+      tintAlpha: 0.60,
+      borderAlpha: 0.36,
+      borderWidth: 0.6,
       child: child,
     );
   }

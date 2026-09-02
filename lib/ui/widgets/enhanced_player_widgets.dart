@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
 import '../nexora/nexora_glass.dart';
@@ -598,9 +597,9 @@ class _MiniIconButton extends StatelessWidget {
   }
 }
 
-/// Hi-Fi navigation bar — true glassmorphism dock with frosted blur,
-/// hairline highlight, and a spring-physics selected indicator that
-/// smoothly slides between destinations.
+/// Bottom navigation bar — pinned, glassmorphic, pixel-perfect.
+/// Pill tracks Expanded cells exactly (no spaceAround drift),
+/// hugs bottom with safe-area awareness, and slides with easeOutCubic.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -611,8 +610,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  static const double height = 62;
-  static const double bottomMargin = 10;
+  static const double height = 64;
+  static const double bottomMargin = 8;
   static const double totalHeight = height + bottomMargin;
 
   static const _destinations = [
@@ -625,50 +624,43 @@ class EnhancedGlassNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return Semantics(
       label: 'Main navigation',
       child: NexoraGlassDock(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
         child: SizedBox(
-          height: height - 12,
+          height: height - 10,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final itemWidth =
-                  (constraints.maxWidth - 12) / _destinations.length;
+              final count = _destinations.length;
+              final itemWidth = constraints.maxWidth / count;
               return Stack(
                 children: [
-                  // Sliding selected-indicator pill. Animated by an
-                  // [AnimationController] driven spring, so it physically
-                  // settles into place rather than easing in linearly.
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 520),
-                    curve: const _SpringCurve(),
-                    alignment: Alignment(
-                      -1 + (2 * selectedIndex + 1) / _destinations.length,
-                      0,
-                    ),
-                    child: SizedBox(
-                      width: itemWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: const _SelectedPill(),
-                      ),
-                    ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 420),
+                    curve: Curves.easeOutCubic,
+                    left: selectedIndex * itemWidth + 4,
+                    right: (count - 1 - selectedIndex) * itemWidth + 4,
+                    top: 2,
+                    bottom: 2,
+                    child: const _SelectedPill(),
                   ),
-                  // Tappable items layered on top of the pill.
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: List.generate(_destinations.length, (i) {
+                    children: List.generate(count, (i) {
                       final (icon, selIcon, label) = _destinations[i];
-                      return _NavItem(
-                        icon: icon,
-                        selectedIcon: selIcon,
-                        label: label,
-                        selected: i == selectedIndex,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          onSelect(i);
-                        },
+                      return Expanded(
+                        child: _NavItem(
+                          icon: icon,
+                          selectedIcon: selIcon,
+                          label: label,
+                          selected: i == selectedIndex,
+                          isDark: isDark,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            onSelect(i);
+                          },
+                        ),
                       );
                     }),
                   ),
@@ -682,35 +674,27 @@ class EnhancedGlassNavBar extends StatelessWidget {
   }
 }
 
-/// Custom curve that overshoots slightly and settles — gives a soft
-/// "physical" feel without going full spring.
-class _SpringCurve extends Curve {
-  const _SpringCurve();
-  @override
-  double transformInternal(double t) {
-    // Damped sine wave: starts fast, overshoots, settles.
-    return 1 - math.exp(-5 * t) * math.cos(t * 9.0) * (1 - t);
-  }
-}
-
-/// Soft glass pill that sits behind the active nav item. Subtle inner
-/// glow + hairline accent border keeps it readable on any background.
+/// Refined pill — stronger fill in light mode for legibility, soft glow
+/// in dark mode. Uses parent AnimatedPositioned for motion.
 class _SelectedPill extends StatelessWidget {
   const _SelectedPill();
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(16),
+        color: isDark
+            ? AppColors.accent.withValues(alpha: 0.15)
+            : AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.accent.withValues(alpha: 0.35),
-          width: 0.6,
+          color: AppColors.accent.withValues(alpha: isDark ? 0.32 : 0.22),
+          width: 0.7,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.20),
+            color: AppColors.accent.withValues(alpha: isDark ? 0.18 : 0.10),
             blurRadius: 14,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -726,6 +710,7 @@ class _NavItem extends StatefulWidget {
   final IconData selectedIcon;
   final String label;
   final bool selected;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -733,6 +718,7 @@ class _NavItem extends StatefulWidget {
     required this.selectedIcon,
     required this.label,
     required this.selected,
+    this.isDark = true,
     required this.onTap,
   });
 
@@ -774,7 +760,9 @@ class _NavItemState extends State<_NavItem>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.selected ? AppColors.accent : AppColors.textDim;
+    final color = widget.selected
+        ? AppColors.accent
+        : (widget.isDark ? AppColors.textDim : AppColors.textMuted);
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (_) => _setPressed(true),
@@ -784,20 +772,19 @@ class _NavItemState extends State<_NavItem>
       child: AnimatedBuilder(
         animation: _pressCtrl,
         builder: (context, child) {
-          // Spring-style press scale: -8% with mild overshoot.
           final t = _pressCtrl.value;
-          final scale = 1.0 - 0.08 * Curves.easeOutCubic.transform(t);
+          final scale = 1.0 - 0.07 * Curves.easeOutCubic.transform(t);
           return Transform.scale(scale: scale, child: child);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedScale(
-                scale: widget.selected ? 1.10 : 1.0,
-                duration: const Duration(milliseconds: 280),
+                scale: widget.selected ? 1.06 : 1.0,
+                duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
                 child: Icon(
                   widget.selected ? widget.selectedIcon : widget.icon,
@@ -807,7 +794,7 @@ class _NavItemState extends State<_NavItem>
               ),
               const SizedBox(height: 3),
               AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 240),
+                duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 style: TextStyle(
                   color: color,

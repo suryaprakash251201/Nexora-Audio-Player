@@ -1,13 +1,8 @@
 /// Nexora design tokens.
 ///
-/// Centralized spacing, radius, motion, and visual-mode values for the
-/// Hi-Fi redesign. The existing [AppColors] / [AppTypography] modules own
-/// color and type. This module owns everything else: rhythm, shape,
-/// durations, and the [PlayerVisualMode] enum used across the player
-/// surfaces.
-///
-/// Anything that wants to feel like the same product should read from
-/// here instead of hard-coding magic numbers.
+/// Centralized spacing, radius, motion, shadows and visual modes.
+/// Colors and typography live in [AppColors] / [AppTypography].
+/// Everything tactile — rhythm, shape, elevation, duration — lives here.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -15,8 +10,6 @@ import 'package:flutter/widgets.dart';
 class NexoraSpacing {
   NexoraSpacing._();
 
-  /// 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 — the only spacing values
-  /// used in the redesign. Don't introduce new steps.
   static const double s4 = 4;
   static const double s8 = 8;
   static const double s12 = 12;
@@ -27,7 +20,6 @@ class NexoraSpacing {
   static const double s40 = 40;
   static const double s48 = 48;
 
-  /// Compact screen-edge padding.
   static const EdgeInsets screenHorizontal = EdgeInsets.symmetric(
     horizontal: 20,
   );
@@ -35,9 +27,13 @@ class NexoraSpacing {
     horizontal: 16,
   );
   static const EdgeInsets screenAll = EdgeInsets.all(20);
+  static const EdgeInsets screenGutter = EdgeInsets.fromLTRB(20, 12, 20, 20);
 
-  /// Bottom inset that lives above the mini-player + nav dock.
-  static const double dockBottomReserve = 160;
+  /// Reserve above the floating dock so lists never hide behind it.
+  static const double dockBottomReserve = 148;
+
+  /// Section gap between settings groups.
+  static const double sectionGap = 20;
 }
 
 class NexoraRadius {
@@ -47,46 +43,89 @@ class NexoraRadius {
   static const double r8 = 8;
   static const double r10 = 10;
   static const double r12 = 12;
+  static const double r14 = 14;
   static const double r16 = 16;
   static const double r20 = 20;
+  static const double r24 = 24;
+  static const double r28 = 28;
 
-  /// Album artwork stays close to square with a small radius.
   static const BorderRadius artwork = BorderRadius.all(Radius.circular(r8));
-
-  /// Buttons and chips get a slightly softer corner.
   static const BorderRadius chip = BorderRadius.all(Radius.circular(r10));
   static const BorderRadius button = BorderRadius.all(Radius.circular(r12));
-
-  /// Bottom sheets.
   static const BorderRadius sheetTop = BorderRadius.vertical(
-    top: Radius.circular(20),
+    top: Radius.circular(24),
   );
+  static const BorderRadius card = BorderRadius.all(Radius.circular(16));
+  static const BorderRadius cardLarge = BorderRadius.all(Radius.circular(20));
+  static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
+  static const BorderRadius dialog = BorderRadius.all(Radius.circular(20));
+}
 
-  /// Cards.
-  static const BorderRadius card = BorderRadius.all(Radius.circular(r16));
+class NexoraShadow {
+  NexoraShadow._();
+
+  /// Soft card shadow — default elevation for grouped cards.
+  static List<BoxShadow> card(bool isDark) => [
+    BoxShadow(
+      color: isDark
+          ? const Color(0xFF000000).withValues(alpha: 0.30)
+          : const Color(0xFF1A2A4A).withValues(alpha: 0.08),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+    BoxShadow(
+      color: isDark
+          ? const Color(0xFF000000).withValues(alpha: 0.18)
+          : const Color(0xFF1A2A4A).withValues(alpha: 0.04),
+      blurRadius: 4,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
+  /// Stronger shadow for floating chrome (nav, mini player).
+  static List<BoxShadow> floating(bool isDark) => [
+    BoxShadow(
+      color: isDark
+          ? const Color(0xFF000000).withValues(alpha: 0.45)
+          : const Color(0xFF1A2A4A).withValues(alpha: 0.14),
+      blurRadius: 28,
+      offset: const Offset(0, 12),
+    ),
+    BoxShadow(
+      color: isDark
+          ? const Color(0xFF000000).withValues(alpha: 0.22)
+          : const Color(0xFF1A2A4A).withValues(alpha: 0.06),
+      blurRadius: 8,
+      offset: const Offset(0, 3),
+    ),
+  ];
+
+  /// Subtle inner glow for the selected nav pill.
+  static List<BoxShadow> pill(bool isDark) => [
+    BoxShadow(
+      color: const Color(0xFF3A7BFF).withValues(alpha: isDark ? 0.22 : 0.16),
+      blurRadius: 12,
+      offset: const Offset(0, 3),
+    ),
+  ];
 }
 
 class NexoraDuration {
   NexoraDuration._();
 
-  /// Animation timings — kept short and deliberate.
   static const Duration tap = Duration(milliseconds: 120);
   static const Duration micro = Duration(milliseconds: 180);
   static const Duration short = Duration(milliseconds: 240);
   static const Duration medium = Duration(milliseconds: 320);
   static const Duration crossfade = Duration(milliseconds: 420);
-
-  /// Player artwork crossfade on track change.
   static const Duration trackSwap = Duration(milliseconds: 360);
+  static const Duration navSpring = Duration(milliseconds: 480);
+  static const Duration sheet = Duration(milliseconds: 380);
 }
 
-/// Optional visual mode for the full-player artwork stage.
-///
-/// The default [modern] is the calm, premium signature screen. The other
-/// modes preserve the existing distinct player personalities as opt-in
-/// alternatives without forcing them on every listener.
+/// Visual mode for the full-player artwork stage.
 enum PlayerVisualMode {
-  /// Calm dark canvas, sharp square artwork, Hi-Fi metadata.
+  /// Calm dark canvas, sharp square artwork.
   modern,
 
   /// Rotating round record.

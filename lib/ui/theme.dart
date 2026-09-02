@@ -2,101 +2,107 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Active app theme mode. Dark Hi-Fi is the primary experience; light is
-/// provided as a calm, paper-toned companion.
+/// Active app theme mode. Dark is the immersive listening environment;
+/// light is an airy, paper-inspired companion with real depth.
 enum AppThemeMode { dark, light }
 
-/// Centralized design tokens for the Nexora Hi-Fi redesign.
-///
-/// The palette is deliberately restrained:
-/// - Near-black surfaces
-/// - Subtle charcoal layering
-/// - A single warm accent (#D8B56A) reserved for meaningful states
-///
-/// Avoid using accent colors as decorative fills. They communicate:
-/// progress, selected tabs, the Hi-Fi badge, and important actions.
+/// Centralized design tokens for Nexora.
+/// Palette philosophy: restrained, tactile, built for long listening sessions.
 class AppColors {
   AppColors._();
 
   static AppThemeMode mode = AppThemeMode.dark;
 
   // ── Backgrounds ─────────────────────────────────────────────
-  // Mode-aware getters: they resolve to the matching light/dark palette at
-  // runtime so that `AppColors.xxx` always reflects the currently active
-  // theme. Do NOT mark these `const` — that would freeze them to the dark
-  // palette and make Theme switching appear broken.
-  // Blue-black audiophile palette — deep navy studio vibe, not pure black.
-  static const Color _backgroundDark = Color(0xFF070A12);
-  static const Color _backgroundLight = Color(0xFFF0F3F8);
+  // Dark: inky studio navy — depth without pure black harshness.
+  // Light: cool mist with subtle warmth, cards pop as pure white.
+  static const Color _backgroundDark = Color(0xFF080B14);
+  static const Color _backgroundLight = Color(0xFFF2F4F8);
   static Color get background =>
       mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
 
-  static const Color _surfaceDark = Color(0xFF0F141E);
+  static const Color _surfaceDark = Color(0xFF111827);
   static const Color _surfaceLight = Color(0xFFFFFFFF);
   static Color get surface =>
       mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
 
-  static const Color _surfaceRaisedDark = Color(0xFF141E2E);
-  static const Color _surfaceRaisedLight = Color(0xFFE8EEF6);
+  static const Color _surfaceRaisedDark = Color(0xFF172033);
+  static const Color _surfaceRaisedLight = Color(0xFFE8ECF3);
   static Color get surfaceRaised =>
       mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
 
-  static const Color _surfaceHighDark = Color(0xFF1A2335);
-  static const Color _surfaceHighLight = Color(0xFFDDE6F3);
+  static const Color _surfaceHighDark = Color(0xFF1E2D4A);
+  static const Color _surfaceHighLight = Color(0xFFDDE3F0);
   static Color get surfaceHigh =>
       mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
 
+  // Card-specific elevation surfaces
+  static const Color _cardDark = Color(0xFF131C2E);
+  static const Color _cardLight = Color(0xFFFFFFFF);
+  static Color get card => mode == AppThemeMode.dark ? _cardDark : _cardLight;
+
+  static const Color _cardElevatedDark = Color(0xFF1A2744);
+  static const Color _cardElevatedLight = Color(0xFFFFFFFF);
+  static Color get cardElevated =>
+      mode == AppThemeMode.dark ? _cardElevatedDark : _cardElevatedLight;
+
   // ── Borders ────────────────────────────────────────────────
-  static const Color _borderDark = Color(0xFF1E2A3F);
-  static const Color _borderLight = Color(0xFFD6DDEA);
+  static const Color _borderDark = Color(0xFF223047);
+  static const Color _borderLight = Color(0xFFD8DEEB);
   static Color get border =>
       mode == AppThemeMode.dark ? _borderDark : _borderLight;
 
-  static const Color _hairlineDark = Color(0xFF162032);
-  static const Color _hairlineLight = Color(0xFFE2E8F2);
+  static const Color _hairlineDark = Color(0xFF18233A);
+  static const Color _hairlineLight = Color(0xFFE5EAF3);
   static Color get hairline =>
       mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
 
+  static const Color _borderStrongDark = Color(0xFF2A3A56);
+  static const Color _borderStrongLight = Color(0xFFC5CFE3);
+  static Color get borderStrong =>
+      mode == AppThemeMode.dark ? _borderStrongDark : _borderStrongLight;
+
   // ── Text ───────────────────────────────────────────────────
-  static const Color _textDark = Color(0xFFE6EAF0);
-  static const Color _textLight = Color(0xFF0F172A);
+  static const Color _textDark = Color(0xFFE8ECF1);
+  static const Color _textLight = Color(0xFF0F1729);
   static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
 
-  static const Color _textMutedDark = Color(0xFF8A9AB8);
-  static const Color _textMutedLight = Color(0xFF5A6B8A);
+  static const Color _textMutedDark = Color(0xFF8FA0BE);
+  static const Color _textMutedLight = Color(0xFF5B6B8E);
   static Color get textMuted =>
       mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
 
-  static const Color _textDimDark = Color(0xFF5B6B8A);
-  static const Color _textDimLight = Color(0xFF7A8BA8);
+  static const Color _textDimDark = Color(0xFF5E6E8C);
+  static const Color _textDimLight = Color(0xFF7A8CB0);
   static Color get textDim =>
       mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
-  // ── Accent (use sparingly) ─────────────────────────────────
-  // Audiophile studio blue — unique, calm, hardware-inspired.
+  static const Color _textFaintDark = Color(0xFF3E4D6A);
+  static const Color _textFaintLight = Color(0xFF9AA9C7);
+  static Color get textFaint =>
+      mode == AppThemeMode.dark ? _textFaintDark : _textFaintLight;
+
+  // ── Accent ─────────────────────────────────────────────────
   static const Color accent = Color(0xFF3A7BFF);
-  static const Color accentSoft = Color(0xFF5B94FF);
+  static const Color accentSoft = Color(0xFF6B9FFF);
   static const Color accentDim = Color(0xFF2A5FCC);
+  static const Color accentHover = Color(0xFF4A8AFF);
+
+  // Accent tints for backgrounds
+  static Color get accentTint => accent.withValues(alpha: 0.10);
+  static Color get accentTintStrong => accent.withValues(alpha: 0.16);
+  static Color get accentTintSubtle => accent.withValues(alpha: 0.06);
 
   // ── Status ─────────────────────────────────────────────────
-  static const Color success = Color(0xFF4ECDC4);
-  static const Color warning = Color(0xFF6B9FFF);
-  static const Color error = Color(0xFFE84855);
+  static const Color success = Color(0xFF30C9B0);
+  static const Color warning = Color(0xFFFFB020);
+  static const Color error = Color(0xFFEF4458);
 
-  // ── Convenience getters ────────────────────────────────────
-  /// Used for the active player position, EQ active band, selected state.
+  // ── Convenience ────────────────────────────────────────────
   static Color get accentOnDark => accent;
-
-  /// Foreground for filled accent buttons.
   static const Color onAccent = Color(0xFFFFFFFF);
+  static const Color ambientNeutral = Color(0xFF172033);
 
-  /// Subtle ambient tint derived from artwork (kept neutral — caller can
-  /// override with sampled colors). Blue-tinted for new palette.
-  static const Color ambientNeutral = Color(0xFF141E2E);
-
-  // ── Legacy aliases (for components that still reference these) ──
-  // Kept so the redesign doesn't break call sites; never use these for new
-  // code — prefer [accent], [text], [textMuted], [border], [surface*].
   static const Color primary = accent;
   static const Color primaryLight = accent;
   static const Color primaryDark = accentSoft;
@@ -104,38 +110,51 @@ class AppColors {
   static const Color secondaryLight = accent;
   static const Color tertiary = accent;
 
-  // ── Dynamic Ambient Colors (derived from artwork) ──────────
-  static Color ambientTint = const Color(0xFF141E2E);
-  static Color ambientGlow = const Color(0xFF1A2335);
+  // ── Dynamic ────────────────────────────────────────────────
+  static Color ambientTint = const Color(0xFF172033);
+  static Color ambientGlow = const Color(0xFF1E2D4A);
 
-  // ── Glassmorphism enhanced ─────────────────────────────────
+  // ── Glass ─────────────────────────────────────────────────
   static Color get glassBase => surface;
   static Color get glassHighlight => surfaceHigh;
   static Color get glassBorder => border;
-  static Color get glassBorderStrong => border;
+  static Color get glassBorderStrong => borderStrong;
 
-  /// Enhanced glass with ambient tint support
   static Color glassWithTint(Color base) {
-    return Color.alphaBlend(ambientTint.withValues(alpha: 0.15), base);
+    return Color.alphaBlend(ambientTint.withValues(alpha: 0.12), base);
   }
 
-  /// Glow color for active elements
-  static Color get glowColor => accent.withValues(alpha: 0.3);
+  static Color get glowColor => accent.withValues(alpha: 0.28);
 
-  /// Shadow colors for elevated cards
   static Color get shadowColor => mode == AppThemeMode.dark
-      ? const Color(0xFF000000).withValues(alpha: 0.4)
-      : const Color(0xFF000000).withValues(alpha: 0.1);
+      ? const Color(0xFF000000).withValues(alpha: 0.45)
+      : const Color(0xFF1A2A4A).withValues(alpha: 0.10);
 
-  /// Premium surface for featured content
+  static Color get shadowColorStrong => mode == AppThemeMode.dark
+      ? const Color(0xFF000000).withValues(alpha: 0.60)
+      : const Color(0xFF1A2A4A).withValues(alpha: 0.16);
+
+  static Color get shadowColorSoft => mode == AppThemeMode.dark
+      ? const Color(0xFF000000).withValues(alpha: 0.25)
+      : const Color(0xFF1A2A4A).withValues(alpha: 0.06);
+
   static Color get premiumSurface {
     if (mode == AppThemeMode.dark) {
-      return const Color(0xFF0D1320);
+      return const Color(0xFF0E1729);
     }
     return const Color(0xFFF8FAFF);
   }
 
-  /// Spacing scale used throughout the app.
+  // ── Overlay ────────────────────────────────────────────────
+  static Color get overlayScrim => mode == AppThemeMode.dark
+      ? Colors.black.withValues(alpha: 0.55)
+      : Colors.black.withValues(alpha: 0.25);
+
+  static Color get overlayStrong => mode == AppThemeMode.dark
+      ? Colors.black.withValues(alpha: 0.72)
+      : Colors.black.withValues(alpha: 0.42);
+
+  // ── Spacing ────────────────────────────────────────────────
   static const double s4 = 4;
   static const double s8 = 8;
   static const double s12 = 12;
@@ -148,7 +167,6 @@ class AppColors {
   static const double s64 = 64;
   static const double s80 = 80;
 
-  /// Shape scale.
   static const double r8 = 8;
   static const double r12 = 12;
   static const double r16 = 16;
@@ -156,21 +174,18 @@ class AppColors {
   static const double r24 = 24;
   static const double rFull = 999;
 
-  /// Animation durations
   static const Duration durFast = Duration(milliseconds: 120);
   static const Duration durNormal = Duration(milliseconds: 220);
   static const Duration durSlow = Duration(milliseconds: 350);
   static const Duration durPage = Duration(milliseconds: 420);
 
-  /// Shimmer colors for loading skeletons
   static Color get shimmerBase => mode == AppThemeMode.dark
-      ? const Color(0xFF0F141E)
-      : const Color(0xFFE8EEF6);
+      ? const Color(0xFF111827)
+      : const Color(0xFFE8ECF3);
   static Color get shimmerHighlight => mode == AppThemeMode.dark
-      ? const Color(0xFF1A2335)
-      : const Color(0xFFF0F3F8);
+      ? const Color(0xFF1E2D4A)
+      : const Color(0xFFF2F4F8);
 
-  /// Editorially tuned gradients (very subtle, used rarely).
   static const LinearGradient subtleVerticalFade = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -178,8 +193,7 @@ class AppColors {
   );
 }
 
-/// Typography ramp. Editorial hierarchy: hero, screen, album, track,
-/// metadata, technical. Weight is used intentionally rather than always bold.
+/// Typography — editorial, calm, deliberately restrained.
 class AppTypography {
   AppTypography._();
 
@@ -188,45 +202,39 @@ class AppTypography {
         ? ThemeData.dark().textTheme
         : ThemeData.light().textTheme;
     final tx = GoogleFonts.interTextTheme(base);
-    // AppColors.mode is already set to `isDark ? dark : light` by
-    // AppTheme.themeFor before this is called, so these getters return the
-    // correct light/dark variant.
     final text = AppColors.text;
     final muted = AppColors.textMuted;
     final dim = AppColors.textDim;
 
     return tx.copyWith(
-      // 32–40 — used on hero contexts (album page title, login hero).
       displayLarge: GoogleFonts.inter(
         color: text,
         fontSize: 40,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -1.2,
-        height: 1.05,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -1.4,
+        height: 1.0,
       ),
       displayMedium: GoogleFonts.inter(
         color: text,
         fontSize: 32,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.8,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.9,
         height: 1.1,
       ),
-      // 26–30 — screen titles (Home, Library).
       headlineLarge: GoogleFonts.inter(
         color: text,
         fontSize: 30,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.6,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.7,
         height: 1.15,
       ),
       headlineMedium: GoogleFonts.inter(
         color: text,
         fontSize: 26,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.4,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
         height: 1.2,
       ),
-      // 22–26 — album titles on detail pages.
       titleLarge: GoogleFonts.inter(
         color: text,
         fontSize: 24,
@@ -245,7 +253,6 @@ class AppTypography {
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
       ),
-      // 15–17 — track titles.
       bodyLarge: GoogleFonts.inter(
         color: text,
         fontSize: 16,
@@ -264,7 +271,6 @@ class AppTypography {
         fontWeight: FontWeight.w400,
         height: 1.35,
       ),
-      // 12–14 — secondary information.
       labelLarge: GoogleFonts.inter(
         color: text,
         fontSize: 13,
@@ -277,19 +283,16 @@ class AppTypography {
         fontWeight: FontWeight.w500,
         letterSpacing: 0.3,
       ),
-      // 11–12 — technical / metadata.
       labelSmall: GoogleFonts.inter(
         color: dim,
         fontSize: 11,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.6,
       ),
     );
   }
 }
 
-/// App theme factory. Builds the ThemeData for a given mode and points
-/// [AppColors.mode] at it so every screen reads the matching palette.
 class AppTheme {
   static ThemeData themeFor(AppThemeMode mode) {
     AppColors.mode = mode;
@@ -309,6 +312,8 @@ class AppTheme {
             onError: AppColors.text,
             outline: AppColors.border,
             surfaceContainerHighest: AppColors.surfaceHigh,
+            surfaceContainer: AppColors.card,
+            onSurfaceVariant: AppColors.textMuted,
           )
         : ColorScheme.light(
             primary: AppColors.accent,
@@ -320,9 +325,11 @@ class AppTheme {
             surface: AppColors.surface,
             onSurface: AppColors.text,
             error: AppColors.error,
-            onError: AppColors.text,
+            onError: Colors.white,
             outline: AppColors.border,
             surfaceContainerHighest: AppColors.surfaceHigh,
+            surfaceContainer: AppColors.card,
+            onSurfaceVariant: AppColors.textMuted,
           );
 
     final textTheme = AppTypography.build(isDark: isDark);
@@ -338,8 +345,8 @@ class AppTheme {
       primaryIconTheme: IconThemeData(color: AppColors.accent, size: 22),
       dividerTheme: DividerThemeData(
         color: AppColors.hairline,
-        thickness: 0.5,
-        space: 0.5,
+        thickness: 0.6,
+        space: 0.6,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
@@ -374,13 +381,25 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shadowColor: AppColors.shadowColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 0.7),
+        ),
+        margin: EdgeInsets.zero,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.85),
+        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.92),
         contentTextStyle: TextStyle(color: AppColors.text, fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
+        elevation: 8,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -392,16 +411,20 @@ class AppTheme {
           vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.border, width: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.border, width: 0.7),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.border, width: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.border, width: 0.7),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.accent, width: 1.2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.accent, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.error, width: 0.7),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -411,8 +434,9 @@ class AppTheme {
           disabledBackgroundColor: AppColors.surfaceHigh,
           disabledForegroundColor: AppColors.textDim,
           elevation: 0,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           textStyle: const TextStyle(
@@ -425,9 +449,9 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.text,
-          side: BorderSide(color: AppColors.border, width: 0.6),
+          side: BorderSide(color: AppColors.border, width: 0.7),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           textStyle: const TextStyle(
@@ -447,14 +471,21 @@ class AppTheme {
           ),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceRaised,
+        side: BorderSide(color: AppColors.border, width: 0.6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        labelStyle: TextStyle(color: AppColors.text, fontSize: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.accent,
         inactiveTrackColor: AppColors.surfaceHigh,
-        thumbColor: AppColors.text,
-        overlayColor: AppColors.accent.withValues(alpha: 0.18),
-        trackHeight: 2,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+        thumbColor: AppColors.accent,
+        overlayColor: AppColors.accent.withValues(alpha: 0.14),
+        trackHeight: 2.5,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.accent,
@@ -462,16 +493,19 @@ class AppTheme {
         circularTrackColor: AppColors.surfaceHigh,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.card,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.accent.withValues(alpha: 0.16),
+        indicatorColor: AppColors.accentTint,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: AppColors.accent,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
             );
           }
@@ -482,14 +516,27 @@ class AppTheme {
           );
         }),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return AppColors.surface;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.accent;
+          return AppColors.surfaceHigh;
+        }),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      ),
       listTileTheme: ListTileThemeData(
         iconColor: AppColors.textMuted,
         textColor: AppColors.text,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      dividerColor: AppColors.hairline,
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
-      hoverColor: AppColors.surfaceHigh.withValues(alpha: 0.5),
+      hoverColor: AppColors.surfaceHigh.withValues(alpha: 0.4),
     );
   }
 

@@ -2,11 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../nexora/nexora_tokens.dart';
 import '../theme.dart';
 
-/// Hi-Fi replacement for [EnhancedGlassSurface]. Renders a clean, flat
-/// surface with hairline borders and minimal elevation. No backdrop blur,
-/// no shimmer, no glow orbs.
+/// Refined flat surface with subtle elevation — the new card baseline.
 class EnhancedGlassSurface extends StatelessWidget {
   final Widget child;
   final double blur;
@@ -39,22 +38,24 @@ class EnhancedGlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(12);
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final radius = borderRadius ?? NexoraRadius.card;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: AppColors.surface,
+        color: gradient != null ? null : AppColors.card,
         gradient: gradient,
-        border: border ?? Border.all(color: AppColors.border, width: 0.6),
-        boxShadow: shadows,
+        border: border ?? Border.all(color: AppColors.border, width: 0.7),
+        boxShadow: shadows ?? NexoraShadow.card(isDark),
       ),
       child: ClipRRect(borderRadius: radius, child: child),
     );
   }
 }
 
-/// Flat press-responsive card with subtle scale animation.
+/// Press-responsive card with refined elevation, spring scale and
+/// adaptive light/dark shadows. The primary grouped-card primitive.
 class GlassCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -70,7 +71,7 @@ class GlassCard extends StatefulWidget {
     this.onTap,
     this.padding,
     this.margin,
-    this.borderRadius = 12,
+    this.borderRadius = 16,
     this.elevated = false,
     this.animated = true,
   });
@@ -89,11 +90,11 @@ class _GlassCardState extends State<GlassCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 140),
     );
     _scale = Tween<double>(
       begin: 1.0,
-      end: 0.98,
+      end: 0.97,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
@@ -105,13 +106,22 @@ class _GlassCardState extends State<GlassCard>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     final radius = BorderRadius.circular(widget.borderRadius);
     final card = Container(
       margin: widget.margin,
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border, width: 0.6),
+        color: widget.elevated ? AppColors.cardElevated : AppColors.card,
+        border: Border.all(
+          color: isDark
+              ? AppColors.border.withValues(alpha: 0.9)
+              : AppColors.border,
+          width: 0.7,
+        ),
+        boxShadow: widget.elevated
+            ? NexoraShadow.floating(isDark)
+            : NexoraShadow.card(isDark),
       ),
       child: ClipRRect(
         borderRadius: radius,
@@ -138,7 +148,7 @@ class _GlassCardState extends State<GlassCard>
   }
 }
 
-/// Compact badge / pill — minimal padding, hairline border, accent ink.
+/// Compact pill badge — tighter radius, subtle accent wash.
 class GlassChip extends StatelessWidget {
   final Widget child;
   final Color? color;
@@ -156,22 +166,21 @@ class GlassChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = color ?? AppColors.accent;
-    final radius = borderRadius ?? BorderRadius.circular(8);
+    final radius = borderRadius ?? BorderRadius.circular(20);
     return Container(
       padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.10),
+        color: accent.withValues(alpha: 0.11),
         borderRadius: radius,
-        border: Border.all(color: accent.withValues(alpha: 0.35), width: 0.6),
+        border: Border.all(color: accent.withValues(alpha: 0.30), width: 0.6),
       ),
       child: child,
     );
   }
 }
 
-/// Bottom sheet wrapper — flat surface, no glass blur. Kept as
-/// `GlassBottomSheet` so call sites compile.
+/// Bottom sheet wrapper with refined radius and border treatment.
 class GlassBottomSheet extends StatelessWidget {
   final Widget child;
   final double? height;
@@ -181,17 +190,32 @@ class GlassBottomSheet extends StatelessWidget {
     super.key,
     required this.child,
     this.height,
-    this.borderRadius = 16,
+    this.borderRadius = 20,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
-        border: Border(top: BorderSide(color: AppColors.border, width: 0.6)),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.border : AppColors.borderStrong,
+            width: 0.7,
+          ),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: const Color(0xFF1A2A4A).withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
@@ -201,9 +225,7 @@ class GlassBottomSheet extends StatelessWidget {
   }
 }
 
-/// App bar — kept as `GlassAppBar` so legacy call sites compile. The new
-/// design uses a clean AppBar directly. When [blur] > 0 the bar renders a
-/// translucent frosted surface instead of a flat fill.
+/// Frosted app bar — clips and blurs whatever scrolls underneath.
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final List<Widget>? actions;
@@ -220,7 +242,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBottom = false,
     this.bottom,
-    this.blur = 18,
+    this.blur = 22,
     this.toolbarHeight = kToolbarHeight,
   });
 
@@ -231,12 +253,22 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppColors.mode == AppThemeMode.dark;
-    final tint = (isDark ? Colors.black : Colors.white).withValues(alpha: 0.35);
+    final tint = (isDark ? Colors.black : Colors.white).withValues(
+      alpha: isDark ? 0.38 : 0.68,
+    );
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
-          color: tint,
+          decoration: BoxDecoration(
+            color: tint,
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.hairline.withValues(alpha: 0.8),
+                width: 0.6,
+              ),
+            ),
+          ),
           child: SafeArea(
             bottom: false,
             child: AppBar(
@@ -257,7 +289,6 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// FAB replacement. Single accent fill, no glow.
 class GlassFAB extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
@@ -279,16 +310,16 @@ class GlassFAB extends StatelessWidget {
         onPressed: onPressed,
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.onAccent,
-        elevation: 1,
+        elevation: isDarkFloat ? 6 : 2,
         shape: const CircleBorder(),
         child: child,
       ),
     );
   }
+
+  bool get isDarkFloat => AppColors.mode == AppThemeMode.dark;
 }
 
-/// Aurora background — replaced with a solid background. Kept as a class so
-/// legacy call sites still compile.
 class AuroraBackground extends StatelessWidget {
   final Widget child;
   final List<Color> colors;
@@ -305,22 +336,22 @@ class AuroraBackground extends StatelessWidget {
   }
 }
 
-/// Glass dialog replacement — flat surface, hairline border.
 class GlassDialog extends StatelessWidget {
   final Widget child;
   final double borderRadius;
 
-  const GlassDialog({super.key, required this.child, this.borderRadius = 16});
+  const GlassDialog({super.key, required this.child, this.borderRadius = 20});
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.card,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+      shadowColor: AppColors.shadowColorStrong,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
-        side: BorderSide(color: AppColors.border, width: 0.6),
+        side: BorderSide(color: AppColors.border, width: 0.7),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -330,8 +361,6 @@ class GlassDialog extends StatelessWidget {
   }
 }
 
-/// Neon glow button — replaced by a calm, single-accent fill button with
-/// scale-on-press.
 class NeonGlowButton extends StatefulWidget {
   final String label;
   final IconData? icon;
@@ -394,7 +423,7 @@ class _NeonGlowButtonState extends State<NeonGlowButton>
           height: widget.height,
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
             child: Row(

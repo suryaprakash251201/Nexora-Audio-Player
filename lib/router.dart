@@ -317,12 +317,8 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 }
 
-/// Bottom overlay that cross-fades/repositions the mini player and the nav bar
-/// so they swap places as the user scrolls. Both are centered and share the
-/// same horizontal constraints; the bar sits slightly lower near the edge.
-///
-/// Movement is driven by two spring simulations ([_AppShellState]) so the
-/// mini-player rises and the nav bar slides down with a physical, snappy feel.
+/// Bottom dock — pinned to the true bottom, safe-area aware.
+/// Mini player and nav bar share a single stack so they swap without overlap.
 class _BottomDock extends StatelessWidget {
   final Animation<double> navController;
   final Animation<double> miniController;
@@ -330,11 +326,9 @@ class _BottomDock extends StatelessWidget {
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  // Mini player visual height (card + progress) — gap removed for merged dock.
-  static const double _miniHeight = 70;
-  static const double _gap = 0;
-  // Hidden offset (in logical pixels) the nav bar slides to when off-screen.
-  static const double _hiddenOffset = 80;
+  static const double _miniHeight = 68;
+  static const double _gap = 6;
+  static const double _hiddenOffset = 96;
 
   const _BottomDock({
     required this.navController,
@@ -347,7 +341,8 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    final double dockBottom = bottomInset > 0 ? bottomInset + 6 : 8;
+    // Hug the bottom — only the system inset, no extra floating gap.
+    final double dockBottom = bottomInset;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(
@@ -355,20 +350,19 @@ class _BottomDock extends StatelessWidget {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            // Mini player: springs up to fill the empty space when the
-            // nav bar is dismissed.
             AnimatedBuilder(
               animation: miniController,
               builder: (context, child) {
                 final t = miniController.value.clamp(0.0, 1.0);
-                final bottom = lerpDouble(navTotal, 0, t);
+                // When nav hidden, mini drops to 0; otherwise sits above nav.
+                final bottom = lerpDouble(navTotal + _gap, 0, t);
                 return Positioned(
                   left: 0,
                   right: 0,
                   bottom: bottom,
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 650),
+                      constraints: const BoxConstraints(maxWidth: 640),
                       child: child,
                     ),
                   ),
@@ -376,16 +370,13 @@ class _BottomDock extends StatelessWidget {
               },
               child: MiniPlayer(onTap: onOpenPlayer),
             ),
-            // Nav bar: spring slides below the fold when hidden.
             AnimatedBuilder(
               animation: navController,
               builder: (context, child) {
                 final t = navController.value.clamp(0.0, 1.0);
-                // Quick fade for the trailing 30% of the slide so the
-                // nav never feels "half-present" while it's tucked away.
-                final opacity = t < 0.3
+                final opacity = t < 0.25
                     ? 1.0
-                    : (1.0 - (t - 0.3) / 0.7).clamp(0.0, 1.0);
+                    : (1.0 - (t - 0.25) / 0.75).clamp(0.0, 1.0);
                 return Positioned(
                   left: 0,
                   right: 0,
@@ -396,7 +387,7 @@ class _BottomDock extends StatelessWidget {
                       opacity: opacity,
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 650),
+                          constraints: const BoxConstraints(maxWidth: 640),
                           child: child,
                         ),
                       ),
