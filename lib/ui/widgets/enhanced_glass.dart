@@ -205,7 +205,7 @@ class GlassBottomSheet extends StatelessWidget {
 /// design uses a clean AppBar directly. When [blur] > 0 the bar renders a
 /// translucent frosted surface instead of a flat fill.
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String? title;
+  final Widget? title;
   final List<Widget>? actions;
   final Widget? leading;
   final bool showBottom;
@@ -246,17 +246,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
               scrolledUnderElevation: 0,
               toolbarHeight: toolbarHeight,
               leading: leading,
-              title: title != null
-                  ? Text(
-                      title!,
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
-                      ),
-                    )
-                  : null,
+              title: title,
               actions: actions,
               bottom: bottom,
             ),

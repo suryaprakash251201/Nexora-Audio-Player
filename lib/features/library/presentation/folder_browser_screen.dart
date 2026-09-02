@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/api/files_api.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../player/providers/player_provider.dart';
