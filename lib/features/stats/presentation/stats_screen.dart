@@ -73,7 +73,8 @@ class _StatsBody extends StatelessWidget {
             child: NexoraEmptyState(
               icon: Icons.insights_outlined,
               title: 'No listening history yet',
-              subtitle: 'Play a few tracks and your habits — total time, peak hours and top artists — will show up here.',
+              subtitle:
+                  'Play a few tracks and your habits — total time, peak hours and top artists — will show up here.',
             ),
           ),
         ],

@@ -200,8 +200,9 @@ class NexoraGradientCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF000000)
-                .withValues(alpha: isDark ? 0.30 : 0.06),
+            color: const Color(
+              0xFF000000,
+            ).withValues(alpha: isDark ? 0.30 : 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

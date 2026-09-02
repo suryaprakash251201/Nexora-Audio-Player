@@ -63,8 +63,9 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
           .addTrack(playlist.id, widget.song.id);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Added to “${playlist.name}”')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Added to “${playlist.name}”')));
     } catch (e) {
       if (!mounted) return;
       setState(() {

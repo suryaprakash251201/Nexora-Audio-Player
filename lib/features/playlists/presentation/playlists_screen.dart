@@ -142,13 +142,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Created "$name"')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Created "$name"')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
