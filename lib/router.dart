@@ -18,6 +18,8 @@ import 'features/player/presentation/full_player_screen.dart';
 import 'features/player/presentation/mini_player.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/settings/presentation/downloads_screen.dart';
+import 'features/sharing/shares_screen.dart';
+import 'features/tags/tags_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/favorites/presentation/favorites_screen.dart';
 import 'features/equalizer/presentation/equalizer_screen.dart';
@@ -138,6 +140,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/downloads',
             builder: (c, s) => const DownloadsScreen(),
           ),
+          GoRoute(path: '/shares', builder: (c, s) => const SharesScreen()),
+          GoRoute(path: '/tags', builder: (c, s) => const TagsScreen()),
           GoRoute(
             path: '/equalizer',
             builder: (c, s) => const EqualizerScreen(),

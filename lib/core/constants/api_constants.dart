@@ -33,6 +33,20 @@ class ApiConstants {
   // Playlists
   static const playlists = '/playlists';
   static const playlistsPublic = '/playlists/public';
+
+  // Shares (public links)
+  static const shares = '/shares';
+  static String shareById(String id) => '/shares/$id';
+
+  // Tags (personal file annotations)
+  static const tags = '/tags';
+  static String tagById(String id) => '/tags/$id';
+  static const filesTag = '/files/tag';
+
+  // Playlist collaborators + user search
+  static String playlistCollaborators(String id) =>
+      '/playlists/$id/collaborators';
+  static const usersSearch = '/users/search';
   static String playlistById(String id) => '/playlists/$id';
   static String playlistItems(String id) => '/playlists/$id/items';
   static String playlistItemOrder(String id) => '/playlists/$id/items/order';

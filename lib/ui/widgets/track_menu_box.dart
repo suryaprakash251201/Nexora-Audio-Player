@@ -2,8 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/download/download_manager.dart';
+import '../../data/api/shares_api.dart';
+import '../../data/api/tags_api.dart';
+import '../../data/dto/file_dto.dart';
 import '../../data/repositories/songs_repository.dart';
 import '../../domain/entities/song.dart';
 import '../theme.dart';
@@ -76,6 +80,275 @@ Future<void> toggleDownload(
     say('Downloaded for offline playback');
   } catch (e) {
     say('Download failed: $e');
+  }
+}
+
+/// Creates a public link for a track and opens the OS share sheet.
+/// Keeps the manage-shares list fresh for the Shares screen.
+Future<void> shareTrack(WidgetRef ref, BuildContext context, Song song) async {
+  void say(String message) {
+    try {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {}
+  }
+
+  try {
+    final parts = NexoraFiles.splitId(song.id);
+    final link = await ref
+        .read(sharesApiProvider)
+        .createShare(root: parts.root, path: parts.path);
+    ref.invalidate(sharesProvider);
+    await SharePlus.instance.share(
+      ShareParams(
+        text: 'Listen: ${song.title}\n${link.url}',
+        subject: song.title,
+      ),
+    );
+  } catch (e) {
+    say('Share failed: $e');
+  }
+}
+
+/// Tag picker sheet for one track (apply existing or create new).
+/// There is no per-file tag listing endpoint, so this sheet applies
+/// tags and manages the tag collection rather than showing assignments.
+Future<void> showTagSheet(BuildContext context, WidgetRef ref, Song song) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (c) => _TagSheet(song: song),
+  );
+}
+
+class _TagSheet extends ConsumerStatefulWidget {
+  final Song song;
+  const _TagSheet({required this.song});
+
+  @override
+  ConsumerState<_TagSheet> createState() => _TagSheetState();
+}
+
+class _TagSheetState extends ConsumerState<_TagSheet> {
+  final _nameController = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _apply(NexoraTag tag) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final parts = NexoraFiles.splitId(widget.song.id);
+      await ref
+          .read(tagsApiProvider)
+          .tagFile(tagId: tag.id, rootId: parts.root, path: parts.path);
+      ref.invalidate(tagsProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Tagged “${tag.name}”')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Tag failed: $e')));
+    }
+  }
+
+  Future<void> _create() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty || _busy) return;
+    setState(() => _busy = true);
+    try {
+      final tag = await ref.read(tagsApiProvider).createTag(name);
+      ref.invalidate(tagsProvider);
+      _nameController.clear();
+      await _apply(tag);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Create failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tagsAsync = ref.watch(tagsProvider);
+    final insets = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: insets),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Add tag',
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  widget.song.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: tagsAsync.when(
+                  data: (tags) => tags.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            'No tags yet — create your first below.',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: tags.length,
+                          itemBuilder: (c, i) {
+                            final tag = tags[i];
+                            return ListTile(
+                              leading: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: tag.color,
+                                ),
+                              ),
+                              title: Text(
+                                tag.name,
+                                style: TextStyle(color: AppColors.text),
+                              ),
+                              subtitle: Text(
+                                '${tag.count} files',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              trailing: _busy
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.add_rounded,
+                                      color: AppColors.textDim,
+                                    ),
+                              onTap: _busy ? null : () => _apply(tag),
+                            );
+                          },
+                        ),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Could not load tags: $e',
+                      style: TextStyle(color: AppColors.error, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _nameController,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _create(),
+                        style: TextStyle(color: AppColors.text, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'New tag name',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _busy ? null : _create,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Create'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

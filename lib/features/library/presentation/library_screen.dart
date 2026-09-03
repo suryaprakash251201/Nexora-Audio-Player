@@ -346,6 +346,16 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           onTap: () => showAddToPlaylistSheet(context, song: song),
         ),
         downloadMenuOption(ref, context, song),
+        TrackMenuOption(
+          icon: Icons.share_outlined,
+          label: 'Share link',
+          onTap: () => shareTrack(ref, context, song),
+        ),
+        TrackMenuOption(
+          icon: Icons.label_outline_rounded,
+          label: 'Add tag…',
+          onTap: () => showTagSheet(context, ref, song),
+        ),
       ],
     );
   }

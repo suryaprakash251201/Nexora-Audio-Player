@@ -230,4 +230,50 @@ class PlaylistsApi {
       data: {'item_ids': orderedItemIds},
     );
   }
+
+  /// Collaborators (`{collaborators:[{playlist_id,user_id,role,
+  /// created_at,username}]}`). Throws 403 for non-editors — callers hide
+  /// people UI in that case.
+  Future<List<PlaylistCollaborator>> getCollaborators(String id) async {
+    final res = await _client.get(ApiConstants.playlistCollaborators(id));
+    final data = res.data;
+    final items =
+        (data is Map<String, dynamic>
+            ? data['collaborators'] as List?
+            : null) ??
+        [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(PlaylistCollaborator.fromJson)
+        .toList();
+  }
+
+  /// `action` is `add` (role defaults to `editor`) or `remove`.
+  Future<void> manageCollaborator(
+    String id, {
+    required String action,
+    required String userId,
+    String role = 'editor',
+  }) async {
+    await _client.post(
+      ApiConstants.playlistCollaborators(id),
+      data: {'action': action, 'user_id': userId, 'role': role},
+    );
+  }
+
+  /// User picker (`{users:[{id,username}]}`) — no emails or roles.
+  Future<List<PlaylistUser>> searchUsers(String query) async {
+    if (query.trim().isEmpty) return const [];
+    final res = await _client.get(
+      ApiConstants.usersSearch,
+      query: {'q': query.trim()},
+    );
+    final data = res.data;
+    final items =
+        (data is Map<String, dynamic> ? data['users'] as List? : null) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(PlaylistUser.fromJson)
+        .toList();
+  }
 }

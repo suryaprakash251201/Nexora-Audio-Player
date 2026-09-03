@@ -386,6 +386,16 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           onTap: () => showAddToPlaylistSheet(context, song: s),
         ),
         downloadMenuOption(ref, context, s),
+        TrackMenuOption(
+          icon: Icons.share_outlined,
+          label: 'Share link',
+          onTap: () => shareTrack(ref, context, s),
+        ),
+        TrackMenuOption(
+          icon: Icons.label_outline_rounded,
+          label: 'Add tag…',
+          onTap: () => showTagSheet(context, ref, s),
+        ),
       ],
     );
   }

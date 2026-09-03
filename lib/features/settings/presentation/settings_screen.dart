@@ -140,6 +140,28 @@ class SettingsScreen extends ConsumerWidget {
                       showChevron: true,
                       onTap: () => context.push('/stats'),
                     ),
+                    _SettingTile(
+                      icon: Icons.link_rounded,
+                      iconBg: AppColors.accent.withValues(
+                        alpha: isDark ? 0.13 : 0.10,
+                      ),
+                      iconColor: AppColors.accent,
+                      title: 'Shared links',
+                      subtitle: 'Public links & revoke access',
+                      showChevron: true,
+                      onTap: () => context.push('/shares'),
+                    ),
+                    _SettingTile(
+                      icon: Icons.label_outline_rounded,
+                      iconBg: const Color(
+                        0xFFB24CFF,
+                      ).withValues(alpha: isDark ? 0.13 : 0.10),
+                      iconColor: const Color(0xFFB24CFF),
+                      title: 'Tags',
+                      subtitle: 'Organize files beyond playlists',
+                      showChevron: true,
+                      onTap: () => context.push('/tags'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),

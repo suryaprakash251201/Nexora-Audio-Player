@@ -669,6 +669,26 @@ Sibling `.lrc` files are the source of truth (`internal/api/handlers_lyrics.go`)
 - `GET /home/usage` → `{total,available,used,file_count,breakdown}`.
   App: quota bar only; breakdown unused (audio stats come from `/stats`).
 
+## 19e. Shares, tags, collaborators (wired)
+
+- `POST /shares {root,path,scope,password,expires_in_hours,max_downloads}`
+  → `{share:{id,token,url,…}}`; `GET /shares` → `{items}`; `DELETE
+  /shares/{id}` revokes. Scopes: `preview` (stream+download) / `download`.
+  App: ⋯ → Share link (one tap, OS sheet via `share_plus`), Shares screen
+  (Settings → Shared links) lists/copies/revokes.
+- `GET /tags` → `{tags:[{id,name,color,created_at,count}]}`;
+  `POST /tags {name,color}`; `PATCH /tags/{id}`; `DELETE /tags/{id}`;
+  `POST /files/tag {tag_id,root_id,paths[]}`;
+  `DELETE /files/tag?tag_id=&root_id=&paths=` (web-client query convention).
+  Read access suffices for tagging. No files-by-tag listing endpoint exists,
+  so the app manages tags + applies them (⋯ → Add tag…) but does not offer
+  per-tag browsing.
+- `GET /playlists/{id}/collaborators` → `{collaborators:[{playlist_id,
+  user_id,role,created_at,username}]}` (403 for non-editors → people UI
+  hides); `POST … {action:add|remove,user_id,role}` (default `editor`);
+  `GET /users/search?q=` → `{users:[{id,username}]}` (no emails/roles).
+  App: PEOPLE section in playlist detail + username search with role toggle.
+
 `GET /files/transcode` needs a server **session** (`session` + `start` offset
 params, `quality=lossless|high|medium`) with server-side seeking. That model
 is incompatible with `just_audio`'s byte-range seeking/background pipeline

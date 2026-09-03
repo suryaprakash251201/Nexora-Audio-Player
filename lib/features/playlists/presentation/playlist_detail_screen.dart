@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/api/playlists_api.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
@@ -131,6 +132,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
             SliverToBoxAdapter(child: _hero(p)),
             SliverToBoxAdapter(child: _actions(p)),
+            SliverToBoxAdapter(
+              child: _CollaboratorsSection(playlistId: widget.playlistId),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
@@ -419,6 +423,16 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           onTap: () => showAddToPlaylistSheet(context, song: s),
         ),
         downloadMenuOption(ref, context, s),
+        TrackMenuOption(
+          icon: Icons.share_outlined,
+          label: 'Share link',
+          onTap: () => shareTrack(ref, context, s),
+        ),
+        TrackMenuOption(
+          icon: Icons.label_outline_rounded,
+          label: 'Add tag…',
+          onTap: () => showTagSheet(context, ref, s),
+        ),
         if (canRemove)
           TrackMenuOption(
             icon: Icons.delete_outline_rounded,
@@ -537,6 +551,446 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         ),
       ),
     );
+  }
+}
+
+/// People sharing this playlist (owner / admin / editors only — the
+/// section hides itself on 403 so viewers never see a dead UI).
+class _CollaboratorsSection extends ConsumerStatefulWidget {
+  final String playlistId;
+  const _CollaboratorsSection({required this.playlistId});
+
+  @override
+  ConsumerState<_CollaboratorsSection> createState() =>
+      _CollaboratorsSectionState();
+}
+
+class _CollaboratorsSectionState extends ConsumerState<_CollaboratorsSection> {
+  late Future<List<PlaylistCollaborator>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<PlaylistCollaborator>> _load() =>
+      ref.read(playlistsApiProvider).getCollaborators(widget.playlistId);
+
+  void _refresh() {
+    setState(() => _future = _load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<PlaylistCollaborator>>(
+      future: _future,
+      builder: (c, snap) {
+        // Not permitted / failed → hide (viewers, offline, gone).
+        if (snap.hasError || !snap.hasData) {
+          return const SizedBox.shrink();
+        }
+        final people = snap.data!;
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border, width: 0.7),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'PEOPLE',
+                      style: TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceRaised,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        people.length.toString(),
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => _showAddSheet(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_add_outlined,
+                            size: 15,
+                            color: AppColors.accent,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Add',
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (people.isNotEmpty) const SizedBox(height: 8),
+                for (final person in people)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.accent.withValues(alpha: 0.13),
+                          ),
+                          child: Text(
+                            person.username.isNotEmpty
+                                ? person.username[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                person.username.isNotEmpty
+                                    ? person.username
+                                    : person.userId,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                person.role,
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.remove_circle_outline_rounded,
+                            size: 18,
+                            color: AppColors.textDim,
+                          ),
+                          tooltip: 'Remove',
+                          onPressed: () => _remove(person),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _remove(PlaylistCollaborator person) async {
+    try {
+      await ref
+          .read(playlistsApiProvider)
+          .manageCollaborator(
+            widget.playlistId,
+            action: 'remove',
+            userId: person.userId,
+          );
+      _refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Remove failed: $e')));
+      }
+    }
+  }
+
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (c) => _AddCollaboratorSheet(
+        playlistId: widget.playlistId,
+        onAdded: _refresh,
+      ),
+    );
+  }
+}
+
+class _AddCollaboratorSheet extends ConsumerStatefulWidget {
+  final String playlistId;
+  final VoidCallback onAdded;
+  const _AddCollaboratorSheet({
+    required this.playlistId,
+    required this.onAdded,
+  });
+
+  @override
+  ConsumerState<_AddCollaboratorSheet> createState() =>
+      _AddCollaboratorSheetState();
+}
+
+class _AddCollaboratorSheetState extends ConsumerState<_AddCollaboratorSheet> {
+  final _query = TextEditingController();
+  String _role = 'editor';
+  String _search = '';
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final insets = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: NexoraRadius.sheetTop,
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: insets),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Add people',
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _query,
+                        autofocus: true,
+                        onChanged: (v) => setState(() => _search = v.trim()),
+                        style: TextStyle(color: AppColors.text, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search username',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.search_rounded, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ChoiceChip(
+                      label: Text(_role == 'editor' ? 'Editor' : 'Viewer'),
+                      selected: true,
+                      selectedColor: AppColors.accent,
+                      labelStyle: const TextStyle(color: Colors.white),
+                      onSelected: (_) => setState(
+                        () => _role = _role == 'editor' ? 'viewer' : 'editor',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: _search.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'Type to search users on this server.',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      )
+                    : FutureBuilder<List<PlaylistUser>>(
+                        future: ref
+                            .read(playlistsApiProvider)
+                            .searchUsers(_search),
+                        builder: (c, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          final users = snap.data ?? const [];
+                          if (users.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                'No users match “$_search”.',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: users.length,
+                            itemBuilder: (c, i) {
+                              final user = users[i];
+                              return ListTile(
+                                leading: Container(
+                                  width: 34,
+                                  height: 34,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.surfaceRaised,
+                                  ),
+                                  child: Text(
+                                    user.username.isNotEmpty
+                                        ? user.username[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      color: AppColors.text,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  user.username,
+                                  style: TextStyle(color: AppColors.text),
+                                ),
+                                trailing: _busy
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.add_rounded,
+                                        color: AppColors.accent,
+                                      ),
+                                onTap: _busy ? null : () => _add(user),
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _add(PlaylistUser user) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(playlistsApiProvider)
+          .manageCollaborator(
+            widget.playlistId,
+            action: 'add',
+            userId: user.id,
+            role: _role,
+          );
+      widget.onAdded();
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Add failed: $e')));
+    }
   }
 }
 

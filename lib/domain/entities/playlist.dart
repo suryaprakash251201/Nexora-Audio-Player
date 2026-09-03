@@ -55,3 +55,42 @@ class Playlist {
     );
   }
 }
+
+/// A user sharing (or shared into) a playlist.
+class PlaylistCollaborator {
+  final String playlistId;
+  final String userId;
+  final String role;
+  final String createdAt;
+  final String username;
+
+  const PlaylistCollaborator({
+    required this.playlistId,
+    required this.userId,
+    required this.role,
+    required this.createdAt,
+    required this.username,
+  });
+
+  factory PlaylistCollaborator.fromJson(Map<String, dynamic> j) =>
+      PlaylistCollaborator(
+        playlistId: (j['playlist_id'] ?? '').toString(),
+        userId: (j['user_id'] ?? '').toString(),
+        role: (j['role'] ?? 'viewer').toString(),
+        createdAt: (j['created_at'] ?? '').toString(),
+        username: (j['username'] ?? '').toString(),
+      );
+}
+
+/// Minimal user row for the collaborator picker.
+class PlaylistUser {
+  final String id;
+  final String username;
+
+  const PlaylistUser({required this.id, required this.username});
+
+  factory PlaylistUser.fromJson(Map<String, dynamic> j) => PlaylistUser(
+    id: (j['id'] ?? '').toString(),
+    username: (j['username'] ?? '').toString(),
+  );
+}
