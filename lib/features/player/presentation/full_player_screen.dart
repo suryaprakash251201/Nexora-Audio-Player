@@ -152,6 +152,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
         lyrics: lyricLines,
         currentPosition: pos,
         onClose: () => setState(() => _showLyrics = false),
+        // Tap a synced line → jump the song to that line.
+        onLineTap: (ts) => notifier.seek(ts),
         title: track.title,
         artist: track.artist,
         artworkUrl: track.artUri?.toString(),
@@ -273,30 +275,50 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              // Artwork stage (isolated repaint)
+                              // Artwork stage (isolated repaint).
+                              // Double-tap cover ⇄ lyrics.
                               RepaintBoundary(
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 380),
-                                  switchInCurve: Curves.easeOutCubic,
-                                  switchOutCurve: Curves.easeInCubic,
-                                  transitionBuilder: (child, anim) =>
-                                      FadeTransition(
-                                        opacity: anim,
-                                        child: ScaleTransition(
-                                          scale: Tween<double>(
-                                            begin: 0.94,
-                                            end: 1.0,
-                                          ).animate(anim),
-                                          child: child,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onDoubleTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if ((lyrics?.value?.hasLyrics ?? false)) {
+                                      setState(() => _showLyrics = true);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No lyrics for this track',
+                                          ),
                                         ),
-                                      ),
-                                  child: _ArtworkStage(
-                                    key: ValueKey('${mode.name}-${track.id}'),
-                                    mode: mode,
-                                    track: track,
-                                    isPlaying: isPlaying,
-                                    artworkSize: artworkSize,
-                                    gradient: grad,
+                                      );
+                                    }
+                                  },
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 380),
+                                    switchInCurve: Curves.easeOutCubic,
+                                    switchOutCurve: Curves.easeInCubic,
+                                    transitionBuilder: (child, anim) =>
+                                        FadeTransition(
+                                          opacity: anim,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(
+                                              begin: 0.94,
+                                              end: 1.0,
+                                            ).animate(anim),
+                                            child: child,
+                                          ),
+                                        ),
+                                    child: _ArtworkStage(
+                                      key: ValueKey('${mode.name}-${track.id}'),
+                                      mode: mode,
+                                      track: track,
+                                      isPlaying: isPlaying,
+                                      artworkSize: artworkSize,
+                                      gradient: grad,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -320,18 +342,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                         letterSpacing: -0.4,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      track.artist ?? 'Unknown Artist',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
                                     // Inline offline marker — player keeps
                                     // working on cache/downloads.
                                     const OfflineChip(),
@@ -348,37 +358,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                                     : AppColors.accent,
                                               )
                                             : const SizedBox.shrink(),
-                                        loading: () => const SizedBox(
-                                          width: 60,
-                                          height: 14,
-                                          child: Center(
-                                            child: SizedBox(
-                                              width: 11,
-                                              height: 11,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 1.5,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        error: (_, __) =>
-                                            const SizedBox.shrink(),
-                                      ),
-                                    if (lyrics != null)
-                                      lyrics.when(
-                                        data: (data) => data.hasLyrics
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 6,
-                                                ),
-                                                child: LyricsButton(
-                                                  hasLyrics: true,
-                                                  onTap: () => setState(
-                                                    () => _showLyrics = true,
-                                                  ),
-                                                ),
-                                              )
-                                            : const SizedBox.shrink(),
+                                        // No spinner below the cover — badge
+                                        // simply appears once loaded.
                                         loading: () => const SizedBox.shrink(),
                                         error: (_, __) =>
                                             const SizedBox.shrink(),
@@ -391,7 +372,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
                                 ),
-                                child: _LiveSeekBar(gradient: gradH),
+                                child: _LiveSeekBar(
+                                  gradient: gradH,
+                                  accent: palette.primary,
+                                ),
                               ),
                               // Controls — centered, max-width aligned
                               RepaintBoundary(
@@ -405,7 +389,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                       isBuffering: isBuffering,
                                       loopMode: repeatMode,
                                       isShuffled: shuffleEnabled,
-                                      gradient: grad,
+                                      // Stable signature blue — never changes
+                                      // per track; the page background keeps
+                                      // adapting instead.
+                                      gradient: AppColors.accentGradient,
                                       onPlayPause: () {
                                         HapticFeedback.lightImpact();
                                         notifier.togglePlay();
@@ -433,6 +420,21 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                               // Quick actions — centered, compact
                               _BottomActions(
                                 onQueue: () => _showQueue(context),
+                                onLyrics: () {
+                                  if ((lyrics?.value?.hasLyrics ?? false)) {
+                                    setState(() => _showLyrics = true);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No lyrics for this track',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                lyricsAvailable:
+                                    lyrics?.value?.hasLyrics ?? false,
                                 onAddToPlaylist: () =>
                                     _showAddToPlaylist(context, track),
                                 onEqualizer: () => context.push('/equalizer'),
@@ -906,7 +908,8 @@ class _SmallRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Direct on background — no card/box. Active = accent icon + dot.
+    // Direct on background — bright white idle, gradient-filled icon +
+    // glow bar when selected.
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -921,28 +924,34 @@ class _SmallRoundButton extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 transitionBuilder: (c, a) =>
                     ScaleTransition(scale: a, child: c),
-                child: Icon(
-                  icon,
-                  key: ValueKey(active),
-                  color: active
-                      ? AppColors.accent
-                      : AppColors.text.withValues(alpha: 0.7),
-                  size: 22,
-                ),
+                child: active
+                    ? ShaderMask(
+                        key: const ValueKey(true),
+                        shaderCallback: (bounds) =>
+                            AppColors.accentGradient.createShader(bounds),
+                        child: Icon(icon, color: Colors.white, size: 26),
+                      )
+                    : Icon(
+                        icon,
+                        key: const ValueKey(false),
+                        color: AppColors.text,
+                        size: 24,
+                      ),
               ),
               const SizedBox(height: 4),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
-                width: 5,
+                width: active ? 18 : 5,
                 height: 5,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: active ? AppColors.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(3),
+                  gradient: active ? AppColors.accentGradient : null,
+                  color: active ? null : Colors.transparent,
                   boxShadow: active
                       ? [
                           BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.7),
-                            blurRadius: 6,
+                            color: AppColors.accent.withValues(alpha: 0.8),
+                            blurRadius: 8,
                           ),
                         ]
                       : null,
@@ -980,7 +989,8 @@ class _SkipButton extends StatelessWidget {
 /// this bar, not the artwork/controls/background above.
 class _LiveSeekBar extends ConsumerWidget {
   final Gradient gradient;
-  const _LiveSeekBar({required this.gradient});
+  final Color accent;
+  const _LiveSeekBar({required this.gradient, required this.accent});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1001,6 +1011,7 @@ class _LiveSeekBar extends ConsumerWidget {
       duration: effective,
       buffered: buffered,
       gradient: gradient,
+      accent: accent,
       onSeek: notifier.seek,
     );
   }
@@ -1008,11 +1019,15 @@ class _LiveSeekBar extends ConsumerWidget {
 
 class _BottomActions extends StatelessWidget {
   final VoidCallback onQueue;
+  final VoidCallback onLyrics;
+  final bool lyricsAvailable;
   final VoidCallback onAddToPlaylist;
   final VoidCallback onEqualizer;
 
   const _BottomActions({
     required this.onQueue,
+    required this.onLyrics,
+    this.lyricsAvailable = false,
     required this.onAddToPlaylist,
     required this.onEqualizer,
   });
@@ -1020,7 +1035,7 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1028,6 +1043,12 @@ class _BottomActions extends StatelessWidget {
             icon: Icons.queue_music_rounded,
             label: 'Queue',
             onTap: onQueue,
+          ),
+          _ActionIcon(
+            icon: Icons.lyrics_rounded,
+            label: 'Lyrics',
+            highlighted: lyricsAvailable,
+            onTap: onLyrics,
           ),
           _ActionIcon(
             icon: Icons.playlist_add_rounded,
@@ -1049,16 +1070,19 @@ class _ActionIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool highlighted;
 
   const _ActionIcon({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.highlighted = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Direct on background — icon + label, no box.
+    // Direct on background — bright icon + label, no box.
+    final Color main = highlighted ? AppColors.accent : AppColors.text;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -1070,12 +1094,12 @@ class _ActionIcon extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textMuted, size: 22),
+            Icon(icon, color: main, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: AppColors.textFaint,
+                color: highlighted ? AppColors.accent : AppColors.textMuted,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
@@ -1693,8 +1717,8 @@ class _VolumeBar extends StatelessWidget {
                   : volume < 0.5
                   ? Icons.volume_down_rounded
                   : Icons.volume_up_rounded,
-              color: AppColors.textMuted,
-              size: 20,
+              color: AppColors.text,
+              size: 22,
             ),
           ),
         ),
@@ -1820,12 +1844,12 @@ class _DockButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Direct on background — highlight = accent icon + dot, no box.
+    // Direct on background — bright white idle, accent when highlighted.
     final Color main = highlight
         ? AppColors.accent
         : dimmed
         ? AppColors.textFaint
-        : AppColors.textMuted;
+        : AppColors.text;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -1837,7 +1861,7 @@ class _DockButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22, color: main),
+            Icon(icon, size: 24, color: main),
             const SizedBox(height: 4),
             Text(
               label,
@@ -1851,12 +1875,22 @@ class _DockButton extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Container(
-              width: 4,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: highlight ? 16 : 4,
               height: 4,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: highlight ? AppColors.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+                gradient: highlight ? AppColors.accentGradient : null,
+                color: highlight ? null : Colors.transparent,
+                boxShadow: highlight
+                    ? [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.8),
+                          blurRadius: 6,
+                        ),
+                      ]
+                    : null,
               ),
             ),
           ],
@@ -1922,8 +1956,8 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
             child: Icon(
               _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               key: ValueKey(_liked),
-              size: 20,
-              color: _liked ? const Color(0xFFFF5C8A) : AppColors.textMuted,
+              size: 24,
+              color: _liked ? const Color(0xFFFF5C8A) : AppColors.text,
             ),
           ),
           const SizedBox(height: 3),

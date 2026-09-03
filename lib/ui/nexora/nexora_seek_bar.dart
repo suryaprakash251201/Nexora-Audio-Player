@@ -15,6 +15,10 @@ class NexoraSeekBar extends StatefulWidget {
   final ValueChanged<Duration> onSeek;
   final Gradient? gradient;
 
+  /// Base color for the thumb ring + glows so they match [gradient]
+  /// while dragging (no blue-vs-purple mismatch).
+  final Color accent;
+
   const NexoraSeekBar({
     super.key,
     required this.position,
@@ -22,6 +26,7 @@ class NexoraSeekBar extends StatefulWidget {
     required this.onSeek,
     this.buffered = Duration.zero,
     this.gradient,
+    this.accent = AppColors.accent,
   });
 
   @override
@@ -111,7 +116,7 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                         ),
                       ),
                     ),
-                    // Gradient progress + glow
+                    // Gradient progress + glow (glow matches gradient).
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
@@ -122,7 +127,7 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                           borderRadius: BorderRadius.circular(5),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accent.withValues(alpha: 0.55),
+                              color: widget.accent.withValues(alpha: 0.55),
                               blurRadius: 14,
                               spreadRadius: 0,
                             ),
@@ -141,12 +146,12 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                             shape: BoxShape.circle,
                             color: Colors.white,
                             border: Border.all(
-                              color: AppColors.accent.withValues(alpha: 0.6),
+                              color: widget.accent.withValues(alpha: 0.65),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.6),
+                                color: widget.accent.withValues(alpha: 0.6),
                                 blurRadius: 16,
                               ),
                               BoxShadow(

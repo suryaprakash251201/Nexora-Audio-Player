@@ -1,14 +1,19 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../nexora/nexora_tokens.dart';
 import '../theme.dart';
 
-/// Full-screen synced lyrics display with elegant typography and smooth scrolling.
+/// Full-screen synced lyrics — glass over blurred artwork, bold live line
+/// with glow pill + smooth auto-scroll. Tap a synced line to jump the
+/// song there; double-tap header/artwork to go back to the player.
 class LyricsDisplay extends StatefulWidget {
   final List<LyricLine> lyrics;
   final Duration currentPosition;
   final VoidCallback? onClose;
+  final ValueChanged<Duration>? onLineTap;
   final String? title;
   final String? artist;
   final String? artworkUrl;
@@ -18,6 +23,7 @@ class LyricsDisplay extends StatefulWidget {
     required this.lyrics,
     required this.currentPosition,
     this.onClose,
+    this.onLineTap,
     this.title,
     this.artist,
     this.artworkUrl,
@@ -72,55 +78,127 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
     super.dispose();
   }
 
+  void _close() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.maybePop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            if (widget.artworkUrl != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: _buildArtwork(),
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Glass backdrop — blurred artwork + deep scrim.
+          if (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty)
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 46, sigmaY: 46),
+              child: Image.network(
+                widget.artworkUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    Container(color: AppColors.background),
               ),
-            Expanded(
-              child: widget.lyrics.isEmpty
-                  ? _buildEmptyState()
-                  : _buildLyricsList(),
+            )
+          else
+            Container(color: AppColors.background),
+          Container(color: Colors.black.withValues(alpha: 0.62)),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.background.withValues(alpha: 0.55),
+                  Colors.transparent,
+                  AppColors.background.withValues(alpha: 0.78),
+                ],
+                stops: const [0.0, 0.4, 1.0],
+              ),
             ),
-          ],
-        ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                if (widget.artworkUrl != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: _buildArtwork(),
+                  ),
+                // Tap-a-line hint
+                if (widget.lyrics.isNotEmpty &&
+                    widget.lyrics.any((l) => l.timestamp != null))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'TAP A LINE TO JUMP  •  DOUBLE-TAP ART TO GO BACK',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: widget.lyrics.isEmpty
+                      ? _buildEmptyState()
+                      : _buildLyricsList(),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildArtwork() {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowColor,
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    // Double-tap artwork ⇄ player.
+    return GestureDetector(
+      onDoubleTap: () {
+        HapticFeedback.lightImpact();
+        _close();
+      },
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1.2,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          widget.artworkUrl!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Container(
-            color: AppColors.surfaceRaised,
-            child: Icon(
-              Icons.music_note_rounded,
-              color: AppColors.textDim,
-              size: 28,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.35),
+              blurRadius: 28,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            widget.artworkUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(
+              color: AppColors.surfaceRaised,
+              child: Icon(
+                Icons.music_note_rounded,
+                color: AppColors.textDim,
+                size: 28,
+              ),
             ),
           ),
         ),
@@ -129,49 +207,58 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.text,
-              size: 30,
+    // Double-tap header ⇄ player.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: () {
+        HapticFeedback.lightImpact();
+        _close();
+      },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+              onPressed: _close,
             ),
-            onPressed: widget.onClose ?? () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Text(
-                  'LYRICS',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 10,
-                    letterSpacing: 2.4,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (widget.title != null) ...[
-                  const SizedBox(height: 4),
+            Expanded(
+              child: Column(
+                children: [
                   Text(
-                    widget.title!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    'LYRICS',
                     style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 10,
+                      letterSpacing: 2.4,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
+                  if (widget.title != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.title!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 48),
-        ],
+            const SizedBox(width: 48),
+          ],
+        ),
       ),
     );
   }
@@ -181,20 +268,27 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.lyrics_outlined, size: 48, color: AppColors.textDim),
+          Icon(
+            Icons.lyrics_outlined,
+            size: 48,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'No lyrics available',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: Colors.white,
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Lyrics will appear here when available',
-            style: TextStyle(color: AppColors.textDim, fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -202,41 +296,90 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
   }
 
   Widget _buildLyricsList() {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      itemCount: widget.lyrics.length,
-      itemBuilder: (context, index) {
-        final line = widget.lyrics[index];
-        final isCurrent = index == _currentLine;
-        final isPast = index < _currentLine;
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          Colors.black,
+          Colors.black,
+          Colors.transparent,
+        ],
+        stops: [0.0, 0.08, 0.92, 1.0],
+      ).createShader(bounds),
+      blendMode: BlendMode.dstIn,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        itemCount: widget.lyrics.length,
+        itemBuilder: (context, index) {
+          final line = widget.lyrics[index];
+          final isCurrent = index == _currentLine;
+          final isPast = _currentLine >= 0 && index < _currentLine;
+          final tappable = line.timestamp != null && widget.onLineTap != null;
 
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: TextStyle(
-                color: isCurrent
-                    ? AppColors.text
-                    : isPast
-                    ? AppColors.textDim
-                    : AppColors.textMuted.withValues(alpha: 0.6),
-                fontSize: isCurrent ? 20 : 17,
-                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                height: 1.5,
-                letterSpacing: isCurrent ? -0.2 : 0,
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: tappable
+                ? () {
+                    HapticFeedback.selectionClick();
+                    widget.onLineTap!(line.timestamp!);
+                  }
+                : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: isCurrent ? AppColors.accentGradient : null,
+                color: isCurrent ? null : Colors.white.withValues(alpha: 0.04),
+                border: Border.all(
+                  color: isCurrent
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.05),
+                  width: 0.8,
+                ),
+                boxShadow: isCurrent
+                    ? [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.45),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : null,
               ),
-              child: Text(line.text, textAlign: TextAlign.center),
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                style: TextStyle(
+                  color: isCurrent
+                      ? Colors.white
+                      : isPast
+                      ? Colors.white.withValues(alpha: 0.45)
+                      : Colors.white.withValues(alpha: 0.75),
+                  fontSize: isCurrent ? 21 : 16.5,
+                  fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+                  height: 1.45,
+                  letterSpacing: isCurrent ? -0.3 : 0,
+                  shadows: isCurrent
+                      ? [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(line.text, textAlign: TextAlign.center),
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
