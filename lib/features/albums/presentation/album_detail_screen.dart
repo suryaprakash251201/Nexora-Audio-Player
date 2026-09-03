@@ -11,8 +11,10 @@ import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
+import '../../../ui/widgets/track_menu_box.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
 
 /// Album detail — audiophile redesign.
 ///
@@ -228,7 +230,8 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                                   onTap: () => ref
                                       .read(playerProvider.notifier)
                                       .playSongs(_tracks, initialIndex: i),
-                                  onMore: () {},
+                                  onMoreAt: (anchor) =>
+                                      _showSongMenu(s, anchor),
                                 );
                               },
                             ),
@@ -346,6 +349,35 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showSongMenu(Song s, Rect anchor) {
+    showTrackMenuBox(
+      context: context,
+      anchor: anchor,
+      options: [
+        TrackMenuOption(
+          icon: Icons.play_arrow_rounded,
+          label: 'Play next',
+          onTap: () => ref.read(playerProvider.notifier).playNext(s),
+        ),
+        TrackMenuOption(
+          icon: Icons.queue_music_rounded,
+          label: 'Add to queue',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueue(s);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+          },
+        ),
+        TrackMenuOption(
+          icon: Icons.playlist_add_rounded,
+          label: 'Add to playlist',
+          onTap: () => showAddToPlaylistSheet(context, song: s),
+        ),
+      ],
     );
   }
 

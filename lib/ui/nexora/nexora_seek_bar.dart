@@ -143,15 +143,8 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                               color: widget.accent.withValues(alpha: 0.65),
                               width: 1.5,
                             ),
-                            // Single neutral drop shadow — no colored glow
-                            // (it clashed with the adaptive gradient).
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            // No shadow/glow on the thumb — crisp control
+                            // sitting directly on the track.
                           ),
                           child: Center(
                             child: Container(
@@ -172,7 +165,9 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                         activeTrackColor: Colors.transparent,
                         inactiveTrackColor: Colors.transparent,
                         thumbColor: Colors.transparent,
-                        overlayColor: AppColors.accent.withValues(alpha: 0.14),
+                        // Transparent press overlay: the invisible a11y
+                        // slider must never paint a halo while dragging.
+                        overlayColor: Colors.transparent,
                         thumbShape: const RoundSliderThumbShape(
                           enabledThumbRadius: 11,
                         ),

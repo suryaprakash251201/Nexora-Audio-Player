@@ -10,6 +10,8 @@ import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/playlist_cover.dart';
+import '../../../ui/widgets/track_menu_box.dart';
+import 'add_to_playlist_sheet.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 
@@ -244,7 +246,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           onTap: () => ref
                               .read(playerProvider.notifier)
                               .playSongs(_tracks, initialIndex: i),
-                          onMore: () => _showTrackOptions(s),
+                          onMoreAt: (anchor) => _showTrackOptions(s, anchor),
                         ),
                       ),
                     );
@@ -387,99 +389,61 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     return PlaylistCover(artworkUrls: urls, borderRadius: 0, title: p.name);
   }
 
-  void _showTrackOptions(Song s) {
-    showModalBottomSheet(
+  void _showTrackOptions(Song s, Rect anchor) {
+    final canRemove = (s.itemRef ?? '').isNotEmpty;
+    showTrackMenuBox(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      anchor: anchor,
+      options: [
+        TrackMenuOption(
+          icon: Icons.play_arrow_rounded,
+          label: 'Play next',
+          onTap: () => ref.read(playerProvider.notifier).playNext(s),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.textFaint.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: s.coverUrl != null
-                        ? Image.network(
-                            s.coverUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              color: AppColors.surfaceRaised,
-                              child: Icon(
-                                Icons.music_note_rounded,
-                                color: AppColors.textDim,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: AppColors.surfaceRaised,
-                            child: Icon(
-                              Icons.music_note_rounded,
-                              color: AppColors.textDim,
-                            ),
-                          ),
-                  ),
-                ),
-                title: Text(
-                  s.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                subtitle: Text(
-                  s.artist ?? 'Unknown',
-                  style: TextStyle(color: AppColors.textMuted),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
-                title: Text(
-                  'Play next',
-                  style: TextStyle(color: AppColors.text),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(playerProvider.notifier).playNext(s);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
-                title: Text(
-                  'Add to queue',
-                  style: TextStyle(color: AppColors.text),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(playerProvider.notifier).addToQueue(s);
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+        TrackMenuOption(
+          icon: Icons.queue_music_rounded,
+          label: 'Add to queue',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueue(s);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+          },
+        ),
+        TrackMenuOption(
+          icon: Icons.playlist_add_rounded,
+          label: 'Add to playlist',
+          onTap: () => showAddToPlaylistSheet(context, song: s),
+        ),
+        if (canRemove)
+          TrackMenuOption(
+            icon: Icons.delete_outline_rounded,
+            label: 'Remove from playlist',
+            danger: true,
+            onTap: () => _removeFromPlaylist(s),
           ),
-        ),
-      ),
+      ],
     );
+  }
+
+  Future<void> _removeFromPlaylist(Song s) async {
+    try {
+      await ref
+          .read(playlistsRepositoryProvider)
+          .removeTrack(widget.playlistId, s.itemRef!);
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Removed from playlist')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Remove failed: $e')));
+      }
+    }
   }
 
   void _showOptions() {

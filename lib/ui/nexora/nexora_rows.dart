@@ -23,6 +23,7 @@ class NexoraTrackRow extends StatelessWidget {
   final bool isDownloaded;
   final VoidCallback? onTap;
   final VoidCallback? onMore;
+  final void Function(Rect anchor)? onMoreAt;
   final Widget? trailing;
 
   const NexoraTrackRow({
@@ -38,6 +39,7 @@ class NexoraTrackRow extends StatelessWidget {
     this.isDownloaded = false,
     this.onTap,
     this.onMore,
+    this.onMoreAt,
     this.trailing,
   });
 
@@ -196,19 +198,41 @@ class NexoraTrackRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (onMore != null && trailing == null)
-                  SizedBox(
-                    width: 36,
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.more_horiz_rounded,
-                        size: 18,
-                        color: isCurrent
-                            ? AppColors.onSelection.withValues(alpha: 0.90)
-                            : AppColors.textDim,
+                if ((onMore != null || onMoreAt != null) && trailing == null)
+                  Builder(
+                    builder: (btnContext) => SizedBox(
+                      width: 36,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.more_horiz_rounded,
+                          size: 18,
+                          color: isCurrent
+                              ? AppColors.onSelection.withValues(alpha: 0.90)
+                              : AppColors.textDim,
+                        ),
+                        onPressed: () {
+                          // Prefer the anchored mini menu; fall back to the
+                          // legacy callback when no anchor handler is set.
+                          if (onMoreAt != null) {
+                            final box =
+                                btnContext.findRenderObject() as RenderBox?;
+                            if (box != null && box.hasSize) {
+                              final pos = box.localToGlobal(Offset.zero);
+                              onMoreAt!(
+                                Rect.fromLTWH(
+                                  pos.dx,
+                                  pos.dy,
+                                  box.size.width,
+                                  box.size.height,
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                          onMore?.call();
+                        },
+                        tooltip: 'More',
                       ),
-                      onPressed: onMore,
-                      tooltip: 'More',
                     ),
                   ),
               ],

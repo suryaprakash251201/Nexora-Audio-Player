@@ -67,11 +67,22 @@ class PlaylistsApi {
     );
   }
 
+  /// Server-set cover (cover_root_id + cover_path on the playlist) as an
+  /// authenticated thumbnail URL. Null when the owner never set one.
+  String? _serverCover(Map<String, dynamic> raw, String base, String token) {
+    final root = (raw['cover_root_id'] ?? '').toString();
+    final path = (raw['cover_path'] ?? '').toString();
+    if (root.isEmpty || path.isEmpty) return null;
+    return NexoraFiles.thumbnailUrl(base, root, path, token, size: 512);
+  }
+
   Future<List<Playlist>> getPlaylists() async {
     final res = await _client.get(ApiConstants.playlists);
     final data = res.data;
     final items =
         (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    final base = await _resolvedBaseUrl();
+    final token = await _storage.getToken() ?? '';
     final out = <Playlist>[];
     for (final raw in items) {
       if (raw is! Map<String, dynamic>) continue;
@@ -82,17 +93,21 @@ class PlaylistsApi {
           tracks.add(await _itemToSong(it));
         }
       }
+      // Prefer the owner's server-side cover; fall back to first track art.
+      final serverCover = _serverCover(raw, base, token);
       out.add(
         Playlist(
           id: (raw['id'] ?? '').toString(),
           name: (raw['name'] ?? 'Untitled').toString(),
           description: raw['description']?.toString(),
-          coverUrl: tracks
-              .map((track) => track.coverUrl ?? track.artworkUrl)
-              .firstWhere(
-                (url) => url != null && url.isNotEmpty,
-                orElse: () => null,
-              ),
+          coverUrl:
+              serverCover ??
+              tracks
+                  .map((track) => track.coverUrl ?? track.artworkUrl)
+                  .firstWhere(
+                    (url) => url != null && url.isNotEmpty,
+                    orElse: () => null,
+                  ),
           trackCount: tracks.length,
           isPublic: raw['is_public'] == true,
           tracks: tracks,
@@ -133,10 +148,13 @@ class PlaylistsApi {
       for (final it in (raw['items'] as List?) ?? []) {
         if (it is Map<String, dynamic>) tracks.add(await _itemToSong(it));
       }
+      final base = await _resolvedBaseUrl();
+      final token = await _storage.getToken() ?? '';
       return Playlist(
         id: (raw['id'] ?? '').toString(),
         name: (raw['name'] ?? name).toString(),
         description: raw['description']?.toString(),
+        coverUrl: _serverCover(raw, base, token),
         trackCount: tracks.length,
         tracks: tracks,
       );
@@ -160,13 +178,12 @@ class PlaylistsApi {
   }
 
   Future<void> addTrack(String playlistId, String songId) async {
-    final root = NexoraFiles.parseRootId(songId);
-    final path = NexoraFiles.parsePath(songId);
+    final parts = NexoraFiles.splitId(songId);
     await _client.post(
       ApiConstants.playlistItems(playlistId),
       data: {
         'items': [
-          {'root_id': root, 'path': path},
+          {'root_id': parts.root, 'path': parts.path},
         ],
       },
     );

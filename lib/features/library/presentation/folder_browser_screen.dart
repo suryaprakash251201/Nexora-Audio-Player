@@ -12,6 +12,9 @@ import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../domain/entities/song.dart';
+import '../../../ui/widgets/track_menu_box.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
 
 /// A folder in the Nexora Music root, with a lazily resolved cover.
 class FolderEntry {
@@ -265,8 +268,12 @@ class FolderBrowserScreen extends ConsumerWidget {
                                     content.songs.cast(),
                                     initialIndex: i,
                                   ),
-                              onMore: () =>
-                                  _showSongMenu(context, ref, content.songs[i]),
+                              onMoreAt: (anchor) => _showSongMenu(
+                                context,
+                                ref,
+                                content.songs[i],
+                                anchor,
+                              ),
                             ),
                             if (i != content.songs.length - 1)
                               const NexoraDivider(indent: 64, endIndent: 0),
@@ -286,52 +293,38 @@ class FolderBrowserScreen extends ConsumerWidget {
     );
   }
 
-  void _showSongMenu(BuildContext context, WidgetRef ref, dynamic song) {
-    showModalBottomSheet(
+  void _showSongMenu(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic song,
+    Rect anchor,
+  ) {
+    final s = song as Song;
+    showTrackMenuBox(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      anchor: anchor,
+      options: [
+        TrackMenuOption(
+          icon: Icons.play_arrow_rounded,
+          label: 'Play next',
+          onTap: () => ref.read(playerProvider.notifier).playNext(s),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.textFaint.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.play_arrow_rounded),
-                title: const Text('Play next'),
-                onTap: () {
-                  Navigator.pop(c);
-                  ref.read(playerProvider.notifier).playNext(song);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.queue_music_rounded),
-                title: const Text('Add to queue'),
-                onTap: () {
-                  Navigator.pop(c);
-                  ref.read(playerProvider.notifier).addToQueue(song);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Added to queue')),
-                  );
-                },
-              ),
-            ],
-          ),
+        TrackMenuOption(
+          icon: Icons.queue_music_rounded,
+          label: 'Add to queue',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueue(s);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+          },
         ),
-      ),
+        TrackMenuOption(
+          icon: Icons.playlist_add_rounded,
+          label: 'Add to playlist',
+          onTap: () => showAddToPlaylistSheet(context, song: s),
+        ),
+      ],
     );
   }
 }
@@ -564,13 +557,15 @@ class _SongRow extends StatelessWidget {
   final dynamic song;
   final bool isCurrent;
   final VoidCallback onTap;
-  final VoidCallback onMore;
+  final VoidCallback? onMore;
+  final void Function(Rect anchor)? onMoreAt;
   const _SongRow({
     required this.index,
     required this.song,
     required this.isCurrent,
     required this.onTap,
-    required this.onMore,
+    this.onMore,
+    this.onMoreAt,
   });
 
   @override
@@ -717,16 +712,35 @@ class _SongRow extends StatelessWidget {
                     ),
                   ),
                 ],
-                // More button
-                IconButton(
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    size: 20,
-                    color: isCurrent
-                        ? AppColors.onSelection.withValues(alpha: 0.90)
-                        : AppColors.textDim,
+                // More button — anchored mini menu when available.
+                Builder(
+                  builder: (btnContext) => IconButton(
+                    icon: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 20,
+                      color: isCurrent
+                          ? AppColors.onSelection.withValues(alpha: 0.90)
+                          : AppColors.textDim,
+                    ),
+                    onPressed: () {
+                      if (onMoreAt != null) {
+                        final box = btnContext.findRenderObject() as RenderBox?;
+                        if (box != null && box.hasSize) {
+                          final pos = box.localToGlobal(Offset.zero);
+                          onMoreAt!(
+                            Rect.fromLTWH(
+                              pos.dx,
+                              pos.dy,
+                              box.size.width,
+                              box.size.height,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                      onMore?.call();
+                    },
                   ),
-                  onPressed: onMore,
                 ),
               ],
             ),

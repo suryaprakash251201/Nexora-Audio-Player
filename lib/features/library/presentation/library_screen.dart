@@ -12,6 +12,8 @@ import '../../../domain/entities/album.dart';
 import '../../../domain/entities/artist.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../ui/widgets/playlist_cover.dart';
+import '../../../ui/widgets/track_menu_box.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
@@ -311,66 +313,39 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             onTap: () => ref
                 .read(playerProvider.notifier)
                 .playSongs(_songs, initialIndex: i),
-            onMore: () => _showSongMenu(s),
+            onMoreAt: (anchor) => _showSongMenu(s, anchor),
           );
         },
       ),
     );
   }
 
-  void _showSongMenu(Song song) {
-    showModalBottomSheet(
+  void _showSongMenu(Song song, Rect anchor) {
+    showTrackMenuBox(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (c) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      anchor: anchor,
+      options: [
+        TrackMenuOption(
+          icon: Icons.play_arrow_rounded,
+          label: 'Play next',
+          onTap: () => ref.read(playerProvider.notifier).playNext(song),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.textFaint.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
-                title: Text(
-                  'Play next',
-                  style: TextStyle(color: AppColors.text),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(playerProvider.notifier).playNext(song);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
-                title: Text(
-                  'Add to queue',
-                  style: TextStyle(color: AppColors.text),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(playerProvider.notifier).addToQueue(song);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Added to queue')),
-                  );
-                },
-              ),
-            ],
-          ),
+        TrackMenuOption(
+          icon: Icons.queue_music_rounded,
+          label: 'Add to queue',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueue(song);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+          },
         ),
-      ),
+        TrackMenuOption(
+          icon: Icons.playlist_add_rounded,
+          label: 'Add to playlist',
+          onTap: () => showAddToPlaylistSheet(context, song: song),
+        ),
+      ],
     );
   }
 }

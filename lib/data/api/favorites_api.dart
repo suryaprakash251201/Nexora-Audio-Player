@@ -45,20 +45,18 @@ class FavoritesApi {
   }
 
   Future<void> addFavorite(String songId) async {
-    final root = NexoraFiles.parseRootId(songId);
-    final path = NexoraFiles.parsePath(songId);
+    final parts = NexoraFiles.splitId(songId);
     await _client.post(
       ApiConstants.favorites,
-      data: {'root': root, 'path': path},
+      data: {'root': parts.root, 'path': parts.path},
     );
   }
 
   Future<void> removeFavorite(String songId) async {
-    final root = NexoraFiles.parseRootId(songId);
-    final path = NexoraFiles.parsePath(songId);
+    final parts = NexoraFiles.splitId(songId);
     await _client.delete(
       ApiConstants.favorites,
-      query: {'root': root, 'path': path},
+      query: {'root': parts.root, 'path': parts.path},
     );
   }
 }

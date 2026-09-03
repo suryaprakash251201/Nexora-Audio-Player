@@ -90,6 +90,9 @@ class HistoryApi {
         rootId: rootId,
         extension: extension,
       );
+      // /recents logs every streamed file (video, docs…) — the music
+      // app only ever shows playable audio with real cover art.
+      if (!NexoraFiles.isAudio(f)) continue;
       out.add(
         PlaybackHistoryItem(
           songId: NexoraFiles.songId(f),

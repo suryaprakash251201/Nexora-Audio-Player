@@ -80,6 +80,25 @@ class NexoraFiles {
   static String parsePath(String id) =>
       id.contains('|') ? id.split('|').skip(1).join('|') : id;
 
+  /// Split any song reference into (root, path).
+  /// Accepts canonical "rootId|path" as well as absolute stream URLs
+  /// like ".../files/raw?root=<r>&path=<p>&token=..." (MediaItem ids),
+  /// which would otherwise poison favorite/playlist calls with a 400.
+  static ({String root, String path}) splitId(String id) {
+    if (id.contains('|')) {
+      final i = id.indexOf('|');
+      return (
+        root: id.substring(0, i),
+        path: id.substring(i + 1).split('?').first,
+      );
+    }
+    final q = Uri.tryParse(id)?.queryParameters ?? const {};
+    final root = (q['root'] ?? '').trim();
+    final path = (q['path'] ?? '').trim();
+    if (root.isNotEmpty && path.isNotEmpty) return (root: root, path: path);
+    return (root: id, path: id);
+  }
+
   /// Absolute thumbnail URL for a file path. The `?token=` query fully
   /// authenticates the request (verified against the live server), so plain
   /// `Image.network` and `MediaItem.artUri` both work without headers.
