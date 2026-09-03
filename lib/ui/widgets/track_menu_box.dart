@@ -1,7 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/download/download_manager.dart';
+import '../../data/repositories/songs_repository.dart';
+import '../../domain/entities/song.dart';
 import '../theme.dart';
 
 /// One row inside the track options mini menu.
@@ -17,6 +21,62 @@ class TrackMenuOption {
     required this.onTap,
     this.danger = false,
   });
+}
+
+/// Download / remove-download option reflecting live download state.
+/// Label is resolved synchronously from [downloadedIdsProvider], so the
+/// menu never needs an async gap before opening.
+TrackMenuOption downloadMenuOption(
+  WidgetRef ref,
+  BuildContext context,
+  Song song,
+) {
+  final downloaded = ref.read(downloadedIdsProvider).contains(song.id);
+  return TrackMenuOption(
+    icon: downloaded ? Icons.download_done_rounded : Icons.download_rounded,
+    label: downloaded ? 'Remove download' : 'Download',
+    onTap: () => toggleDownload(ref, context, song, downloaded),
+  );
+}
+
+/// Performs the download (or removal), updates live state, and confirms.
+/// Fire-and-forget safe: all failures surface as a snackbar, never silent.
+Future<void> toggleDownload(
+  WidgetRef ref,
+  BuildContext context,
+  Song song,
+  bool currentlyDownloaded,
+) async {
+  final manager = ref.read(downloadManagerProvider);
+  final ids = ref.read(downloadedIdsProvider.notifier);
+  void say(String message) {
+    try {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {}
+  }
+
+  try {
+    if (currentlyDownloaded) {
+      await manager.removeTrackDownload(song.id);
+      ids.markRemoved(song.id);
+      say('Download removed');
+      return;
+    }
+    final url =
+        song.streamUrl ??
+        await ref.read(songsRepositoryProvider).streamUrl(song.id);
+    final saved = await manager.downloadTrack(song.id, url);
+    if (saved == null) {
+      say('Download failed — check connection and storage');
+      return;
+    }
+    ids.markDownloaded(song.id);
+    say('Downloaded for offline playback');
+  } catch (e) {
+    say('Download failed: $e');
+  }
 }
 
 /// Small anchored menu box for a track's ⋯ button.

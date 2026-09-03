@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../widgets/artwork_image.dart' show nexoraArtworkCache;
 import 'nexora_tokens.dart';
 
 /// Modern album artwork — soft 14px radius, hairline rim, layered shadow.
@@ -41,21 +43,19 @@ class NexoraArtwork extends StatelessWidget {
       child: ClipRRect(
         borderRadius: radius,
         child: url != null && url!.isNotEmpty
-            ? Image.network(
-                url!,
+            ? CachedNetworkImage(
+                imageUrl: url!,
                 width: size,
                 height: size,
                 fit: fit,
-                errorBuilder: (_, __, ___) =>
+                cacheManager: nexoraArtworkCache,
+                errorWidget: (_, __, ___) =>
                     _Placeholder(size: size, icon: placeholderIcon),
-                loadingBuilder: (c, child, progress) {
-                  if (progress == null) return child;
-                  return _Placeholder(
-                    size: size,
-                    icon: placeholderIcon,
-                    loading: true,
-                  );
-                },
+                progressIndicatorBuilder: (c, u, p) => _Placeholder(
+                  size: size,
+                  icon: placeholderIcon,
+                  loading: true,
+                ),
               )
             : _Placeholder(size: size, icon: placeholderIcon),
       ),

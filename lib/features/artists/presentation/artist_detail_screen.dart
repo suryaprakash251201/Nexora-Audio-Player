@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +9,7 @@ import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../../ui/widgets/error_view.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
@@ -248,10 +250,11 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
             ),
             child: ClipOval(
               child: a.artworkUrl != null
-                  ? Image.network(
-                      a.artworkUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: a.artworkUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
+                      cacheManager: nexoraArtworkCache,
+                      errorWidget: (_, _, _) => Container(
                         color: AppColors.surfaceRaised,
                         child: Icon(
                           Icons.person_rounded,

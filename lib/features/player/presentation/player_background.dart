@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../../ui/widgets/vinyl_disc.dart';
 
 double _sin(double v) => math.sin(v);
@@ -80,10 +82,11 @@ class _AdaptiveBackgroundState extends State<AdaptiveBackground>
                     AppColors.background.withValues(alpha: 0.78),
                     BlendMode.srcOver,
                   ),
-                  child: Image.network(
-                    widget.artworkUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.artworkUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    cacheManager: nexoraArtworkCache,
+                    errorWidget: (_, _, _) => const SizedBox.shrink(),
                   ),
                 ),
               ),

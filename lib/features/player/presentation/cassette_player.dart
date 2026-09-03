@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 
 class CassettePlayer extends StatefulWidget {
   final bool isPlaying;
@@ -118,10 +120,11 @@ class _CassettePlayerState extends State<CassettePlayer>
                         child: widget.artworkUrl != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: Image.network(
-                                  widget.artworkUrl!,
+                                child: CachedNetworkImage(
+                                  imageUrl: widget.artworkUrl!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  cacheManager: nexoraArtworkCache,
+                                  errorWidget: (_, __, ___) =>
                                       _tapePlaceholder(),
                                 ),
                               )

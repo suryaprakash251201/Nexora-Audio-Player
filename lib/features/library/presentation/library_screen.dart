@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,9 +19,11 @@ import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../../ui/widgets/error_view.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../core/download/download_manager.dart';
 import 'folder_browser_screen.dart';
 
 /// Library — five editorial lanes behind a confident header.
@@ -304,7 +307,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             isCurrent: isCurrent,
             isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
             isFavorite: s.isFavorite,
-            isDownloaded: s.isDownloaded,
+            isDownloaded:
+                s.isDownloaded ||
+                ref.watch(downloadedIdsProvider).contains(s.id),
             onTap: () => ref
                 .read(playerProvider.notifier)
                 .playSongs(_songs, initialIndex: i),
@@ -340,6 +345,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
           label: 'Add to playlist',
           onTap: () => showAddToPlaylistSheet(context, song: song),
         ),
+        downloadMenuOption(ref, context, song),
       ],
     );
   }
@@ -839,11 +845,11 @@ class _LibraryFolderCard extends ConsumerWidget {
                   children: [
                     coverAsync.when(
                       data: (url) => url != null && url.isNotEmpty
-                          ? Image.network(
-                              url,
+                          ? CachedNetworkImage(
+                              imageUrl: url,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const _FolderFallback(),
+                              cacheManager: nexoraArtworkCache,
+                              errorWidget: (_, _, _) => const _FolderFallback(),
                             )
                           : const _FolderFallback(),
                       loading: () => Container(

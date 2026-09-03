@@ -22,6 +22,7 @@ dependencies:
   just_audio: ^0.10.6
   audio_service: ^0.18.19
   audio_session: ^0.2.4
+  cached_network_image: ^3.4.1
   google_fonts: ^8.2.1
 
 dev_dependencies:

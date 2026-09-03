@@ -1,9 +1,11 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import 'artwork_image.dart' show nexoraArtworkCache;
 
 /// Full-screen synced lyrics — glass over blurred artwork, bold live line
 /// with glow pill + smooth auto-scroll. Tap a synced line to jump the
@@ -124,10 +126,11 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
           if (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty)
             ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 46, sigmaY: 46),
-              child: Image.network(
-                widget.artworkUrl!,
+              child: CachedNetworkImage(
+                imageUrl: widget.artworkUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
+                cacheManager: nexoraArtworkCache,
+                errorWidget: (_, _, _) =>
                     Container(color: AppColors.background),
               ),
             )
@@ -216,10 +219,11 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Image.network(
-            widget.artworkUrl!,
+          child: CachedNetworkImage(
+            imageUrl: widget.artworkUrl!,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
+            cacheManager: nexoraArtworkCache,
+            errorWidget: (_, _, _) => Container(
               color: AppColors.surfaceRaised,
               child: Icon(
                 Icons.music_note_rounded,

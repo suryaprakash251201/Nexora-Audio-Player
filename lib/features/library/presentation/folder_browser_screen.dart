@@ -12,6 +12,7 @@ import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../core/download/download_manager.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/widgets/track_menu_box.dart';
 import '../../playlists/presentation/add_to_playlist_sheet.dart';
@@ -262,6 +263,11 @@ class FolderBrowserScreen extends ConsumerWidget {
                               isCurrent:
                                   ref.watch(playerProvider).currentTrack?.id ==
                                   content.songs[i].id,
+                              isDownloaded:
+                                  (content.songs[i] as Song).isDownloaded ||
+                                  ref
+                                      .watch(downloadedIdsProvider)
+                                      .contains(content.songs[i].id),
                               onTap: () => ref
                                   .read(playerProvider.notifier)
                                   .playSongs(
@@ -324,6 +330,7 @@ class FolderBrowserScreen extends ConsumerWidget {
           label: 'Add to playlist',
           onTap: () => showAddToPlaylistSheet(context, song: s),
         ),
+        downloadMenuOption(ref, context, s),
       ],
     );
   }
@@ -556,12 +563,14 @@ class _SongRow extends StatelessWidget {
   final int index;
   final dynamic song;
   final bool isCurrent;
+  final bool isDownloaded;
   final VoidCallback onTap;
   final void Function(Rect anchor)? onMoreAt;
   const _SongRow({
     required this.index,
     required this.song,
     required this.isCurrent,
+    this.isDownloaded = false,
     required this.onTap,
     this.onMoreAt,
   });
@@ -710,6 +719,17 @@ class _SongRow extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (isDownloaded)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.download_done_rounded,
+                      size: 15,
+                      color: isCurrent
+                          ? AppColors.onSelection.withValues(alpha: 0.90)
+                          : AppColors.success,
+                    ),
+                  ),
                 // More button — anchored mini menu when available.
                 Builder(
                   builder: (btnContext) => IconButton(

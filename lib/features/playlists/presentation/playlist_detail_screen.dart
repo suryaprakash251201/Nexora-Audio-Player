@@ -14,6 +14,7 @@ import '../../../ui/widgets/track_menu_box.dart';
 import 'add_to_playlist_sheet.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../core/download/download_manager.dart';
 
 /// Playlist detail — full audiophile redesign.
 ///
@@ -242,7 +243,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           isCurrent: isCurrent,
                           isPlaying: playing,
                           isFavorite: s.isFavorite,
-                          isDownloaded: s.isDownloaded,
+                          isDownloaded:
+                              s.isDownloaded ||
+                              ref.watch(downloadedIdsProvider).contains(s.id),
                           onTap: () => ref
                               .read(playerProvider.notifier)
                               .playSongs(_tracks, initialIndex: i),
@@ -415,6 +418,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           label: 'Add to playlist',
           onTap: () => showAddToPlaylistSheet(context, song: s),
         ),
+        downloadMenuOption(ref, context, s),
         if (canRemove)
           TrackMenuOption(
             icon: Icons.delete_outline_rounded,

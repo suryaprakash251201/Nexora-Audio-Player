@@ -1,8 +1,21 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/storage/secure_storage_service.dart';
 import '../theme.dart';
+
+/// Shared 7-day disk cache for every artwork surface (rows, covers,
+/// heroes, player). This is what makes cached art survive offline —
+/// plain `Image.network` never guaranteed that.
+final nexoraArtworkCache = CacheManager(
+  Config(
+    'nexoraArtwork',
+    stalePeriod: const Duration(days: 7),
+    maxNrOfCacheObjects: 1500,
+  ),
+);
 
 /// Provides the current bearer token for authenticated image requests.
 final authTokenProvider = FutureProvider<String?>((ref) async {
@@ -56,16 +69,14 @@ class ArtworkImage extends ConsumerWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(color: AppColors.surfaceRaised),
-        child: Image.network(
-          url!,
+        child: CachedNetworkImage(
+          imageUrl: url!,
           key: ValueKey(imageKey),
           fit: fit,
-          headers: headers,
-          errorBuilder: (c, e, s) => _fallback(),
-          loadingBuilder: (c, child, progress) {
-            if (progress == null) return child;
-            return _fallback(isLoading: true);
-          },
+          httpHeaders: headers,
+          cacheManager: nexoraArtworkCache,
+          errorWidget: (c, e, s) => _fallback(),
+          progressIndicatorBuilder: (c, u, p) => _fallback(isLoading: true),
         ),
       ),
     );

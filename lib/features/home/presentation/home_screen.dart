@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_surfaces.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/shimmer_loading.dart';
@@ -1292,10 +1294,11 @@ class _HomeFolderCard extends ConsumerWidget {
                   children: [
                     coverAsync.when(
                       data: (url) => url != null && url.isNotEmpty
-                          ? Image.network(
-                              url,
+                          ? CachedNetworkImage(
+                              imageUrl: url,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
+                              cacheManager: nexoraArtworkCache,
+                              errorWidget: (_, _, _) => Container(
                                 color: AppColors.surfaceRaised,
                                 child: Icon(
                                   Icons.folder_rounded,

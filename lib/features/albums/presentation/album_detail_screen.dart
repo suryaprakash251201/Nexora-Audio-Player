@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,10 +11,12 @@ import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/track_menu_box.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../core/download/download_manager.dart';
 import '../../playlists/presentation/add_to_playlist_sheet.dart';
 
 /// Album detail — audiophile redesign.
@@ -226,7 +229,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                                       isCurrent &&
                                       ref.watch(playerProvider).isPlaying,
                                   isFavorite: s.isFavorite,
-                                  isDownloaded: s.isDownloaded,
+                                  isDownloaded:
+                                      s.isDownloaded ||
+                                      ref
+                                          .watch(downloadedIdsProvider)
+                                          .contains(s.id),
                                   onTap: () => ref
                                       .read(playerProvider.notifier)
                                       .playSongs(_tracks, initialIndex: i),
@@ -282,10 +289,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: _coverUrl != null
-                    ? Image.network(
-                        _coverUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: _coverUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+                        cacheManager: nexoraArtworkCache,
+                        errorWidget: (_, _, _) => Container(
                           color: AppColors.surfaceRaised,
                           child: Icon(
                             Icons.album_rounded,
@@ -377,6 +385,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           label: 'Add to playlist',
           onTap: () => showAddToPlaylistSheet(context, song: s),
         ),
+        downloadMenuOption(ref, context, s),
       ],
     );
   }

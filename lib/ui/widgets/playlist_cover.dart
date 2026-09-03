@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'artwork_image.dart' show nexoraArtworkCache;
 
 /// Playlist artwork — the FIRST available cover rendered as the actual
 /// full-bleed cover photo (callers put the server cover first, then track
@@ -48,10 +50,11 @@ class _CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    return CachedNetworkImage(
+      imageUrl: url,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      cacheManager: nexoraArtworkCache,
+      errorWidget: (_, __, ___) => Container(
         color: AppColors.surfaceRaised,
         child: Center(
           child: Icon(Icons.broken_image_outlined, color: AppColors.textDim),

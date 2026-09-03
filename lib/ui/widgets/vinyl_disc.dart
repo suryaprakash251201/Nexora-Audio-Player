@@ -1,5 +1,8 @@
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import 'artwork_image.dart' show nexoraArtworkCache;
 
 /// Spinning vinyl record with the track artwork filling the center label.
 ///
@@ -202,31 +205,29 @@ class _VinylDiscState extends State<VinylDisc>
       );
     }
     // Fill: cover, centered, no distortion. gapless.
-    return Image.network(
-      url,
+    return CachedNetworkImage(
+      imageUrl: url,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
       alignment: Alignment.center,
-      errorBuilder: (_, _, _) => Container(
+      cacheManager: nexoraArtworkCache,
+      errorWidget: (_, _, _) => Container(
         color: const Color(0xFF2E7CF6),
         child: const Center(
           child: Icon(Icons.music_note_rounded, color: Colors.white, size: 44),
         ),
       ),
-      loadingBuilder: (c, child, p) {
-        if (p == null) return child;
-        return Container(
-          color: const Color(0xFF141927),
-          child: const Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+      progressIndicatorBuilder: (c, u, p) => Container(
+        color: const Color(0xFF141927),
+        child: const Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
