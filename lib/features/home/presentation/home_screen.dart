@@ -14,9 +14,12 @@ import '../../../ui/widgets/shimmer_loading.dart';
 import '../providers/home_provider.dart';
 import '../../player/providers/player_provider.dart';
 import '../../../data/api/files_api.dart';
+import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../domain/entities/album.dart';
+import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
+import '../../../ui/widgets/playlist_cover.dart';
 
 /// Home — the listener's entry point.
 ///
@@ -29,12 +32,26 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recentSongs = ref.watch(recentSongsProvider);
+    final librarySongs = ref.watch(recentSongsProvider);
     final recentlyPlayed = ref.watch(recentlyPlayedProvider);
+    final playlists = ref.watch(homePlaylistsProvider);
     final albums = ref.watch(featuredAlbumsProvider);
     final artists = ref.watch(featuredArtistsProvider);
     final folders = ref.watch(homeFoldersProvider);
     final current = ref.watch(playerProvider).currentTrack;
+    // Recently Played tracks live in-app playback: the player writes a
+    // local history row on every track change, so refresh this rail the
+    // moment the song flips (immediate + delayed pass to win the DB
+    // write race) instead of waiting for pull-to-refresh.
+    ref.listen(playerProvider.select((s) => s.currentTrack?.id), (prev, next) {
+      if (prev == next || next == null) return;
+      ref.invalidate(recentlyPlayedProvider);
+      Future.delayed(const Duration(seconds: 2), () {
+        try {
+          ref.invalidate(recentlyPlayedProvider);
+        } catch (_) {}
+      });
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,6 +66,7 @@ class HomeScreen extends ConsumerWidget {
               onRefresh: () async {
                 ref.invalidate(recentSongsProvider);
                 ref.invalidate(recentlyPlayedProvider);
+                ref.invalidate(homePlaylistsProvider);
                 ref.invalidate(featuredAlbumsProvider);
                 ref.invalidate(featuredArtistsProvider);
                 ref.invalidate(favoritesProvider);
@@ -96,11 +114,11 @@ class HomeScreen extends ConsumerWidget {
                           const _HiFiStats(),
                           const SizedBox(height: 34),
                           _SectionHeader(
-                            'Recently Added',
-                            onSeeAll: () => context.go('/library'),
+                            'Playlists',
+                            onSeeAll: () => context.go('/playlists'),
                           ),
                           const SizedBox(height: 14),
-                          _RecentSongsRow(asyncSongs: recentSongs),
+                          _PlaylistsRow(asyncPlaylists: playlists),
                           const SizedBox(height: 34),
                           _SectionHeader(
                             'Recently Played',
@@ -108,6 +126,13 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 14),
                           _RecentlyPlayedRow(asyncItems: recentlyPlayed),
+                          const SizedBox(height: 34),
+                          _SectionHeader(
+                            'Songs',
+                            onSeeAll: () => context.go('/library'),
+                          ),
+                          const SizedBox(height: 14),
+                          _HomeSongsRow(asyncSongs: librarySongs),
                           const SizedBox(height: 34),
                           _SectionHeader(
                             'Albums',
@@ -805,8 +830,137 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _RecentSongsRow extends ConsumerWidget {
-  const _RecentSongsRow({required this.asyncSongs});
+/// Mosaic covers for a Home playlist card (direct cover, else track art).
+final _homePlaylistCoversProvider =
+    FutureProvider.family<List<String?>, String>((ref, playlistId) async {
+      final repo = ref.watch(playlistsRepositoryProvider);
+      try {
+        final p = await repo.getPlaylist(playlistId);
+        final urls = <String?>[];
+        if (p.coverUrl != null && p.coverUrl!.isNotEmpty) urls.add(p.coverUrl);
+        var tracks = p.tracks ?? const <Song>[];
+        if (tracks.isEmpty) {
+          try {
+            tracks = await repo.getPlaylistTracks(playlistId);
+          } catch (_) {}
+        }
+        for (final t in tracks) {
+          final u = t.coverUrl ?? t.artworkUrl;
+          if (u != null && u.isNotEmpty) {
+            urls.add(u);
+            if (urls.length >= 4) break;
+          }
+        }
+        return urls;
+      } catch (_) {
+        return const <String?>[];
+      }
+    });
+
+/// Opening rail: playlists first — horizontal mosaic cards.
+class _PlaylistsRow extends ConsumerWidget {
+  const _PlaylistsRow({required this.asyncPlaylists});
+
+  final AsyncValue<List<Playlist>> asyncPlaylists;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return asyncPlaylists.when(
+      data: (list) {
+        if (list.isEmpty) {
+          return const _EmptyHint(
+            icon: Icons.queue_music_outlined,
+            text: 'No playlists yet — create one from the Playlists tab',
+          );
+        }
+        return SizedBox(
+          height: 188,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemCount: list.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (context, i) => _HomePlaylistCard(playlist: list[i]),
+          ),
+        );
+      },
+      loading: () => const _SkeletonRow(height: 188, width: 140),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(homePlaylistsProvider),
+      ),
+    );
+  }
+}
+
+class _HomePlaylistCard extends ConsumerWidget {
+  const _HomePlaylistCard({required this.playlist});
+
+  final Playlist playlist;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coversAsync = ref.watch(_homePlaylistCoversProvider(playlist.id));
+    final count = playlist.trackCount ?? playlist.tracks?.length ?? 0;
+    return NexoraPressable(
+      onTap: () => context.push('/playlists/${playlist.id}', extra: playlist),
+      child: SizedBox(
+        width: 140,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border, width: 0.6),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: coversAsync.when(
+                  data: (urls) => PlaylistCover(
+                    artworkUrls: urls,
+                    borderRadius: 0,
+                    title: playlist.name,
+                  ),
+                  loading: () => Container(color: AppColors.surfaceRaised),
+                  error: (_, __) => PlaylistCover(
+                    artworkUrls: const [],
+                    borderRadius: 0,
+                    title: playlist.name,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              playlist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              '$count ${count == 1 ? 'song' : 'songs'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Songs rail — same source as Library → Songs, so Home and Library
+/// can never disagree.
+class _HomeSongsRow extends ConsumerWidget {
+  const _HomeSongsRow({required this.asyncSongs});
 
   final AsyncValue<List<Song>> asyncSongs;
 

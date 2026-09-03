@@ -116,7 +116,8 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                         ),
                       ),
                     ),
-                    // Gradient progress + glow (glow matches gradient).
+                    // Gradient progress — flat, no glow shadow (the old
+                    // colored blur never matched the adaptive gradient).
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
@@ -125,13 +126,6 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                         decoration: BoxDecoration(
                           gradient: grad,
                           borderRadius: BorderRadius.circular(5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: widget.accent.withValues(alpha: 0.55),
-                              blurRadius: 14,
-                              spreadRadius: 0,
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -149,11 +143,9 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                               color: widget.accent.withValues(alpha: 0.65),
                               width: 1.5,
                             ),
+                            // Single neutral drop shadow — no colored glow
+                            // (it clashed with the adaptive gradient).
                             boxShadow: [
-                              BoxShadow(
-                                color: widget.accent.withValues(alpha: 0.6),
-                                blurRadius: 16,
-                              ),
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.35),
                                 blurRadius: 8,

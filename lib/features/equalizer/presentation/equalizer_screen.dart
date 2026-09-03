@@ -118,65 +118,120 @@ class EqualizerScreen extends ConsumerStatefulWidget {
 
 class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   late final List<_BandSpec> _specs;
+  late final String _bandsKey;
   late List<double> _bands;
   double _preamp = 0;
   bool _enabled = true;
   String? _presetName;
-  bool _loading = true;
   StreamSubscription<int?>? _sessionSub;
+  bool _bridgeWarned = false;
 
   static const String _keyEnabled = 'eq_enabled';
   static const String _keyPreamp = 'eq_preamp';
-  static const String _keyBands = 'eq_bands';
+  static const String _keyBandsLegacy = 'eq_bands';
 
   @override
   void initState() {
     super.initState();
     _specs = _bandsForPlatform(defaultTargetPlatform);
+    // Band schema key — a save from another platform/band-count never
+    // misaligns these sliders (length mismatch = ignore, stay flat).
+    _bandsKey = 'eq_bands_${_specs.length}_${defaultTargetPlatform.name}';
     _bands = List.filled(_specs.length, 0);
-    final player = ref.read(audioHandlerProvider).player;
-    _sessionSub = player.androidAudioSessionIdStream.listen((_) {
-      unawaited(_applyNative());
-    });
+    // Content renders immediately with flat defaults; saved curve merges
+    // in when prefs resolve. The screen can never stick on a spinner.
+    try {
+      final player = ref.read(audioHandlerProvider).player;
+      _sessionSub = player.androidAudioSessionIdStream.listen((_) {
+        _applyNative(); // fire-and-forget; never blocks UI
+      });
+    } catch (_) {
+      // No audio handler (tests / unsupported) — local curve only.
+    }
     _loadSaved();
   }
 
   Future<void> _loadSaved() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_keyBands);
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 4),
+      );
+      final saved =
+          prefs.getString(_bandsKey) ?? prefs.getString(_keyBandsLegacy);
+      var merged = false;
       if (saved != null && saved.isNotEmpty) {
         final parts = saved.split(',');
         if (parts.length == _specs.length) {
           _bands = parts
               .map((p) => (double.tryParse(p) ?? 0).clamp(kMinDb, kMaxDb))
               .toList();
+          merged = true;
         }
       }
       _preamp = (prefs.getDouble(_keyPreamp) ?? 0).clamp(kMinDb, kMaxDb);
       _enabled = prefs.getBool(_keyEnabled) ?? true;
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
-    await _applyNative();
+      if (merged && mounted) setState(() {});
+    } catch (_) {
+      // Prefs unavailable/hung — keep flat defaults; screen is usable.
+    }
+    _applyNative();
   }
 
-  Future<void> _applyNative() {
-    final player = ref.read(audioHandlerProvider).player;
-    return EqualizerBridge.apply(
-      enabled: _enabled,
-      preamp: _preamp,
-      frequencies: _specs.map((spec) => spec.freq).toList(),
-      gains: _bands,
-      audioSessionId: player.androidAudioSessionId,
-    );
+  /// Effective per-band gains sent to the platform engine.
+  /// Android's Equalizer has no preamp knob, so the preamp is folded
+  /// uniformly into every band (equivalent overall lift/cut, clamped).
+  List<double> _effectiveGains() => [
+    for (final g in _bands) (g + _preamp).clamp(kMinDb, kMaxDb),
+  ];
+
+  int? _sessionId() {
+    try {
+      return ref.read(audioHandlerProvider).player.androidAudioSessionId;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fire-and-forget: never awaited by UI paths, so a slow/hung bridge
+  /// can never blank or stall this screen.
+  void _applyNative() {
+    EqualizerBridge.apply(
+          enabled: _enabled,
+          preamp: 0, // folded into gains (see _effectiveGains)
+          frequencies: _specs.map((spec) => spec.freq).toList(),
+          gains: _effectiveGains(),
+          audioSessionId: _sessionId(),
+        )
+        .then((ok) {
+          // Surface a real engine failure once (instead of failing silently).
+          // No session yet (never played) is normal — engine attaches later
+          // via the session stream, so stay quiet in that case.
+          if (!ok &&
+              !_bridgeWarned &&
+              mounted &&
+              _sessionId() != null &&
+              defaultTargetPlatform == TargetPlatform.android) {
+            _bridgeWarned = true;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'System EQ rejected the curve on this device — curve kept locally.',
+                ),
+              ),
+            );
+          }
+        })
+        .catchError((_) {});
   }
 
   Future<void> _persist() async {
-    await _applyNative();
+    _applyNative();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 4),
+      );
       await prefs.setString(
-        _keyBands,
+        _bandsKey,
         _bands.map((b) => b.toStringAsFixed(1)).join(','),
       );
       await prefs.setDouble(_keyPreamp, _preamp);
@@ -229,12 +284,6 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
     final isDark = AppColors.mode == AppThemeMode.dark;
 
     return Scaffold(
@@ -242,6 +291,11 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
       extendBodyBehindAppBar: true,
       appBar: GlassAppBar(
         toolbarHeight: 64,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: AppColors.text),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Back',
+        ),
         title: Text(
           'Equalizer',
           style: TextStyle(
@@ -403,26 +457,32 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 border: Border.all(color: AppColors.border, width: 0.7),
                 boxShadow: isDark ? null : NexoraShadow.card(false),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < _specs.length; i++)
-                    Expanded(
-                      child: _BandSlider(
-                        label: _specs[i].label,
-                        value: _bands[i],
-                        onChanged: (v) {
-                          setState(() {
-                            _bands[i] = v;
-                            _presetName = null;
-                          });
-                          unawaited(_applyNative());
-                        },
-                        onChangeEnd: (_) => _persist(),
+              // Fixed height: this Row lives in a ListView (unbounded
+              // height), so stretch would force infinite constraints and
+              // blank the whole screen in release builds.
+              child: SizedBox(
+                height: 218,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < _specs.length; i++)
+                      Expanded(
+                        child: _BandSlider(
+                          label: _specs[i].label,
+                          value: _bands[i],
+                          onChanged: (v) {
+                            setState(() {
+                              _bands[i] = v;
+                              _presetName = null;
+                            });
+                            _applyNative();
+                          },
+                          onChangeEnd: (_) => _persist(),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: NexoraSpacing.s20),
@@ -483,9 +543,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                     const SizedBox(width: NexoraSpacing.s12),
                     Expanded(
                       child: Text(
-                        'Curve is stored locally and routed to the platform audio engine. '
-                        'Android applies it via just_audio\'s session; iOS configures AVAudioUnitEQ '
-                        'when present.',
+                        'Curve is stored on this device and applied to the Android system EQ '
+                        'for the current audio session (needs playback at least once). '
+                        'Preamp is folded evenly into every band. '
+                        'Outside Android the curve is kept and re-applied when supported.',
                         style: TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 11.5,
@@ -538,7 +599,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                   _preamp = v;
                   _presetName = null;
                 });
-                unawaited(_applyNative());
+                _applyNative();
               },
               onChangeEnd: (_) => _persist(),
             ),

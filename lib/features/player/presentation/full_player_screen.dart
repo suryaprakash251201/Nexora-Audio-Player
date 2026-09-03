@@ -245,7 +245,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                 children: [
                   _TopBar(
                     onClose: () => Navigator.pop(context),
-                    onSleepTimer: () => _showSleepTimerSheet(context, ref),
                     onMode: () => _showVisualModeSheet(context, ref),
                   ),
                   // Swipe hint (subtle, first-run discoverability)
@@ -351,24 +350,17 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                     // working on cache/downloads.
                                     const OfflineChip(),
                                     const SizedBox(height: 8),
-                                    if (audioInfo != null)
-                                      audioInfo.when(
-                                        data: (info) => info != null
-                                            ? NexoraTag(
-                                                label: info.shortLabel,
-                                                icon:
-                                                    Icons.high_quality_rounded,
-                                                color: info.lossless
-                                                    ? const Color(0xFFFFB020)
-                                                    : AppColors.accent,
-                                              )
-                                            : const SizedBox.shrink(),
-                                        // No spinner below the cover — badge
-                                        // simply appears once loaded.
-                                        loading: () => const SizedBox.shrink(),
-                                        error: (_, __) =>
-                                            const SizedBox.shrink(),
+                                    // Lossless wordmark — renders only for
+                                    // lossless tracks; tap opens quality specs.
+                                    _LosslessBadge(
+                                      track: track,
+                                      info: audioInfo?.value,
+                                      onTap: () => _showQualitySheet(
+                                        context,
+                                        track,
+                                        audioInfo?.value,
                                       ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -583,6 +575,279 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       ),
     );
   }
+
+  void _showQualitySheet(
+    BuildContext context,
+    MediaItem track,
+    AudioInfo? info,
+  ) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (c) => _QualitySheet(track: track, info: info),
+    );
+  }
+}
+
+/// Lossless-only codecs (metadata level — container-ambiguous formats
+/// like m4a/mka are resolved via the server's lossless flag, never by
+/// extension alone).
+const _losslessCodecs = {
+  'flac',
+  'alac',
+  'wav',
+  'wave',
+  'aiff',
+  'aif',
+  'ape',
+  'dsf',
+  'dff',
+  'wv',
+  'tta',
+  'tak',
+};
+
+/// Unambiguous lossless file extensions (fallback when no metadata).
+/// m4a/mka deliberately excluded — they can hold lossy AAC.
+const _losslessExtensions = {
+  'flac',
+  'wav',
+  'wave',
+  'aiff',
+  'aif',
+  'ape',
+  'dsf',
+  'dff',
+  'wv',
+  'tta',
+  'tak',
+};
+
+/// File path behind a queue item ("root|path" id or explicit extra).
+String _trackFilePath(MediaItem track) {
+  final ex = track.extras;
+  final explicit = ex?['path'] as String?;
+  if (explicit != null && explicit.isNotEmpty) return explicit;
+  final songId = (ex?['songId'] as String?) ?? track.id;
+  final clean = songId.split('?').first;
+  return clean.contains('|') ? clean.split('|').skip(1).join('|') : clean;
+}
+
+/// True only for genuinely lossless tracks: server flag → codec →
+/// queued metadata → unambiguous extension. Lossy-looking unknowns
+/// stay hidden rather than faked.
+bool _isLosslessTrack(MediaItem track, AudioInfo? info) {
+  if (info != null) {
+    if (info.lossless) return true;
+    if (_losslessCodecs.contains(info.codec.toLowerCase())) return true;
+    if (_losslessCodecs.contains(info.format.toLowerCase())) return true;
+  }
+  final ex = track.extras;
+  if (ex?['lossless'] == true) return true;
+  final metaCodec = (ex?['codec'] as String?)?.toLowerCase() ?? '';
+  if (_losslessCodecs.contains(metaCodec)) return true;
+  final path = _trackFilePath(track);
+  final dot = path.lastIndexOf('.');
+  if (dot > 0 && dot < path.length - 1) {
+    final ext = path.substring(dot + 1).toLowerCase();
+    if (_losslessExtensions.contains(ext)) return true;
+  }
+  return false;
+}
+
+/// Caption under the wordmark, e.g. "FLAC · 24BIT · 48kHz".
+String _losslessCaption(MediaItem track, AudioInfo? info) {
+  final parts = <String>[];
+  final codec =
+      (info?.codec.isNotEmpty == true
+              ? info!.codec
+              : (track.extras?['codec'] as String? ?? ''))
+          .toUpperCase();
+  if (codec.isNotEmpty && codec != 'UNKNOWN') parts.add(codec);
+  final bitDepth = info?.bitDepth ?? 0;
+  if (bitDepth > 0) parts.add('${bitDepth}BIT');
+  final sampleRate =
+      info?.sampleRate ?? (track.extras?['sampleRate'] as int? ?? 0);
+  if (sampleRate > 0) {
+    final k = sampleRate / 1000;
+    parts.add('${k % 1 == 0 ? k.toInt() : k.toStringAsFixed(1)}kHz');
+  }
+  if (parts.isEmpty) return 'LOSSLESS';
+  return parts.join(' · ');
+}
+
+/// Clickable lossless wordmark under the title. Renders nothing unless
+/// the track is genuinely lossless. Tap opens the quality sheet.
+class _LosslessBadge extends StatelessWidget {
+  final MediaItem track;
+  final AudioInfo? info;
+  final VoidCallback onTap;
+
+  const _LosslessBadge({
+    required this.track,
+    required this.info,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isLosslessTrack(track, info)) return const SizedBox.shrink();
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              isDark
+                  ? 'assets/lossless-wave-light.png'
+                  : 'assets/lossless-wave.png',
+              height: 22,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Icon(
+                Icons.high_quality_rounded,
+                color: const Color(0xFFFFB020),
+                size: 22,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              _losslessCaption(track, info),
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Full quality specs for the current track (opened from the wordmark).
+class _QualitySheet extends StatelessWidget {
+  final MediaItem track;
+  final AudioInfo? info;
+
+  const _QualitySheet({required this.track, required this.info});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final ex = track.extras;
+    final codec =
+        (info?.codec.isNotEmpty == true
+                ? info!.codec
+                : (ex?['codec'] as String? ?? ''))
+            .toUpperCase();
+    final sampleRate = info?.sampleRate ?? (ex?['sampleRate'] as int? ?? 0);
+    final bitDepth = info?.bitDepth ?? 0;
+    final bitRate = info?.bitRate ?? (ex?['bitrate'] as int? ?? 0);
+    final channels = info?.channels ?? 0;
+    final rows = <(String, String)>[
+      if (codec.isNotEmpty && codec != 'UNKNOWN') ('Codec', codec),
+      if (info != null && info!.format.isNotEmpty)
+        ('Container', info!.format.toUpperCase()),
+      if (sampleRate > 0)
+        (
+          'Sample rate',
+          '${(sampleRate / 1000) % 1 == 0 ? (sampleRate ~/ 1000).toString() : (sampleRate / 1000).toStringAsFixed(1)} kHz',
+        ),
+      if (bitDepth > 0) ('Bit depth', '$bitDepth-bit'),
+      if (channels > 0)
+        ('Channels', channels == 2 ? '2 (Stereo)' : '$channels'),
+      if (bitRate > 0) ('Bitrate', '${(bitRate / 1000).round()} kbps'),
+      ('Master', 'Lossless'),
+    ];
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: NexoraRadius.sheetTop,
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textFaint.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Image.asset(
+                isDark
+                    ? 'assets/lossless-wave-light.png'
+                    : 'assets/lossless-wave.png',
+                height: 30,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.high_quality_rounded,
+                  color: Color(0xFFFFB020),
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                track.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final row in rows) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Text(
+                        row.$1,
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        row.$2,
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (row != rows.last)
+                  Divider(height: 1, color: AppColors.hairline),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 double _sin(double v) => math.sin(v);
@@ -731,16 +996,14 @@ class _ModernGlowFrameState extends State<_ModernGlowFrame>
 }
 
 /// Top bar — no rounded pill. Centered NEXORA wordmark, plain text.
+/// Top bar — close left, style right, NEXORA dead-center.
+/// Sleep lives in the bottom dock, so it is not duplicated here. Both
+/// sides are a single 48px IconButton, so the wordmark centers exactly.
 class _TopBar extends StatelessWidget {
   final VoidCallback onClose;
-  final VoidCallback onSleepTimer;
   final VoidCallback onMode;
 
-  const _TopBar({
-    required this.onClose,
-    required this.onSleepTimer,
-    required this.onMode,
-  });
+  const _TopBar({required this.onClose, required this.onMode});
 
   @override
   Widget build(BuildContext context) {
@@ -756,21 +1019,19 @@ class _TopBar extends StatelessWidget {
             ),
             onPressed: onClose,
           ),
-          const Spacer(),
-          // Center brand — plain text, no box / no rounded corner.
-          Text(
-            'NEXORA',
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 4.0,
+          Expanded(
+            child: Center(
+              // Center brand — plain text, no box / no rounded corner.
+              child: Text(
+                'NEXORA',
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 4.0,
+                ),
+              ),
             ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: Icon(Icons.bedtime_outlined, color: AppColors.text, size: 20),
-            onPressed: onSleepTimer,
           ),
           IconButton(
             icon: Icon(Icons.palette_outlined, color: AppColors.text, size: 20),
