@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:audio_service/audio_service.dart';
@@ -48,9 +49,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(playerProvider);
+    // OPTIMIZED: selective watches — 1Hz position ticks only rebuild
+    // the seek bar (_LiveSeekBar), not artwork/controls/background.
     final notifier = ref.read(playerProvider.notifier);
-    final track = state.currentTrack;
+    final track = ref.watch(playerProvider.select((s) => s.currentTrack));
     final mode = ref.watch(playerVisualModeProvider);
     // Keep legacy provider in sync (settings screen reads it).
     final legacyStyle = ref.watch(playerVisualStyleProvider);
@@ -87,19 +89,33 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       );
     }
 
-    final isPlaying = state.isPlaying;
-    final isBuffering =
-        state.processingState == ProcessingState.buffering ||
-        state.processingState == ProcessingState.loading;
-    final pos = state.position;
-    final dur = state.duration.inMilliseconds == 0
-        ? (track.duration ?? Duration.zero)
-        : state.duration;
-    final buffered = state.bufferedPosition;
+    final isPlaying = ref.watch(playerProvider.select((s) => s.isPlaying));
+    final isBuffering = ref.watch(
+      playerProvider.select(
+        (s) =>
+            s.processingState == ProcessingState.buffering ||
+            s.processingState == ProcessingState.loading,
+      ),
+    );
+    final shuffleEnabled = ref.watch(
+      playerProvider.select((s) => s.shuffleEnabled),
+    );
+    final repeatMode = ref.watch(playerProvider.select((s) => s.repeatMode));
+    final volume = ref.watch(playerProvider.select((s) => s.volume));
+    final speed = ref.watch(playerProvider.select((s) => s.playbackSpeed));
+    // Position/duration only needed for the lyrics overlay here;
+    // the timeline itself lives in _LiveSeekBar (isolated rebuilds).
+    final pos = ref.watch(playerProvider.select((s) => s.position));
 
-    final rootId = track.extras?['rootId'] as String?;
+    // #3 FIX: resolve root + file path for /audio/* (sibling .lrc).
+    // extras now carry rootId+path (queue_manager), but old persisted
+    // queues only have songId ("root|path") — parse as fallback so
+    // lyrics keep working after upgrade.
+    final _rp = _resolveRootPath(track);
+    final rootId = _rp.$1;
+    final filePath = _rp.$2;
     final songId = (track.extras?['songId'] as String?) ?? track.id;
-    final audioInfo = rootId != null
+    final audioInfo = rootId != null && rootId.isNotEmpty
         ? ref.watch(
             audioInfoProvider(
               Song(
@@ -111,8 +127,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
             ),
           )
         : null;
-    final lyrics = rootId != null
-        ? ref.watch(lyricsProvider((rootId: rootId, path: songId)))
+    final lyrics = rootId != null && rootId.isNotEmpty
+        ? ref.watch(lyricsProvider((rootId: rootId, path: filePath)))
         : null;
 
     if (_showLyrics) {
@@ -223,7 +239,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                     onClose: () => Navigator.pop(context),
                     onSleepTimer: () => _showSleepTimerSheet(context, ref),
                     onMode: () => _showVisualModeSheet(context, ref),
-                    modeLabel: mode.label,
                   ),
                   // Swipe hint (subtle, first-run discoverability)
                   Padding(
@@ -238,48 +253,59 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                       ),
                     ),
                   ),
+                  // FIXED STAGE — no scroll on any mode. Artwork scales to
+                  // fit width AND height; sections share space evenly so
+                  // controls stay aligned on every screen size.
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final w = MediaQuery.of(context).size.width;
-                        final artworkSize = (w * 0.72).clamp(220.0, 360.0);
-                        return SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
+                        final h = constraints.maxHeight;
+                        // Fit both axes: wide phones get width-capped art,
+                        // short screens get height-capped art (no overflow).
+                        final artworkSize =
+                            (w * 0.64 < h * 0.36 ? w * 0.64 : h * 0.36).clamp(
+                              170.0,
+                              300.0,
+                            );
+                        return RepaintBoundary(
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              const SizedBox(height: 8),
-                              // #4 Visual-mode stage (all modes now render)
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 380),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeInCubic,
-                                transitionBuilder: (child, anim) =>
-                                    FadeTransition(
-                                      opacity: anim,
-                                      child: ScaleTransition(
-                                        scale: Tween<double>(
-                                          begin: 0.94,
-                                          end: 1.0,
-                                        ).animate(anim),
-                                        child: child,
+                              // Artwork stage (isolated repaint)
+                              RepaintBoundary(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 380),
+                                  switchInCurve: Curves.easeOutCubic,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  transitionBuilder: (child, anim) =>
+                                      FadeTransition(
+                                        opacity: anim,
+                                        child: ScaleTransition(
+                                          scale: Tween<double>(
+                                            begin: 0.94,
+                                            end: 1.0,
+                                          ).animate(anim),
+                                          child: child,
+                                        ),
                                       ),
-                                    ),
-                                child: _ArtworkStage(
-                                  key: ValueKey('${mode.name}-${track.id}'),
-                                  mode: mode,
-                                  track: track,
-                                  isPlaying: isPlaying,
-                                  artworkSize: artworkSize,
-                                  gradient: grad,
+                                  child: _ArtworkStage(
+                                    key: ValueKey('${mode.name}-${track.id}'),
+                                    mode: mode,
+                                    track: track,
+                                    isPlaying: isPlaying,
+                                    artworkSize: artworkSize,
+                                    gradient: grad,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 26),
-                              // Title + artist
+                              // Title + artist (compact, centered)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 28,
                                 ),
                                 child: Column(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       track.title,
@@ -288,12 +314,12 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppColors.text,
-                                        fontSize: 22,
+                                        fontSize: 21,
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: -0.4,
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     Text(
                                       track.artist ?? 'Unknown Artist',
                                       maxLines: 1,
@@ -301,11 +327,11 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppColors.textMuted,
-                                        fontSize: 15,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 8),
                                     if (audioInfo != null)
                                       audioInfo.when(
                                         data: (info) => info != null
@@ -320,11 +346,11 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                             : const SizedBox.shrink(),
                                         loading: () => const SizedBox(
                                           width: 60,
-                                          height: 16,
+                                          height: 14,
                                           child: Center(
                                             child: SizedBox(
-                                              width: 12,
-                                              height: 12,
+                                              width: 11,
+                                              height: 11,
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 1.5,
                                               ),
@@ -334,14 +360,18 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                         error: (_, __) =>
                                             const SizedBox.shrink(),
                                       ),
-                                    const SizedBox(height: 6),
                                     if (lyrics != null)
                                       lyrics.when(
                                         data: (data) => data.hasLyrics
-                                            ? LyricsButton(
-                                                hasLyrics: true,
-                                                onTap: () => setState(
-                                                  () => _showLyrics = true,
+                                            ? Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 6,
+                                                ),
+                                                child: LyricsButton(
+                                                  hasLyrics: true,
+                                                  onTap: () => setState(
+                                                    () => _showLyrics = true,
+                                                  ),
                                                 ),
                                               )
                                             : const SizedBox.shrink(),
@@ -352,99 +382,94 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 22),
-                              // #2 Gradient timeline
+                              // Gradient timeline (own rebuild scope)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 28,
+                                  horizontal: 24,
                                 ),
-                                child: NexoraSeekBar(
-                                  position: pos,
-                                  duration: dur,
-                                  buffered: buffered,
-                                  gradient: gradH,
-                                  onSeek: notifier.seek,
+                                child: _LiveSeekBar(gradient: gradH),
+                              ),
+                              // Controls — centered, max-width aligned
+                              RepaintBoundary(
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 430,
+                                    ),
+                                    child: _Controls(
+                                      isPlaying: isPlaying,
+                                      isBuffering: isBuffering,
+                                      loopMode: repeatMode,
+                                      isShuffled: shuffleEnabled,
+                                      gradient: grad,
+                                      onPlayPause: () {
+                                        HapticFeedback.lightImpact();
+                                        notifier.togglePlay();
+                                      },
+                                      onPrevious: () {
+                                        HapticFeedback.selectionClick();
+                                        notifier.previous();
+                                      },
+                                      onNext: () {
+                                        HapticFeedback.selectionClick();
+                                        notifier.next();
+                                      },
+                                      onLoop: () {
+                                        HapticFeedback.selectionClick();
+                                        notifier.cycleRepeat();
+                                      },
+                                      onShuffle: () {
+                                        HapticFeedback.selectionClick();
+                                        notifier.toggleShuffle();
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 14),
-                              // #3 Redesigned + fully wired controls
-                              _Controls(
-                                isPlaying: isPlaying,
-                                isBuffering: isBuffering,
-                                loopMode: state.repeatMode,
-                                isShuffled: state.shuffleEnabled,
-                                gradient: grad,
-                                onPlayPause: () {
-                                  HapticFeedback.lightImpact();
-                                  notifier.togglePlay();
-                                },
-                                onPrevious: () {
-                                  HapticFeedback.selectionClick();
-                                  notifier.previous();
-                                },
-                                onNext: () {
-                                  HapticFeedback.selectionClick();
-                                  notifier.next();
-                                },
-                                onLoop: () {
-                                  HapticFeedback.selectionClick();
-                                  notifier.cycleRepeat();
-                                },
-                                onShuffle: () {
-                                  HapticFeedback.selectionClick();
-                                  notifier.toggleShuffle();
-                                },
-                              ),
-                              const SizedBox(height: 18),
+                              // Quick actions — centered, compact
                               _BottomActions(
                                 onQueue: () => _showQueue(context),
                                 onAddToPlaylist: () =>
                                     _showAddToPlaylist(context, track),
                                 onEqualizer: () => context.push('/equalizer'),
                               ),
-                              const SizedBox(height: 14),
-                              // #1 Bottom dock: volume + speed + extras.
-                              // Fills the dead bottom space with live controls.
+                              // Bottom cluster — compact, no scroll
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 28,
+                                  horizontal: 24,
                                 ),
                                 child: _VolumeBar(
-                                  volume: state.volume,
-                                  speed: state.playbackSpeed,
+                                  volume: volume,
+                                  speed: speed,
                                   onVolume: notifier.setVolume,
                                   onSpeedTap: () =>
                                       _showSpeedSheet(context, ref),
                                 ),
                               ),
-                              const SizedBox(height: 10),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
+                                  horizontal: 16,
                                 ),
                                 child: _BottomDock(
                                   track: track,
                                   rootId: rootId,
                                   songId: songId,
+                                  filePath: filePath,
                                   lyricsData: lyrics?.value,
                                   onSleep: () =>
                                       _showSleepTimerSheet(context, ref),
                                   onSpeed: () => _showSpeedSheet(context, ref),
-                                  onLyricsEdit: rootId != null
+                                  onLyricsEdit:
+                                      (rootId != null && rootId.isNotEmpty)
                                       ? () => _showLyricsEditor(
                                           context,
                                           ref,
                                           rootId,
-                                          songId,
+                                          filePath,
                                           lyrics?.value,
                                         )
                                       : null,
                                 ),
-                              ),
-                              SizedBox(
-                                height:
-                                    12 +
-                                    MediaQuery.of(context).padding.bottom * 0.4,
                               ),
                             ],
                           ),
@@ -486,9 +511,27 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     );
   }
 
+  /// Resolve (rootId, filePath) for backend /audio/* calls.
+  /// Prefers explicit extras (new queues), falls back to parsing the
+  /// canonical "root|path" songId (old persisted queues / legacy).
+  (String?, String) _resolveRootPath(MediaItem t) {
+    final ex = t.extras;
+    var root = ex?['rootId'] as String?;
+    var path = ex?['path'] as String?;
+    final songId = (ex?['songId'] as String?) ?? t.id;
+    if ((root == null || root.isEmpty || path == null || path.isEmpty) &&
+        songId.contains('|')) {
+      root = songId.split('|').first;
+      path = songId.split('|').skip(1).join('|');
+    }
+    path ??= songId;
+    if (root != null && root.isEmpty) root = null;
+    return (root, path);
+  }
+
   void _showAddToPlaylist(BuildContext context, MediaItem track) {
     // Real sheet — convert MediaItem → Song (was a dead placeholder).
-    final rootId = track.extras?['rootId'] as String?;
+    final rp = _resolveRootPath(track);
     final songId = (track.extras?['songId'] as String?) ?? track.id;
     final song = Song(
       id: songId,
@@ -496,7 +539,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       artist: track.artist,
       album: track.album,
       coverUrl: track.artUri?.toString(),
-      rootId: rootId,
+      rootId: rp.$1,
     );
     showAddToPlaylistSheet(context, song: song);
   }
@@ -513,7 +556,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     BuildContext context,
     WidgetRef ref,
     String rootId,
-    String songId,
+    String filePath,
     LyricsData? current,
   ) {
     showModalBottomSheet(
@@ -522,7 +565,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       isScrollControlled: true,
       builder: (c) => _LyricsEditorSheet(
         rootId: rootId,
-        songId: songId,
+        filePath: filePath,
         initial: current?.raw ?? '',
         hasLyrics: current?.hasLyrics ?? false,
         synced: current?.synced ?? false,
@@ -530,6 +573,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     );
   }
 }
+
+double _sin(double v) => math.sin(v);
+double _cos(double v) => math.cos(v);
 
 /// #4 — artwork stage switch. Previously `mode` was watched but never
 /// used, so changing style did nothing. Now every mode renders.
@@ -553,129 +599,136 @@ class _ArtworkStage extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (mode) {
       case PlayerVisualMode.vinyl:
-        return Column(
-          children: [
-            VinylDisc(
-              artworkUrl: track.artUri?.toString(),
-              isPlaying: isPlaying,
-              size: artworkSize,
-            ),
-            const SizedBox(height: 10),
-            _ModeGlowCaption(label: 'VINYL • ${track.album ?? 'LP'}'),
-          ],
+        // Caption box removed — clean disc only.
+        return VinylDisc(
+          artworkUrl: track.artUri?.toString(),
+          isPlaying: isPlaying,
+          size: artworkSize,
         );
       case PlayerVisualMode.cassette:
-        return Column(
-          children: [
-            SizedBox(
-              width: artworkSize + 40,
-              child: CassettePlayer(
-                isPlaying: isPlaying,
-                artworkUrl: track.artUri?.toString(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            _ModeGlowCaption(label: 'CASSETTE • HF 90'),
-          ],
+        // Caption box removed — deck only.
+        return SizedBox(
+          width: artworkSize + 40,
+          child: CassettePlayer(
+            isPlaying: isPlaying,
+            artworkUrl: track.artUri?.toString(),
+          ),
         );
       case PlayerVisualMode.minimal:
-        return Column(
-          children: [
-            Container(
-              width: artworkSize * 0.62,
-              height: artworkSize * 0.62,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    blurRadius: 26,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
+        // Caption box removed — artwork only.
+        return Container(
+          width: artworkSize * 0.62,
+          height: artworkSize * 0.62,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 26,
+                offset: const Offset(0, 14),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: ArtworkImage(
-                  url: track.artUri?.toString(),
-                  borderRadius: 0,
-                  fit: BoxFit.cover,
-                ),
-              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: ArtworkImage(
+              url: track.artUri?.toString(),
+              borderRadius: 0,
+              fit: BoxFit.cover,
             ),
-            const SizedBox(height: 10),
-            _ModeGlowCaption(label: 'MINIMAL'),
-          ],
+          ),
         );
       case PlayerVisualMode.modern:
-        return Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                gradient: gradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.35),
-                    blurRadius: 44,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(2.5),
-              child: AnimatedAlbumCover(
-                imageUrl: track.artUri?.toString(),
-                isPlaying: isPlaying,
-                size: artworkSize,
-                borderRadius: 24,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _ModeGlowCaption(label: 'MODERN • AURORA'),
-          ],
+        // Caption box removed — glowing cover only.
+        return _ModernGlowFrame(
+          gradient: gradient,
+          isPlaying: isPlaying,
+          child: AnimatedAlbumCover(
+            imageUrl: track.artUri?.toString(),
+            isPlaying: isPlaying,
+            size: artworkSize,
+            borderRadius: 24,
+          ),
         );
     }
   }
 }
 
-class _ModeGlowCaption extends StatelessWidget {
-  final String label;
-  const _ModeGlowCaption({required this.label});
+/// Modern signature frame — animated breathing gradient border + glow.
+/// Gives the locked (non-scroll) modern stage its living feel.
+class _ModernGlowFrame extends StatefulWidget {
+  final Gradient gradient;
+  final bool isPlaying;
+  final Widget child;
+  const _ModernGlowFrame({
+    required this.gradient,
+    required this.isPlaying,
+    required this.child,
+  });
+
+  @override
+  State<_ModernGlowFrame> createState() => _ModernGlowFrameState();
+}
+
+class _ModernGlowFrameState extends State<_ModernGlowFrame>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 0.6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.6,
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) {
+        final t = _c.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: widget.gradient,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.30 + t * 0.18),
+                blurRadius: 36 + t * 22,
+                offset: const Offset(0, 16),
+              ),
+              BoxShadow(
+                color: AppColors.accentCyan.withValues(alpha: 0.14 + t * 0.12),
+                blurRadius: 60 + t * 26,
+                spreadRadius: 2,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.all(2.5 + t * 1.2),
+          child: widget.child,
+        );
+      },
     );
   }
 }
 
+/// Top bar — no rounded pill. Centered NEXORA wordmark, plain text.
 class _TopBar extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onSleepTimer;
   final VoidCallback onMode;
-  final String modeLabel;
 
   const _TopBar({
     required this.onClose,
     required this.onSleepTimer,
     required this.onMode,
-    required this.modeLabel,
   });
 
   @override
@@ -693,21 +746,14 @@ class _TopBar extends StatelessWidget {
             onPressed: onClose,
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border, width: 0.6),
-            ),
-            child: Text(
-              modeLabel.toUpperCase(),
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-              ),
+          // Center brand — plain text, no box / no rounded corner.
+          Text(
+            'NEXORA',
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 4.0,
             ),
           ),
           const Spacer(),
@@ -752,10 +798,12 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Centered transport with fixed gaps — aligned on every width.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _SmallRoundButton(
             icon: Icons.shuffle_rounded,
@@ -763,7 +811,9 @@ class _Controls extends StatelessWidget {
             onTap: onShuffle,
             tooltip: 'Shuffle',
           ),
+          const SizedBox(width: 14),
           _SkipButton(icon: Icons.skip_previous_rounded, onTap: onPrevious),
+          const SizedBox(width: 14),
           // Play / Pause — adaptive gradient hero button
           GestureDetector(
             onTap: onPlayPause,
@@ -821,7 +871,9 @@ class _Controls extends StatelessWidget {
                     ),
             ),
           ),
+          const SizedBox(width: 14),
           _SkipButton(icon: Icons.skip_next_rounded, onTap: onNext),
+          const SizedBox(width: 14),
           _SmallRoundButton(
             icon: loopMode == LoopMode.one
                 ? Icons.repeat_one_rounded
@@ -921,6 +973,36 @@ class _SkipButton extends StatelessWidget {
         ),
         child: Icon(icon, color: AppColors.text, size: 30),
       ),
+    );
+  }
+}
+
+/// Timeline with isolated rebuilds — position ticks (≈1Hz) only rebuild
+/// this bar, not the artwork/controls/background above.
+class _LiveSeekBar extends ConsumerWidget {
+  final Gradient gradient;
+  const _LiveSeekBar({required this.gradient});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pos = ref.watch(playerProvider.select((s) => s.position));
+    final dur = ref.watch(playerProvider.select((s) => s.duration));
+    final buffered = ref.watch(
+      playerProvider.select((s) => s.bufferedPosition),
+    );
+    final trackDur = ref.watch(
+      playerProvider.select((s) => s.currentTrack?.duration),
+    );
+    final effective = dur.inMilliseconds == 0
+        ? (trackDur ?? Duration.zero)
+        : dur;
+    final notifier = ref.read(playerProvider.notifier);
+    return NexoraSeekBar(
+      position: pos,
+      duration: effective,
+      buffered: buffered,
+      gradient: gradient,
+      onSeek: notifier.seek,
     );
   }
 }
@@ -1027,28 +1109,36 @@ class _AdaptiveBackground extends StatefulWidget {
 }
 
 class _AdaptiveBackgroundState extends State<_AdaptiveBackground>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _c;
+  late final AnimationController _orbit;
 
   @override
   void initState() {
     super.initState();
+    // Slow breathing wash + continuous orbiting glow (modern signature).
     _c = AnimationController(vsync: this, duration: const Duration(seconds: 8))
       ..repeat(reverse: true);
+    _orbit = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 22),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _c.dispose();
+    _orbit.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _c,
+      animation: Listenable.merge([_c, _orbit]),
       builder: (_, _) {
         final t = _c.value;
+        final o = _orbit.value * 6.28318; // 0..2π continuous drift
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -1100,28 +1190,63 @@ class _AdaptiveBackgroundState extends State<_AdaptiveBackground>
                 ),
               ),
             ),
-            // Aurora blobs
+            // Aurora blobs — breathing + orbiting (moving glow).
             Positioned(
-              top: -60 + t * 24,
-              left: -50,
+              top: -70 + t * 28 + 14 * _sin(o),
+              left: -55 + 18 * _cos(o * 0.8),
               child: Container(
-                width: 240,
-                height: 240,
+                width: 250,
+                height: 250,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.palette.primary.withValues(alpha: 0.16),
+                  gradient: RadialGradient(
+                    colors: [
+                      widget.palette.primary.withValues(alpha: 0.30),
+                      widget.palette.primary.withValues(alpha: 0.0),
+                    ],
+                  ),
                 ),
               ),
             ),
             Positioned(
-              bottom: -70 - t * 18,
-              right: -60,
+              bottom: -80 - t * 20 + 16 * _sin(o + 2.1),
+              right: -65 + 20 * _cos(o * 0.7 + 1.2),
               child: Container(
-                width: 280,
-                height: 280,
+                width: 300,
+                height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.palette.secondary.withValues(alpha: 0.14),
+                  gradient: RadialGradient(
+                    colors: [
+                      widget.palette.secondary.withValues(alpha: 0.28),
+                      widget.palette.secondary.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Third drifting cyan wisp for the modern stage.
+            Positioned(
+              top:
+                  MediaQuery.of(context).size.height * 0.38 +
+                  30 * _sin(o * 1.3),
+              left:
+                  MediaQuery.of(context).size.width * 0.5 -
+                  140 +
+                  60 * _cos(o * 0.6),
+              child: IgnorePointer(
+                child: Container(
+                  width: 280,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(90),
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.accentCyan.withValues(alpha: 0.10 + t * 0.05),
+                        AppColors.accentCyan.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1637,6 +1762,7 @@ class _BottomDock extends ConsumerWidget {
   final MediaItem track;
   final String? rootId;
   final String songId;
+  final String filePath;
   final LyricsData? lyricsData;
   final VoidCallback onSleep;
   final VoidCallback onSpeed;
@@ -1646,6 +1772,7 @@ class _BottomDock extends ConsumerWidget {
     required this.track,
     required this.rootId,
     required this.songId,
+    required this.filePath,
     required this.lyricsData,
     required this.onSleep,
     required this.onSpeed,
@@ -1937,14 +2064,14 @@ class _SpeedSheet extends ConsumerWidget {
 /// user save plain or LRC text straight to the sibling `.lrc` file.
 class _LyricsEditorSheet extends ConsumerStatefulWidget {
   final String rootId;
-  final String songId;
+  final String filePath;
   final String initial;
   final bool hasLyrics;
   final bool synced;
 
   const _LyricsEditorSheet({
     required this.rootId,
-    required this.songId,
+    required this.filePath,
     required this.initial,
     required this.hasLyrics,
     required this.synced,
@@ -1981,9 +2108,9 @@ class _LyricsEditorSheetState extends ConsumerState<_LyricsEditorSheet> {
     try {
       await ref
           .read(lyricsApiProvider)
-          .saveLyrics(widget.rootId, widget.songId, raw);
+          .saveLyrics(widget.rootId, widget.filePath, raw);
       ref.invalidate(
-        lyricsProvider((rootId: widget.rootId, path: widget.songId)),
+        lyricsProvider((rootId: widget.rootId, path: widget.filePath)),
       );
       if (mounted) Navigator.pop(context);
       if (mounted) {
@@ -2010,9 +2137,9 @@ class _LyricsEditorSheetState extends ConsumerState<_LyricsEditorSheet> {
     try {
       await ref
           .read(lyricsApiProvider)
-          .deleteLyrics(widget.rootId, widget.songId);
+          .deleteLyrics(widget.rootId, widget.filePath);
       ref.invalidate(
-        lyricsProvider((rootId: widget.rootId, path: widget.songId)),
+        lyricsProvider((rootId: widget.rootId, path: widget.filePath)),
       );
       if (mounted) Navigator.pop(context);
     } catch (e) {

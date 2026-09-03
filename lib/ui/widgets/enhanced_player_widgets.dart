@@ -641,6 +641,9 @@ class EnhancedGlassNavBar extends StatelessWidget {
     return Semantics(
       label: 'Main navigation',
       child: NexoraGlassDock(
+        // Outer _IosGlassNav already pads + frosts — keep inner flush
+        // so Home/Search/Library sit right on the bottom edge.
+        margin: EdgeInsets.zero,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: SizedBox(
           height: height - 16,

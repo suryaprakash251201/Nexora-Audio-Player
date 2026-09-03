@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/physics.dart';
@@ -328,7 +330,7 @@ class _BottomDock extends StatelessWidget {
   final VoidCallback onOpenPlayer;
 
   static const double _miniHeight = 70;
-  static const double _gap = 10;
+  static const double _gap = 8;
   static const double _hiddenOffset = 110;
 
   const _BottomDock({
@@ -342,8 +344,10 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    // Float above the system inset — modern pill dock, not edge-pinned.
-    final double dockBottom = bottomInset + 4;
+    // #4 FIX: hug the bottom edge — previously bottomInset+4 plus the
+    // dock's own 12px margin left a dead band under Home/Search/Library.
+    // iOS home-indicator area is already in bottomInset, so add nothing.
+    final double dockBottom = bottomInset <= 0 ? 6 : bottomInset * 0.35;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(
@@ -396,9 +400,56 @@ class _BottomDock extends StatelessWidget {
                   ),
                 );
               },
-              child: navBar,
+              // #4: iOS frosted-glass ONLY around the nav bar.
+              // Mini player above keeps its own Nexora glass untouched.
+              child: _IosGlassNav(child: navBar),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// iOS-style frosted glass wrapper — nav bar only.
+/// Clip + backdrop blur + translucent tint + hairline border.
+/// On Android the same layer reads as premium glass; on iOS it matches
+/// the system tab-bar frost.
+class _IosGlassNav extends StatelessWidget {
+  final Widget child;
+  const _IosGlassNav({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF0C0F16).withValues(alpha: 0.62)
+                  : Colors.white.withValues(alpha: 0.68),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : const Color(0xFF0F1D3A).withValues(alpha: 0.08),
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: child,
+          ),
         ),
       ),
     );

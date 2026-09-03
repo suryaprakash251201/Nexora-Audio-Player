@@ -86,17 +86,17 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                       );
                     },
               child: Container(
-                height: 28,
+                height: 40,
                 color: Colors.transparent,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Inactive rail
+                    // Inactive rail — thicker for touch + visibility
                     Container(
-                      height: 5,
+                      height: 8,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceHigh,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                     // Buffered wash
@@ -104,10 +104,10 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                       alignment: Alignment.centerLeft,
                       child: Container(
                         width: w * bufValue,
-                        height: 5,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: AppColors.textMuted.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                     ),
@@ -116,50 +116,50 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                       alignment: Alignment.centerLeft,
                       child: Container(
                         width: (w * value).clamp(0.0, w),
-                        height: 5,
+                        height: 8,
                         decoration: BoxDecoration(
                           gradient: grad,
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(5),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accent.withValues(alpha: 0.45),
-                              blurRadius: 10,
+                              color: AppColors.accent.withValues(alpha: 0.55),
+                              blurRadius: 14,
                               spreadRadius: 0,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    // Thumb
+                    // Thumb — larger, easier to grab
                     if (totalMs > 0)
                       Positioned(
-                        left: ((w * value) - 8).clamp(0.0, w - 16),
+                        left: ((w * value) - 11).clamp(0.0, w - 22),
                         child: Container(
-                          width: 16,
-                          height: 16,
+                          width: 22,
+                          height: 22,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
                             border: Border.all(
-                              color: AppColors.accent.withValues(alpha: 0.55),
-                              width: 1.2,
+                              color: AppColors.accent.withValues(alpha: 0.6),
+                              width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.5),
-                                blurRadius: 12,
+                                color: AppColors.accent.withValues(alpha: 0.6),
+                                blurRadius: 16,
                               ),
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 6,
+                                blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Center(
                             child: Container(
-                              width: 5,
-                              height: 5,
+                              width: 7,
+                              height: 7,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: grad,
@@ -171,16 +171,16 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                     // Invisible slider for a11y / precise drag
                     SliderTheme(
                       data: SliderThemeData(
-                        trackHeight: 5,
+                        trackHeight: 8,
                         activeTrackColor: Colors.transparent,
                         inactiveTrackColor: Colors.transparent,
                         thumbColor: Colors.transparent,
-                        overlayColor: AppColors.accent.withValues(alpha: 0.12),
+                        overlayColor: AppColors.accent.withValues(alpha: 0.14),
                         thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 8,
+                          enabledThumbRadius: 11,
                         ),
                         overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 18,
+                          overlayRadius: 24,
                         ),
                       ),
                       child: Slider(
@@ -215,8 +215,8 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                   color: _dragValue != null
                       ? AppColors.accentSoft
                       : AppColors.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -224,8 +224,8 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                 _format(widget.duration),
                 style: TextStyle(
                   color: AppColors.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),

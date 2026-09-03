@@ -129,6 +129,15 @@ class QueueManager {
         ? {'Authorization': 'Bearer $token'}
         : null;
 
+    // #3 FIX: lyrics + audio-info need rootId + file path. Song.id is
+    // canonical "rootId|path" — expose both explicitly so the player can
+    // call /audio/lyrics?root=&path= (sibling .lrc) without re-parsing.
+    final canonicalRoot = song.rootId != null && song.rootId!.isNotEmpty
+        ? song.rootId!
+        : (song.id.contains('|') ? song.id.split('|').first : '');
+    final canonicalPath = song.id.contains('|')
+        ? song.id.split('|').skip(1).join('|')
+        : song.id;
     return MediaItem(
       id: fullStream,
       title: song.title,
@@ -140,6 +149,8 @@ class QueueManager {
       artUri: fullArt != null ? Uri.tryParse(fullArt) : null,
       extras: {
         'songId': song.id,
+        'rootId': canonicalRoot,
+        'path': canonicalPath,
         'localPath': song.localPath,
         'headers': headers,
         'codec': song.codec,
