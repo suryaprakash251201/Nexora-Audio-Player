@@ -20,16 +20,7 @@ const double kMaxDb = 12;
 
 /// Frequency grid that presets are authored against.
 const List<double> kPresetFreqs = [
-  32,
-  64,
-  125,
-  250,
-  500,
-  1000,
-  2000,
-  4000,
-  8000,
-  16000,
+  32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,
 ];
 
 class _BandSpec {
@@ -232,9 +223,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
+    final isDark = AppColors.mode == AppThemeMode.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -246,7 +238,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
           style: TextStyle(
             color: AppColors.text,
             fontSize: 26,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
           ),
         ),
@@ -255,6 +247,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
           children: [
+            // Enable toggle
             NexoraGroupedList(
               padding: EdgeInsets.zero,
               children: [
@@ -272,15 +265,20 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: NexoraSpacing.s24),
-            const NexoraSectionHeader(label: 'Response Curve'),
+            const SizedBox(height: NexoraSpacing.s20),
+            // Response curve
+            NexoraSectionHeader(
+              label: 'Response Curve',
+              accent: AppColors.accent,
+            ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
               padding: const EdgeInsets.all(NexoraSpacing.s16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card,
                 borderRadius: NexoraRadius.card,
-                border: Border.all(color: AppColors.border, width: 0.6),
+                border: Border.all(color: AppColors.border, width: 0.7),
+                boxShadow: isDark ? null : NexoraShadow.card(false),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,8 +303,12 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: NexoraSpacing.s24),
-            const NexoraSectionHeader(label: 'Presets'),
+            const SizedBox(height: NexoraSpacing.s20),
+            // Presets
+            NexoraSectionHeader(
+              label: 'Presets',
+              accent: const Color(0xFF6B5BFF),
+            ),
             SizedBox(
               height: 42,
               child: ListView.separated(
@@ -328,21 +330,23 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? AppColors.accent.withValues(alpha: 0.12)
-                            : AppColors.surface,
+                            ? AppColors.accent
+                            : AppColors.card,
                         borderRadius: NexoraRadius.button,
                         border: Border.all(
                           color: selected
-                              ? AppColors.accent.withValues(alpha: 0.4)
+                              ? AppColors.accent
                               : AppColors.border,
-                          width: 0.6,
+                          width: 0.7,
                         ),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         p.name,
                         style: TextStyle(
-                          color: selected ? AppColors.accent : AppColors.text,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.text,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.1,
@@ -353,7 +357,8 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 },
               ),
             ),
-            const SizedBox(height: NexoraSpacing.s24),
+            const SizedBox(height: NexoraSpacing.s20),
+            // Bands header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
@@ -363,7 +368,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                     style: TextStyle(
                       color: AppColors.textDim,
                       fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: 1.6,
                     ),
                   ),
@@ -380,6 +385,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 ],
               ),
             ),
+            // Band sliders
             Container(
               margin: const EdgeInsets.symmetric(horizontal: NexoraSpacing.s16),
               padding: const EdgeInsets.fromLTRB(
@@ -389,9 +395,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 NexoraSpacing.s16,
               ),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card,
                 borderRadius: NexoraRadius.card,
-                border: Border.all(color: AppColors.border, width: 0.6),
+                border: Border.all(color: AppColors.border, width: 0.7),
+                boxShadow: isDark ? null : NexoraShadow.card(false),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -415,7 +422,8 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: NexoraSpacing.s24),
+            const SizedBox(height: NexoraSpacing.s20),
+            // Action buttons
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: NexoraSpacing.s16,
@@ -449,6 +457,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               ),
             ),
             const SizedBox(height: NexoraSpacing.s20),
+            // Info box
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: NexoraSpacing.s16,
@@ -456,9 +465,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               child: Container(
                 padding: const EdgeInsets.all(NexoraSpacing.s16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.card,
                   borderRadius: NexoraRadius.card,
-                  border: Border.all(color: AppColors.border, width: 0.6),
+                  border: Border.all(color: AppColors.border, width: 0.7),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,8 +482,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                       child: Text(
                         'Curve is stored locally and routed to the platform audio engine. '
                         'Android applies it via just_audio\'s session; iOS configures AVAudioUnitEQ '
-                        'when present. If the platform cannot apply DSP, the curve is kept as '
-                        'an unsupported fallback.',
+                        'when present.',
                         style: TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 11.5,
@@ -538,11 +546,11 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
           child: Text(
             '${_preamp >= 0 ? '+' : ''}${_preamp.toStringAsFixed(1)} dB',
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.accent,
               fontWeight: FontWeight.w700,
               fontSize: 12,
-              fontFeatures: [FontFeature.tabularFigures()],
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),

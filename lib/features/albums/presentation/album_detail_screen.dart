@@ -6,7 +6,6 @@ import '../../../data/api/files_api.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../domain/entities/album.dart';
 import '../../../domain/entities/song.dart';
-import '../../../ui/nexora/nexora_artwork.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
@@ -15,6 +14,12 @@ import '../../../ui/widgets/error_view.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 
+/// Album detail — audiophile redesign.
+///
+/// Large 260px cover with shadow, editorial title block with uppercase
+/// album title, year • track count • duration metadata pills, two
+/// full-width tonal action buttons (Play All / Shuffle), and tracks
+/// inside a contained card with hairlines.
 class AlbumDetailScreen extends ConsumerStatefulWidget {
   final String albumId;
   final Album? initial;
@@ -102,6 +107,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
       );
     }
     final album = _album!;
+    final isDark = AppColors.mode == AppThemeMode.dark;
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
@@ -124,8 +130,45 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                 ),
               ],
             ),
-            SliverToBoxAdapter(child: _hero(album)),
+            SliverToBoxAdapter(child: _hero(album, isDark)),
             SliverToBoxAdapter(child: _actions()),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'TRACKS',
+                      style: TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceRaised,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _tracks.length.toString(),
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             if (_tracks.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
@@ -140,51 +183,78 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.only(
-                  bottom: NexoraSpacing.dockBottomReserve,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((c, i) {
-                    final s = _tracks[i];
-                    final isCurrent =
-                        ref.watch(playerProvider).currentTrack?.id == s.id;
-                    return Column(
-                      children: [
-                        NexoraTrackRow(
-                          artworkUrl: s.coverUrl,
-                          title: s.title,
-                          subtitle:
-                              '${s.artist ?? album.artist ?? 'Unknown'} • ${album.title}',
-                          duration: formatDuration(
-                            Duration(seconds: s.duration ?? 0),
-                          ),
-                          indexLabel: (s.trackNumber ?? (i + 1))
-                              .toString()
-                              .padLeft(2, '0'),
-                          isCurrent: isCurrent,
-                          isPlaying:
-                              isCurrent && ref.watch(playerProvider).isPlaying,
-                          isFavorite: s.isFavorite,
-                          isDownloaded: s.isDownloaded,
-                          onTap: () => ref
-                              .read(playerProvider.notifier)
-                              .playSongs(_tracks, initialIndex: i),
-                          onMore: () {},
-                        ),
-                        if (i != _tracks.length - 1)
-                          const NexoraDivider(indent: 64, endIndent: 0),
-                      ],
-                    );
-                  }, childCount: _tracks.length),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                sliver: SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: NexoraRadius.card,
+                      border: Border.all(
+                        color: AppColors.border,
+                        width: 0.7,
+                      ),
+                      boxShadow: isDark ? null : NexoraShadow.card(false),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: NexoraRadius.card,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < _tracks.length; i++) ...[
+                            Builder(
+                              builder: (c) {
+                                final s = _tracks[i];
+                                final isCurrent = ref
+                                    .watch(playerProvider)
+                                    .currentTrack
+                                    ?.id ==
+                                    s.id;
+                                return NexoraTrackRow(
+                                  artworkUrl: s.coverUrl,
+                                  title: s.title,
+                                  subtitle:
+                                      '${s.artist ?? album.artist ?? 'Unknown'} • ${album.title}',
+                                  duration: formatDuration(
+                                    Duration(seconds: s.duration ?? 0),
+                                  ),
+                                  indexLabel: (s.trackNumber ?? (i + 1))
+                                      .toString()
+                                      .padLeft(2, '0'),
+                                  isCurrent: isCurrent,
+                                  isPlaying: isCurrent &&
+                                      ref.watch(playerProvider).isPlaying,
+                                  isFavorite: s.isFavorite,
+                                  isDownloaded: s.isDownloaded,
+                                  onTap: () => ref
+                                      .read(playerProvider.notifier)
+                                      .playSongs(
+                                        _tracks,
+                                        initialIndex: i,
+                                      ),
+                                  onMore: () {},
+                                );
+                              },
+                            ),
+                            if (i != _tracks.length - 1)
+                              const NexoraDivider(indent: 64, endIndent: 0),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
+            const SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: NexoraSpacing.dockBottomReserve,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _hero(Album album) {
+  Widget _hero(Album album, bool isDark) {
     final totalSec = _tracks.fold<int>(0, (s, t) => s + (t.duration ?? 0));
     final year = _tracks
         .map((t) => t.year)
@@ -195,10 +265,45 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
-            child: SizedBox(
+            child: Container(
               width: 260,
               height: 260,
-              child: NexoraArtwork(url: _coverUrl, size: 260),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: isDark
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          blurRadius: 28,
+                          offset: const Offset(0, 14),
+                        ),
+                      ]
+                    : NexoraShadow.card(false),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: _coverUrl != null
+                    ? Image.network(
+                        _coverUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          color: AppColors.surfaceRaised,
+                          child: Icon(
+                            Icons.album_rounded,
+                            size: 64,
+                            color: AppColors.textDim,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: AppColors.surfaceRaised,
+                        child: Icon(
+                          Icons.album_rounded,
+                          size: 64,
+                          color: AppColors.textDim,
+                        ),
+                      ),
+              ),
             ),
           ),
           const SizedBox(height: NexoraSpacing.s24),
@@ -206,8 +311,8 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
             album.title.toUpperCase(),
             style: TextStyle(
               color: AppColors.text,
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
               height: 1.05,
             ),
@@ -217,23 +322,30 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
             album.artist ?? 'Unknown Artist',
             style: TextStyle(
               color: AppColors.textMuted,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            [
-              if (year != null) '$year',
-              '${_tracks.length} ${_tracks.length == 1 ? 'track' : 'tracks'}',
-              if (totalSec > 0) formatDuration(Duration(seconds: totalSec)),
-            ].join(' • '),
-            style: TextStyle(
-              color: AppColors.textDim,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-            ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (year != null)
+                NexoraTag(
+                  label: year.toString(),
+                  icon: Icons.calendar_today_rounded,
+                ),
+              NexoraTag(
+                label: '${_tracks.length} ${_tracks.length == 1 ? 'track' : 'tracks'}',
+                icon: Icons.music_note_rounded,
+              ),
+              if (totalSec > 0)
+                NexoraTag(
+                  label: formatDuration(Duration(seconds: totalSec)),
+                  icon: Icons.schedule_rounded,
+                ),
+            ],
           ),
         ],
       ),
@@ -242,14 +354,13 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
 
   Widget _actions() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Row(
         children: [
           Expanded(
-            child: NexoraTextButton(
-              label: 'Play All',
+            child: _PrimaryAction(
               icon: Icons.play_arrow_rounded,
-              primary: true,
+              label: 'Play All',
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
@@ -257,11 +368,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                         .playSongs(_tracks, initialIndex: 0),
             ),
           ),
-          const SizedBox(width: NexoraSpacing.s12),
+          const SizedBox(width: 10),
           Expanded(
-            child: NexoraTextButton(
-              label: 'Shuffle',
+            child: _SecondaryAction(
               icon: Icons.shuffle_rounded,
+              label: 'Shuffle',
               onTap: _tracks.isEmpty
                   ? null
                   : () => ref
@@ -270,6 +381,96 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PrimaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _PrimaryAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.30),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _SecondaryAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.7),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.text, size: 19),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

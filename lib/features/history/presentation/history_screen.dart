@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/history_repository.dart';
+import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../player/providers/player_provider.dart';
 
+/// History — audiophile redesign.
+///
+/// Large header with count, tracks inside a contained card with hairlines,
+/// each row shows artwork + title + artist + time-ago, with equalizer
+/// overlay on currently playing track.
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(_historyProvider);
@@ -18,12 +26,12 @@ class HistoryScreen extends ConsumerWidget {
       appBar: GlassAppBar(
         toolbarHeight: 64,
         title: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(
             'History',
             style: TextStyle(
               color: AppColors.text,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontSize: 28,
               letterSpacing: -0.6,
             ),
@@ -37,118 +45,186 @@ class HistoryScreen extends ConsumerWidget {
                 subtitle: 'Played songs will appear here',
                 icon: Icons.history_rounded,
               )
-            : RefreshIndicator(
-                onRefresh: () async => ref.invalidate(_historyProvider),
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 4, bottom: 140),
-                  itemCount: items.length,
-                  itemBuilder: (c, i) {
-                    final h = items[i];
-                    final s = h.song;
-                    final isCurrent =
-                        ref.watch(playerProvider).currentTrack?.id == s?.id;
-                    return InkWell(
-                      onTap: s != null
-                          ? () =>
-                                ref.read(playerProvider.notifier).playSongs([s])
-                          : null,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
+            : Column(
+                children: [
+                  // Count header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          'RECENT PLAYS',
+                          style: TextStyle(
+                            color: AppColors.textDim,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4,
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: AppColors.hairline,
-                              width: 0.5,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceRaised,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            items.length.toString(),
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(6),
-                                      color: AppColors.surfaceRaised,
-                                      image: s?.coverUrl != null
-                                          ? DecorationImage(
-                                              image: NetworkImage(s!.coverUrl!),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                    ),
-                                    child: s?.coverUrl == null
-                                        ? Icon(
-                                            Icons.music_note_rounded,
-                                            color: AppColors.textDim,
-                                            size: 20,
-                                          )
-                                        : null,
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: AppColors.accent,
+                      backgroundColor: AppColors.card,
+                      onRefresh: () async =>
+                          ref.invalidate(_historyProvider),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: NexoraRadius.card,
+                          border: Border.all(
+                            color: AppColors.border,
+                            width: 0.7,
+                          ),
+                          boxShadow: AppColors.mode == AppThemeMode.dark
+                              ? null
+                              : NexoraShadow.card(false),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: NexoraRadius.card,
+                          child: ListView.separated(
+                            padding: EdgeInsets.zero,
+                            itemCount: items.length,
+                            separatorBuilder: (_, __) => const NexoraDivider(
+                              indent: 64,
+                              endIndent: 0,
+                            ),
+                            itemBuilder: (c, i) {
+                              final h = items[i];
+                              final s = h.song;
+                              final isCurrent = ref
+                                      .watch(playerProvider)
+                                      .currentTrack
+                                      ?.id ==
+                                  s?.id;
+                              return InkWell(
+                                onTap: s != null
+                                    ? () => ref
+                                        .read(playerProvider.notifier)
+                                        .playSongs([s])
+                                    : null,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
                                   ),
-                                  if (isCurrent)
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.5,
+                                  child: Row(
+                                    children: [
+                                      // Artwork with equalizer overlay
+                                      SizedBox(
+                                        width: 44,
+                                        height: 44,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                color: AppColors.surfaceRaised,
+                                                image: s?.coverUrl != null
+                                                    ? DecorationImage(
+                                                        image: NetworkImage(
+                                                          s!.coverUrl!,
+                                                        ),
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : null,
+                                              ),
+                                              child: s?.coverUrl == null
+                                                  ? Icon(
+                                                      Icons.music_note_rounded,
+                                                      color:
+                                                          AppColors.textDim,
+                                                      size: 20,
+                                                    )
+                                                  : null,
+                                            ),
+                                            if (isCurrent)
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.5),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.equalizer_rounded,
+                                                  size: 18,
+                                                  color: AppColors.accent,
+                                                ),
+                                              ),
+                                          ],
                                         ),
-                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: const Icon(
-                                        Icons.equalizer_rounded,
-                                        size: 18,
-                                        color: AppColors.accent,
+                                      const SizedBox(width: 12),
+                                      // Title + artist + time
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              s?.title ?? h.songId,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: isCurrent
+                                                    ? AppColors.accent
+                                                    : AppColors.text,
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: -0.1,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: AppColors.textMuted,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    s?.title ?? h.songId,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: isCurrent
-                                          ? AppColors.accent
-                                          : AppColors.text,
-                                      fontSize: 15,
-                                      fontWeight: isCurrent
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
-                                      letterSpacing: -0.1,
-                                    ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${s?.artist ?? 'Unknown'} • ${_timeAgo(h.playedAt)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 140),
+                ],
               ),
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
@@ -168,6 +244,5 @@ class HistoryScreen extends ConsumerWidget {
 }
 
 final _historyProvider = FutureProvider(
-  (ref) async =>
-      ref.watch(historyRepositoryProvider).getHistory(page: 1, limit: 50),
+  (ref) async => ref.watch(historyRepositoryProvider).getHistory(),
 );

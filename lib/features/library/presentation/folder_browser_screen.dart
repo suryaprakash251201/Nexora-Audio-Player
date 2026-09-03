@@ -8,6 +8,7 @@ import '../../../data/api/files_api.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../player/providers/player_provider.dart';
@@ -15,15 +16,13 @@ import '../../player/providers/player_provider.dart';
 /// A folder in the Nexora Music root, with a lazily resolved cover.
 class FolderEntry {
   final String rootId;
-  final String path; // relative path inside the root
+  final String path;
   final String name;
 
   FolderEntry({required this.rootId, required this.path, required this.name});
 
   String get id => '$rootId|$path';
 
-  /// Cover = a cover.jpeg/cover.png in the folder if present, otherwise the
-  /// thumbnail of the first audio file inside the folder.
   Future<String?> coverUrl(FilesApi api) async {
     return api.folderCoverUrl(rootId, path);
   }
@@ -31,53 +30,35 @@ class FolderEntry {
 
 class FolderContent {
   final List<FolderEntry> folders;
-  final List<dynamic> songs; // Song entities with stream+artwork attached
+  final List<dynamic> songs;
   FolderContent({required this.folders, required this.songs});
 }
 
-/// Breadcrumb path segments for display.
-List<(String, String)> breadcrumbSegments(String path) {
-  final segs = path.split('/').where((s) => s.isNotEmpty).toList();
-  final out = <(String, String)>[]; // (label, path)
-  out.add(('Library', ''));
-  var acc = '';
-  for (final s in segs) {
-    acc = acc.isEmpty ? s : '$acc/$s';
-    out.add((s, acc));
-  }
-  return out;
-}
-
-/// Loads a folder: sub-folders + audio songs (with stream + artwork attached).
+/// Loads a folder: sub-folders + audio songs.
 final folderContentProvider = FutureProvider.autoDispose
     .family<FolderContent, ({String rootId, String path})>((ref, args) async {
-      final api = ref.watch(filesApiProvider);
-      final items = await api.list(args.rootId, args.path, limit: 500);
+  final api = ref.watch(filesApiProvider);
+  final items = await api.list(args.rootId, args.path, limit: 500);
 
-      final folders = <FolderEntry>[];
-      final songs = <dynamic>[];
-      String? firstAudioPath;
+  final folders = <FolderEntry>[];
+  final songs = <dynamic>[];
 
-      for (final f in items) {
-        if (f.isDir) {
-          final dirPath = f.path.isEmpty ? f.name : f.path;
-          folders.add(
-            FolderEntry(rootId: args.rootId, path: dirPath, name: f.name),
-          );
-        } else if (NexoraFiles.isAudio(f)) {
-          firstAudioPath ??= f.path;
-          final song = NexoraFiles.toSong(
-            f,
-            streamUrl: await api.rawUrl(args.rootId, f.path),
-            artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
-          );
-          songs.add(song);
-        }
-      }
-      return FolderContent(folders: folders, songs: songs);
-    });
+  for (final f in items) {
+    if (f.isDir) {
+      final dirPath = f.path.isEmpty ? f.name : f.path;
+      folders.add(FolderEntry(rootId: args.rootId, path: dirPath, name: f.name));
+    } else if (NexoraFiles.isAudio(f)) {
+      final song = NexoraFiles.toSong(
+        f,
+        streamUrl: await api.rawUrl(args.rootId, f.path),
+        artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
+      );
+      songs.add(song);
+    }
+  }
+  return FolderContent(folders: folders, songs: songs);
+});
 
-/// Lazily resolves a folder cover.
 final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
   ref,
   folderId,
@@ -90,7 +71,10 @@ final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
   return api.folderCoverUrl(rootId, path);
 });
 
-/// Hi-Fi album/folder browser — editorial layout, large artwork at top.
+/// Folder browser — audiophile redesign.
+///
+/// Large hero artwork, editorial title block, Play/Shuffle actions,
+/// folders grid, and tracks list with hairline dividers.
 class FolderBrowserScreen extends ConsumerWidget {
   final String rootId;
   final String path;
@@ -106,6 +90,7 @@ class FolderBrowserScreen extends ConsumerWidget {
     final contentAsync = ref.watch(
       folderContentProvider((rootId: rootId, path: path)),
     );
+    final isDark = AppColors.mode == AppThemeMode.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -133,7 +118,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                 style: TextStyle(
                   color: AppColors.text,
                   fontSize: 22,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
                 ),
               ),
@@ -163,12 +148,13 @@ class FolderBrowserScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    // Title + count
                     Text(
                       _folderName,
                       style: TextStyle(
                         color: AppColors.text,
                         fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -0.6,
                       ),
                     ),
@@ -181,99 +167,118 @@ class FolderBrowserScreen extends ConsumerWidget {
                         fontSize: 13,
                       ),
                     ),
+                    // Actions
                     if (content.songs.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => ref
+                            child: _PrimaryAction(
+                              icon: Icons.play_arrow_rounded,
+                              label: 'Play',
+                              onTap: () => ref
                                   .read(playerProvider.notifier)
                                   .playSongs(
                                     content.songs.cast(),
                                     initialIndex: 0,
                                   ),
-                              icon: const Icon(
-                                Icons.play_arrow_rounded,
-                                size: 18,
-                              ),
-                              label: const Text('Play'),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => ref
+                            child: _SecondaryAction(
+                              icon: Icons.shuffle_rounded,
+                              label: 'Shuffle',
+                              onTap: () => ref
                                   .read(playerProvider.notifier)
                                   .playSongs(
                                     [...content.songs]..shuffle(),
                                     initialIndex: 0,
                                   ),
-                              icon: const Icon(Icons.shuffle_rounded, size: 18),
-                              label: const Text('Shuffle'),
                             ),
                           ),
                         ],
                       ),
                     ],
+                    // Folders grid
                     if (content.folders.isNotEmpty) ...[
                       const SizedBox(height: 32),
-                      Text(
-                        'Folders',
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
+                      NexoraSectionHeader(
+                        label: 'Folders',
+                        accent: const Color(0xFF2EC4B6),
                       ),
-                      const SizedBox(height: 12),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 0.82,
-                            ),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.82,
+                        ),
                         itemCount: content.folders.length,
                         itemBuilder: (c, i) =>
                             _FolderCard(folder: content.folders[i]),
                       ),
                     ],
+                    // Tracks
                     if (content.songs.isNotEmpty) ...[
                       const SizedBox(height: 32),
-                      Text(
-                        'Tracks',
-                        style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
+                      NexoraSectionHeader(
+                        label: 'Tracks',
+                        accent: AppColors.accent,
                       ),
-                      const SizedBox(height: 8),
                     ],
-                    ...content.songs.asMap().entries.map((e) {
-                      final i = e.key;
-                      final s = e.value;
-                      final isCurrent =
-                          ref.watch(playerProvider).currentTrack?.id == s.id;
-                      return _SongRow(
-                        index: i + 1,
-                        song: s,
-                        isCurrent: isCurrent,
-                        onTap: () => ref
-                            .read(playerProvider.notifier)
-                            .playSongs(content.songs.cast(), initialIndex: i),
-                        onMore: () => _showSongMenu(context, ref, s),
-                      );
-                    }),
                   ],
                 ),
               ),
+            ),
+            // Songs list
+            if (content.songs.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: NexoraRadius.card,
+                      border: Border.all(color: AppColors.border, width: 0.7),
+                      boxShadow: isDark ? null : NexoraShadow.card(false),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: NexoraRadius.card,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < content.songs.length; i++) ...[
+                            _SongRow(
+                              index: i + 1,
+                              song: content.songs[i],
+                              isCurrent: ref.watch(playerProvider).currentTrack?.id ==
+                                  content.songs[i].id,
+                              onTap: () => ref
+                                  .read(playerProvider.notifier)
+                                  .playSongs(
+                                    content.songs.cast(),
+                                    initialIndex: i,
+                                  ),
+                              onMore: () => _showSongMenu(
+                                context,
+                                ref,
+                                content.songs[i],
+                              ),
+                            ),
+                            if (i != content.songs.length - 1)
+                              const NexoraDivider(indent: 64, endIndent: 0),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            const SliverPadding(
+              padding: EdgeInsets.only(bottom: NexoraSpacing.dockBottomReserve),
             ),
           ],
         ),
@@ -287,8 +292,9 @@ class FolderBrowserScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (c) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          color: AppColors.card,
+          borderRadius: NexoraRadius.sheetTop,
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
         ),
         child: SafeArea(
           child: Column(
@@ -297,13 +303,12 @@ class FolderBrowserScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Container(
                 width: 40,
-                height: 4,
+                height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.textDim.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+                  color: AppColors.textFaint.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.play_arrow_rounded),
                 title: const Text('Play next'),
@@ -331,6 +336,96 @@ class FolderBrowserScreen extends ConsumerWidget {
   }
 }
 
+class _PrimaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _PrimaryAction({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.30),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _SecondaryAction({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.7),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.text, size: 19),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FolderHero extends ConsumerWidget {
   final FolderContent content;
   final String rootId;
@@ -343,14 +438,31 @@ class _FolderHero extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Try folder cover, then first song's cover, then a flat plate.
     final folderId = '$rootId|$path';
     final coverAsync = ref.watch(folderCoverProvider(folderId));
     final firstSongCover = content.songs.isNotEmpty
         ? content.songs.first.coverUrl as String?
         : null;
     final url = coverAsync.value ?? firstSongCover;
-    return ArtworkImage(url: url, borderRadius: 8, showShadow: true);
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isDark
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ]
+            : NexoraShadow.card(false),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ArtworkImage(url: url, borderRadius: 0, showShadow: false),
+      ),
+    );
   }
 }
 
@@ -371,7 +483,13 @@ class _FolderCard extends ConsumerWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: ArtworkImage(url: coverAsync.value, borderRadius: 6),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: ArtworkImage(
+                url: coverAsync.value,
+                borderRadius: 0,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -380,8 +498,8 @@ class _FolderCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: AppColors.text,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5,
               letterSpacing: -0.2,
             ),
           ),
@@ -410,15 +528,11 @@ class _SongRow extends StatelessWidget {
     final titleColor = isCurrent ? AppColors.accent : AppColors.text;
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.hairline, width: 0.5),
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
+            // Index
             SizedBox(
               width: 28,
               child: Text(
@@ -426,15 +540,16 @@ class _SongRow extends StatelessWidget {
                 style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 12,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
+            // Artwork
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 color: AppColors.surfaceRaised,
                 image: song.coverUrl != null
                     ? DecorationImage(
@@ -452,6 +567,7 @@ class _SongRow extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
+            // Title + artist
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +579,7 @@ class _SongRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: titleColor,
-                      fontSize: 15,
+                      fontSize: 14.5,
                       fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                       letterSpacing: -0.1,
                     ),
@@ -478,6 +594,7 @@ class _SongRow extends StatelessWidget {
                 ],
               ),
             ),
+            // Codec badge
             if (song.codec != null) ...[
               Container(
                 margin: const EdgeInsets.only(right: 4),
@@ -500,6 +617,7 @@ class _SongRow extends StatelessWidget {
                 ),
               ),
             ],
+            // More button
             IconButton(
               icon: Icon(
                 Icons.more_horiz_rounded,
