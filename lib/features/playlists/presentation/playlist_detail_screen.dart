@@ -54,8 +54,16 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     try {
       final repo = ref.read(playlistsRepositoryProvider);
       final p = await repo.getPlaylist(widget.playlistId);
-      final tracks =
-          p.tracks ?? await repo.getPlaylistTracks(widget.playlistId);
+      // FIX #6: p.tracks is often null/empty even when the playlist has
+      // songs — always fall back to the dedicated tracks endpoint.
+      List<Song> tracks = p.tracks ?? const [];
+      if (tracks.isEmpty) {
+        try {
+          tracks = await repo.getPlaylistTracks(widget.playlistId);
+        } catch (_) {
+          tracks = p.tracks ?? const [];
+        }
+      }
       setState(() {
         _playlist = p;
         _tracks = tracks;
@@ -180,61 +188,67 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 ),
               )
             else
+              // #6 Card UI: each song is its own card (not a single box
+              // with hairlines) so touch targets, artwork + playing state
+              // all read clearly and the list never renders blank.
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                sliver: SliverToBoxAdapter(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border, width: 0.7),
-                      boxShadow: AppColors.mode == AppThemeMode.dark
-                          ? null
-                          : NexoraShadow.card(false),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < _tracks.length; i++) ...[
-                            Builder(
-                              builder: (c) {
-                                final s = _tracks[i];
-                                final isCurrent =
-                                    ref
-                                        .watch(playerProvider)
-                                        .currentTrack
-                                        ?.id ==
-                                    s.id;
-                                return NexoraTrackRow(
-                                  artworkUrl: s.coverUrl,
-                                  title: s.title,
-                                  subtitle:
-                                      '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
-                                  indexLabel: (i + 1).toString().padLeft(
-                                    2,
-                                    '0',
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((c, i) {
+                    final s = _tracks[i];
+                    final isCurrent =
+                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                    final playing =
+                        isCurrent && ref.watch(playerProvider).isPlaying;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: isCurrent
+                              ? AppColors.selectionGradientHorizontal
+                              : null,
+                          color: isCurrent
+                              ? null
+                              : AppColors.card.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isCurrent
+                                ? Colors.white.withValues(alpha: 0.22)
+                                : AppColors.border,
+                            width: 0.7,
+                          ),
+                          boxShadow: isCurrent
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(
+                                      alpha: 0.28,
+                                    ),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
                                   ),
-                                  isCurrent: isCurrent,
-                                  isPlaying:
-                                      isCurrent &&
-                                      ref.watch(playerProvider).isPlaying,
-                                  isFavorite: s.isFavorite,
-                                  isDownloaded: s.isDownloaded,
-                                  onTap: () => ref
-                                      .read(playerProvider.notifier)
-                                      .playSongs(_tracks, initialIndex: i),
-                                  onMore: () {},
-                                );
-                              },
-                            ),
-                            if (i != _tracks.length - 1)
-                              const NexoraDivider(indent: 64, endIndent: 0),
-                          ],
-                        ],
+                                ]
+                              : (AppColors.mode == AppThemeMode.dark
+                                    ? null
+                                    : NexoraShadow.card(false)),
+                        ),
+                        child: NexoraTrackRow(
+                          artworkUrl: s.coverUrl ?? s.artworkUrl,
+                          title: s.title,
+                          subtitle:
+                              '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
+                          indexLabel: (i + 1).toString().padLeft(2, '0'),
+                          isCurrent: isCurrent,
+                          isPlaying: playing,
+                          isFavorite: s.isFavorite,
+                          isDownloaded: s.isDownloaded,
+                          onTap: () => ref
+                              .read(playerProvider.notifier)
+                              .playSongs(_tracks, initialIndex: i),
+                          onMore: () => _showTrackOptions(s),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  }, childCount: _tracks.length),
                 ),
               ),
             const SliverPadding(
@@ -358,10 +372,12 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   Widget _firstTrackArtwork(Playlist p) {
+    // FIX #6: hero must use loaded _tracks (p.tracks is usually empty).
     final urls = <String?>[];
     final direct = p.coverUrl;
     if (direct != null && direct.isNotEmpty) urls.add(direct);
-    for (final t in p.tracks ?? const []) {
+    final source = _tracks.isNotEmpty ? _tracks : (p.tracks ?? const []);
+    for (final t in source) {
       final u = t.coverUrl ?? t.artworkUrl;
       if (u != null && u.isNotEmpty) {
         urls.add(u);
@@ -369,6 +385,101 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       }
     }
     return PlaylistCover(artworkUrls: urls, borderRadius: 0, title: p.name);
+  }
+
+  void _showTrackOptions(Song s) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (c) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: NexoraRadius.sheetTop,
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.textFaint.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: s.coverUrl != null
+                        ? Image.network(
+                            s.coverUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              color: AppColors.surfaceRaised,
+                              child: Icon(
+                                Icons.music_note_rounded,
+                                color: AppColors.textDim,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: AppColors.surfaceRaised,
+                            child: Icon(
+                              Icons.music_note_rounded,
+                              color: AppColors.textDim,
+                            ),
+                          ),
+                  ),
+                ),
+                title: Text(
+                  s.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  s.artist ?? 'Unknown',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.play_arrow_rounded, color: AppColors.text),
+                title: Text(
+                  'Play next',
+                  style: TextStyle(color: AppColors.text),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(playerProvider.notifier).playNext(s);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.queue_music_rounded, color: AppColors.text),
+                title: Text(
+                  'Add to queue',
+                  style: TextStyle(color: AppColors.text),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(playerProvider.notifier).addToQueue(s);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showOptions() {

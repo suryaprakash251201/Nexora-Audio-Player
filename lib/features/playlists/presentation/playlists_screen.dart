@@ -352,7 +352,18 @@ final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
   ref,
   pl,
 ) async {
-  final tracks = pl.tracks ?? [];
+  // FIX #6: playlists from getPlaylists() usually carry no tracks, so
+  // covers stayed empty. Fetch tracks on demand for the mosaic.
+  List<Song> tracks = pl.tracks ?? [];
+  if (tracks.isEmpty) {
+    try {
+      tracks = await ref
+          .watch(playlistsRepositoryProvider)
+          .getPlaylistTracks(pl.id);
+    } catch (_) {
+      tracks = pl.tracks ?? [];
+    }
+  }
   final covers = <String?>[];
   final pending = <Song>[];
   final directCover = pl.coverUrl;

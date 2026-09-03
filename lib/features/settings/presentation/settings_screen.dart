@@ -414,10 +414,14 @@ class SettingsScreen extends ConsumerWidget {
                 ref
                     .read(playerVisualModeProvider.notifier)
                     .set(PlayerVisualMode.values[i]);
-                final legacy = PlayerVisualStyle.values.firstWhere(
-                  (e) => e.name == PlayerVisualMode.values[i].name,
-                );
-                ref.read(playerVisualStyleProvider.notifier).state = legacy;
+                ref
+                    .read(playerVisualStyleProvider.notifier)
+                    .set(
+                      PlayerVisualStyle.values.firstWhere(
+                        (e) => e.name == PlayerVisualMode.values[i].name,
+                        orElse: () => PlayerVisualStyle.modern,
+                      ),
+                    );
                 Navigator.pop(context);
               },
             ),

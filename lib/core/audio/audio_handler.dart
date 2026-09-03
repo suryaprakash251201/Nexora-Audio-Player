@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,14 +7,36 @@ final audioHandlerProvider = Provider<NexoraAudioHandler>((ref) {
   throw UnimplementedError('Initialize provider in main.dart first');
 });
 
+/// Native notification + background playback entry point.
+///
+/// - Android: foreground `mediaPlayback` service (see AndroidManifest),
+///   ongoing notification with prev/play/next, compact actions [0,1,3].
+/// - iOS: `audio` + `fetch` background modes (Info.plist) + lock-screen
+///   / Control-Center integration via audio_service + audio_session.
+/// - Headset / Bluetooth / interruptions route through audio_session
+///   (configured in [NexoraAudioHandler._initSession]).
+/// - "PiP" for a pure-audio app == background audio: playback continues
+///   with screen off / app backgrounded / notification dismissed to
+///   background (stop only via notification stop or queue clear).
 Future<NexoraAudioHandler> initAudioService() async {
   return await AudioService.init(
     builder: () => NexoraAudioHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.nexora.audio.channel.audio',
       androidNotificationChannelName: 'Nexora Audio Playback',
+      androidNotificationChannelDescription:
+          'Playback controls, artwork and track info on the lock screen',
       androidNotificationOngoing: true,
+      androidShowNotificationBadge: true,
       androidStopForegroundOnPause: true,
+      androidNotificationClickStartsActivity: true,
+      androidResumeOnClick: true,
+      // 10s skip shown on lock-screen / Android Auto / headset long-press.
+      fastForwardInterval: Duration(seconds: 10),
+      rewindInterval: Duration(seconds: 10),
+      // Downscale lock-screen art for fast notification updates.
+      artDownscaleWidth: 512,
+      artDownscaleHeight: 512,
     ),
   );
 }
@@ -27,6 +50,44 @@ class NexoraAudioHandler extends BaseAudioHandler
     _listenForDurationChanges();
     _listenForCurrentSongIndexChanges();
     _listenForSequenceStateChanges();
+    _initSession();
+  }
+
+  /// Audio focus / headset / Bluetooth / ducking.
+  /// Must run once: music focus, duck others, resume on noisy (unplug).
+  Future<void> _initSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      // Phone call / alarm interruption → pause; headphone unplug → pause.
+      session.interruptionEventStream.listen((event) {
+        if (event.begin) {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _player.setVolume(_player.volume * 0.4);
+              break;
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              _player.pause();
+              break;
+          }
+        } else {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _player.setVolume(1.0);
+              break;
+            case AudioInterruptionType.pause:
+              // Don't auto-resume calls — user presses play.
+              break;
+            case AudioInterruptionType.unknown:
+              break;
+          }
+        }
+      });
+      session.becomingNoisyEventStream.listen((_) => _player.pause());
+    } catch (_) {
+      // audio_session unavailable (e.g. desktop/web) — playback still works.
+    }
   }
 
   AudioPlayer get player => _player;
@@ -38,8 +99,10 @@ class NexoraAudioHandler extends BaseAudioHandler
         playbackState.value.copyWith(
           controls: [
             MediaControl.skipToPrevious,
+            MediaControl.rewind,
             if (playing) MediaControl.pause else MediaControl.play,
             MediaControl.stop,
+            MediaControl.fastForward,
             MediaControl.skipToNext,
           ],
           systemActions: const {
@@ -47,7 +110,8 @@ class NexoraAudioHandler extends BaseAudioHandler
             MediaAction.seekForward,
             MediaAction.seekBackward,
           },
-          androidCompactActionIndices: const [0, 1, 3],
+          // Compact: prev / play-pause / next (indices into controls above).
+          androidCompactActionIndices: const [0, 2, 5],
           processingState: const {
             ProcessingState.idle: AudioProcessingState.idle,
             ProcessingState.loading: AudioProcessingState.loading,
@@ -228,6 +292,38 @@ class NexoraAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> rewind() => _seekBy(const Duration(seconds: -10));
+
+  @override
+  Future<void> fastForward() => _seekBy(const Duration(seconds: 10));
+
+  @override
+  Future<void> seekForward(bool begin) =>
+      _seekBy(begin ? const Duration(seconds: 10) : Duration.zero);
+
+  @override
+  Future<void> seekBackward(bool begin) =>
+      _seekBy(begin ? const Duration(seconds: -10) : Duration.zero);
+
+  Future<void> _seekBy(Duration offset) async {
+    final dur = _player.duration ?? Duration.zero;
+    var target = _player.position + offset;
+    if (target < Duration.zero) target = Duration.zero;
+    if (target > dur) target = dur;
+    await _player.seek(target);
+  }
+
+  @override
+  Future<void> click([MediaButton? button]) async {
+    // Headset single-click toggles, double-click handled by OS as skip.
+    if (_player.playing) {
+      await _player.pause();
+    } else {
+      await _player.play();
+    }
+  }
 
   @override
   Future<void> skipToNext() => _player.seekToNext();

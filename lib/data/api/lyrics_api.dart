@@ -70,6 +70,34 @@ class LyricsApi {
     );
     return LyricsData.fromJson(res.data as Map<String, dynamic>);
   }
+
+  /// Save/overwrite the sibling `.lrc` file (backend `POST /audio/lyrics`).
+  /// `raw` may be plain text (unsynced) or LRC with `[mm:ss.xx]` tags.
+  Future<LyricsData> saveLyrics(String rootId, String path, String raw) async {
+    final base = await _base();
+    final res = await _client.post(
+      '${base}${ApiConstants.audioLyrics}',
+      query: {'root': rootId, 'path': path},
+      data: {'raw': raw, 'format': _looksSynced(raw) ? 'lrc' : 'plain'},
+    );
+    final d = res.data;
+    if (d is Map<String, dynamic> && d['has_lyrics'] != null) {
+      return LyricsData.fromJson(d);
+    }
+    // Backend returns {ok:true} on some versions — re-read authoritative.
+    return getLyrics(rootId, path);
+  }
+
+  /// Delete the sibling `.lrc` file + DB shadow row (`DELETE /audio/lyrics`).
+  Future<void> deleteLyrics(String rootId, String path) async {
+    final base = await _base();
+    await _client.delete(
+      '${base}${ApiConstants.audioLyrics}',
+      query: {'root': rootId, 'path': path},
+    );
+  }
+
+  bool _looksSynced(String raw) => RegExp(r'\[\d{1,2}:\d{1,2}').hasMatch(raw);
 }
 
 final lyricsApiProvider = Provider<LyricsApi>((ref) {

@@ -40,10 +40,12 @@ Song.streamUrl (relative or absolute)
 ## State Exposed
 `currentTrack`, `queue`, `isPlaying`, `position`, `duration`, `bufferedPosition`, `processingState`, `shuffleEnabled`, `repeatMode`, `volume`
 
-## Background
-- Android: `AudioService` foreground service `mediaPlayback`, notification channel `com.nexora.audio.channel.audio`
-- iOS: `UIBackgroundModes: audio`, `AVAudioSession .playback`
-- Both: handle interruption, route change, remote commands via audio_service
+## Background (native notification + lock-screen + headset)
+- Android: `AudioService` foreground service `mediaPlayback` (manifest) + channel `com.nexora.audio.channel.audio` with description, ongoing notification, compact actions prev/play/next, 512px art, ±10s FF/RW, click-to-resume, `BLUETOOTH_CONNECT` for headsets/cars
+- iOS: `UIBackgroundModes: audio,fetch` (Info.plist), `AudioSessionConfiguration.music()`, lock-screen + Control Center + AirPods via audio_service
+- Interruptions: call/alarm → pause, duck → 0.4× volume + restore, unplug (`becomingNoisy`) → pause; headset click toggles
+- "PiP for audio" == background audio: screen-off / backgrounded / notification-minimized keeps playing; stop only via notification stop or queue clear
+- Code: `initAudioService()` config + `NexoraAudioHandler._initSession()` + `rewind/fastForward/seekForward/seekBackward/click` overrides
 
 ## Error Handling
 - Load failure → show Snackbar, skip to next if possible

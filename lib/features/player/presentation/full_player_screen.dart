@@ -1,40 +1,39 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
-import 'package:audio_service/audio_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:just_audio/just_audio.dart' show LoopMode, ProcessingState;
 
-import '../../../ui/nexora/nexora_artwork.dart';
-import '../../../ui/nexora/nexora_controls.dart';
+import '../../../data/api/audio_api.dart';
+import '../../../data/api/lyrics_api.dart';
+import '../../../data/repositories/favorites_repository.dart';
+import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
-import '../../../ui/nexora/nexora_quality_info.dart';
-import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_seek_bar.dart';
-import '../../../ui/nexora/nexora_sheet.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/nexora/player_visual_mode_provider.dart';
 import '../../../ui/theme.dart';
+import '../../../ui/theme_provider.dart';
 import '../../../ui/widgets/animated_cover.dart';
+import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/lyrics_display.dart';
+import '../../../ui/widgets/vinyl_disc.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
 import '../providers/player_provider.dart';
 import '../providers/sleep_timer_provider.dart';
-import '../../playlists/presentation/add_to_playlist_sheet.dart';
-import '../../../domain/entities/song.dart';
-import '../../../data/api/audio_api.dart';
-import '../../../data/api/lyrics_api.dart';
 import 'cassette_player.dart';
 
 /// Full Player — audiophile redesign.
 ///
-/// Features:
-/// - Animated album cover with breathing glow
-/// - Rich audio quality badge (codec, sample rate, bit depth)
-/// - Synced lyrics integration
-/// - Sleep timer & visual mode controls
-/// - Swipe gestures for dismiss / queue
+/// - Adaptive gradient background derived from track + blurred artwork
+/// - Gradient timeline (seek bar)
+/// - Redesigned tactile controls (all wired, haptics, buffering)
+/// - Visual modes: modern / vinyl / cassette / minimal (all working)
+/// - Round vinyl disc with cover-photo fill
+/// - Horizontal swipe to change track, vertical swipe to dismiss/queue
 class FullPlayerScreen extends ConsumerStatefulWidget {
   const FullPlayerScreen({super.key});
   @override
@@ -43,6 +42,9 @@ class FullPlayerScreen extends ConsumerStatefulWidget {
 
 class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
   bool _showLyrics = false;
+  // Swipe-start anchor so horizontal vs vertical intent is robust.
+  Offset? _dragStart;
+  static const double _hVelocity = 280;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,21 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     final notifier = ref.read(playerProvider.notifier);
     final track = state.currentTrack;
     final mode = ref.watch(playerVisualModeProvider);
+    // Keep legacy provider in sync (settings screen reads it).
+    final legacyStyle = ref.watch(playerVisualStyleProvider);
+    if (legacyStyle.name != mode.name) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(playerVisualStyleProvider.notifier)
+            .set(
+              PlayerVisualStyle.values.firstWhere(
+                (e) => e.name == mode.name,
+                orElse: () => PlayerVisualStyle.modern,
+              ),
+            );
+      });
+    }
 
     if (track == null) {
       return Scaffold(
@@ -71,13 +88,15 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     }
 
     final isPlaying = state.isPlaying;
+    final isBuffering =
+        state.processingState == ProcessingState.buffering ||
+        state.processingState == ProcessingState.loading;
     final pos = state.position;
     final dur = state.duration.inMilliseconds == 0
         ? (track.duration ?? Duration.zero)
         : state.duration;
+    final buffered = state.bufferedPosition;
 
-    // Fetch audio info & lyrics (MediaItem doesn't have rootId directly,
-    // so we read it from extras which the player provider populates).
     final rootId = track.extras?['rootId'] as String?;
     final songId = (track.extras?['songId'] as String?) ?? track.id;
     final audioInfo = rootId != null
@@ -122,18 +141,74 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       );
     }
 
+    final seed = track.id.isNotEmpty ? track.id : track.title;
+    final palette = AdaptivePalette.fromSeed(seed);
+    final grad = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [palette.primary, palette.secondary, AppColors.accentCyan],
+    );
+    final gradH = LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [palette.primary, palette.secondary, AppColors.accentCyan],
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Ambient blurred artwork background
-          if (track.artUri != null)
-            Positioned.fill(
-              child: _AmbientLayer(artworkUrl: track.artUri!.toString()),
+          // #1 Adaptive background: gradient wash + blurred artwork
+          Positioned.fill(
+            child: _AdaptiveBackground(
+              artworkUrl: track.artUri?.toString(),
+              palette: palette,
+              // Force rebuild per track so gradient cross-fades
+              key: ValueKey('bg-${track.id}'),
             ),
+          ),
           SafeArea(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
+              onPanStart: (d) => _dragStart = d.globalPosition,
+              onPanEnd: (details) {
+                final start = _dragStart;
+                _dragStart = null;
+                if (start == null) return;
+                // Horizontal swipe → track change (#7)
+                final vx = details.velocity.pixelsPerSecond.dx;
+                final vy = details.velocity.pixelsPerSecond.dy;
+                final dx = details.velocity.pixelsPerSecond.dx.abs();
+                final dy = details.velocity.pixelsPerSecond.dy.abs();
+                if (dx > dy && (dx > _hVelocity)) {
+                  HapticFeedback.selectionClick();
+                  if (vx < 0) {
+                    notifier.next();
+                  } else {
+                    notifier.previous();
+                  }
+                  return;
+                }
+                // Vertical: down dismiss / up queue (existing behavior)
+                if (dy > dx) {
+                  if (vy > 380 && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else if (vy < -420) {
+                    _showQueue(context);
+                  }
+                }
+              },
+              // Keep legacy callbacks as fallback for fast flings
+              onHorizontalDragEnd: (details) {
+                final vx = details.primaryVelocity ?? 0;
+                if (vx < -_hVelocity) {
+                  HapticFeedback.selectionClick();
+                  notifier.next();
+                } else if (vx > _hVelocity) {
+                  HapticFeedback.selectionClick();
+                  notifier.previous();
+                }
+              },
               onVerticalDragEnd: (details) {
                 final vy = details.primaryVelocity ?? 0;
                 if (vy > 380 && Navigator.canPop(context)) {
@@ -150,6 +225,19 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                     onMode: () => _showVisualModeSheet(context, ref),
                     modeLabel: mode.label,
                   ),
+                  // Swipe hint (subtle, first-run discoverability)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, bottom: 2),
+                    child: Text(
+                      '‹  SWIPE TO CHANGE  ›',
+                      style: TextStyle(
+                        color: AppColors.textFaint.withValues(alpha: 0.85),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.2,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -159,15 +247,33 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                           physics: const BouncingScrollPhysics(),
                           child: Column(
                             children: [
-                              const SizedBox(height: 12),
-                              // Animated cover — larger, softer, glowing.
-                              AnimatedAlbumCover(
-                                imageUrl: track.artUri?.toString(),
-                                isPlaying: isPlaying,
-                                size: artworkSize,
-                                borderRadius: 24,
+                              const SizedBox(height: 8),
+                              // #4 Visual-mode stage (all modes now render)
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 380),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                transitionBuilder: (child, anim) =>
+                                    FadeTransition(
+                                      opacity: anim,
+                                      child: ScaleTransition(
+                                        scale: Tween<double>(
+                                          begin: 0.94,
+                                          end: 1.0,
+                                        ).animate(anim),
+                                        child: child,
+                                      ),
+                                    ),
+                                child: _ArtworkStage(
+                                  key: ValueKey('${mode.name}-${track.id}'),
+                                  mode: mode,
+                                  track: track,
+                                  isPlaying: isPlaying,
+                                  artworkSize: artworkSize,
+                                  gradient: grad,
+                                ),
                               ),
-                              const SizedBox(height: 28),
+                              const SizedBox(height: 26),
                               // Title + artist
                               Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -200,7 +306,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 10),
-                                    // Audio quality badge
                                     if (audioInfo != null)
                                       audioInfo.when(
                                         data: (info) => info != null
@@ -230,7 +335,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                             const SizedBox.shrink(),
                                       ),
                                     const SizedBox(height: 6),
-                                    // Lyrics button
                                     if (lyrics != null)
                                       lyrics.when(
                                         data: (data) => data.hasLyrics
@@ -248,103 +352,100 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 24),
-                              // Seek bar
+                              const SizedBox(height: 22),
+                              // #2 Gradient timeline
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 28,
                                 ),
-                                child: Column(
-                                  children: [
-                                    SliderTheme(
-                                      data: SliderThemeData(
-                                        trackHeight: 3,
-                                        activeTrackColor: AppColors.text,
-                                        inactiveTrackColor:
-                                            AppColors.surfaceHigh,
-                                        thumbColor: AppColors.text,
-                                        overlayColor: AppColors.accent
-                                            .withValues(alpha: 0.10),
-                                        thumbShape: const RoundSliderThumbShape(
-                                          enabledThumbRadius: 7,
-                                        ),
-                                        overlayShape:
-                                            const RoundSliderOverlayShape(
-                                              overlayRadius: 16,
-                                            ),
-                                        trackShape:
-                                            const RoundedRectSliderTrackShape(),
-                                      ),
-                                      child: Slider(
-                                        value: pos.inMilliseconds
-                                            .toDouble()
-                                            .clamp(
-                                              0.0,
-                                              dur.inMilliseconds.toDouble(),
-                                            ),
-                                        max: dur.inMilliseconds.toDouble(),
-                                        onChanged: (v) => notifier.seek(
-                                          Duration(milliseconds: v.round()),
-                                        ),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            _formatDuration(pos),
-                                            style: TextStyle(
-                                              color: AppColors.textDim,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              fontFeatures: const [
-                                                FontFeature.tabularFigures(),
-                                              ],
-                                            ),
-                                          ),
-                                          Text(
-                                            _formatDuration(dur),
-                                            style: TextStyle(
-                                              color: AppColors.textDim,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              fontFeatures: const [
-                                                FontFeature.tabularFigures(),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                child: NexoraSeekBar(
+                                  position: pos,
+                                  duration: dur,
+                                  buffered: buffered,
+                                  gradient: gradH,
+                                  onSeek: notifier.seek,
                                 ),
                               ),
-                              const SizedBox(height: 16),
-                              // Controls
+                              const SizedBox(height: 14),
+                              // #3 Redesigned + fully wired controls
                               _Controls(
                                 isPlaying: isPlaying,
+                                isBuffering: isBuffering,
                                 loopMode: state.repeatMode,
                                 isShuffled: state.shuffleEnabled,
-                                onPlayPause: notifier.togglePlay,
-                                onPrevious: notifier.previous,
-                                onNext: notifier.next,
-                                onLoop: notifier.cycleRepeat,
-                                onShuffle: notifier.toggleShuffle,
+                                gradient: grad,
+                                onPlayPause: () {
+                                  HapticFeedback.lightImpact();
+                                  notifier.togglePlay();
+                                },
+                                onPrevious: () {
+                                  HapticFeedback.selectionClick();
+                                  notifier.previous();
+                                },
+                                onNext: () {
+                                  HapticFeedback.selectionClick();
+                                  notifier.next();
+                                },
+                                onLoop: () {
+                                  HapticFeedback.selectionClick();
+                                  notifier.cycleRepeat();
+                                },
+                                onShuffle: () {
+                                  HapticFeedback.selectionClick();
+                                  notifier.toggleShuffle();
+                                },
                               ),
-                              const SizedBox(height: 20),
-                              // Bottom actions
+                              const SizedBox(height: 18),
                               _BottomActions(
                                 onQueue: () => _showQueue(context),
                                 onAddToPlaylist: () =>
                                     _showAddToPlaylist(context, track),
                                 onEqualizer: () => context.push('/equalizer'),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
+                              // #1 Bottom dock: volume + speed + extras.
+                              // Fills the dead bottom space with live controls.
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                ),
+                                child: _VolumeBar(
+                                  volume: state.volume,
+                                  speed: state.playbackSpeed,
+                                  onVolume: notifier.setVolume,
+                                  onSpeedTap: () =>
+                                      _showSpeedSheet(context, ref),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: _BottomDock(
+                                  track: track,
+                                  rootId: rootId,
+                                  songId: songId,
+                                  lyricsData: lyrics?.value,
+                                  onSleep: () =>
+                                      _showSleepTimerSheet(context, ref),
+                                  onSpeed: () => _showSpeedSheet(context, ref),
+                                  onLyricsEdit: rootId != null
+                                      ? () => _showLyricsEditor(
+                                          context,
+                                          ref,
+                                          rootId,
+                                          songId,
+                                          lyrics?.value,
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              SizedBox(
+                                height:
+                                    12 +
+                                    MediaQuery.of(context).padding.bottom * 0.4,
+                              ),
                             ],
                           ),
                         );
@@ -358,12 +459,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
         ],
       ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes;
-    final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   void _showQueue(BuildContext context) {
@@ -392,28 +487,178 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
   }
 
   void _showAddToPlaylist(BuildContext context, MediaItem track) {
-    // Convert MediaItem to Song for the playlist sheet
+    // Real sheet — convert MediaItem → Song (was a dead placeholder).
+    final rootId = track.extras?['rootId'] as String?;
+    final songId = (track.extras?['songId'] as String?) ?? track.id;
+    final song = Song(
+      id: songId,
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      coverUrl: track.artUri?.toString(),
+      rootId: rootId,
+    );
+    showAddToPlaylistSheet(context, song: song);
+  }
+
+  void _showSpeedSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: NexoraRadius.sheetTop,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'Add "${track.title}" to playlist',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+      builder: (c) => const _SpeedSheet(),
+    );
+  }
+
+  void _showLyricsEditor(
+    BuildContext context,
+    WidgetRef ref,
+    String rootId,
+    String songId,
+    LyricsData? current,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (c) => _LyricsEditorSheet(
+        rootId: rootId,
+        songId: songId,
+        initial: current?.raw ?? '',
+        hasLyrics: current?.hasLyrics ?? false,
+        synced: current?.synced ?? false,
+      ),
+    );
+  }
+}
+
+/// #4 — artwork stage switch. Previously `mode` was watched but never
+/// used, so changing style did nothing. Now every mode renders.
+class _ArtworkStage extends StatelessWidget {
+  final PlayerVisualMode mode;
+  final MediaItem track;
+  final bool isPlaying;
+  final double artworkSize;
+  final Gradient gradient;
+
+  const _ArtworkStage({
+    super.key,
+    required this.mode,
+    required this.track,
+    required this.isPlaying,
+    required this.artworkSize,
+    required this.gradient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (mode) {
+      case PlayerVisualMode.vinyl:
+        return Column(
+          children: [
+            VinylDisc(
+              artworkUrl: track.artUri?.toString(),
+              isPlaying: isPlaying,
+              size: artworkSize,
+            ),
+            const SizedBox(height: 10),
+            _ModeGlowCaption(label: 'VINYL • ${track.album ?? 'LP'}'),
+          ],
+        );
+      case PlayerVisualMode.cassette:
+        return Column(
+          children: [
+            SizedBox(
+              width: artworkSize + 40,
+              child: CassettePlayer(
+                isPlaying: isPlaying,
+                artworkUrl: track.artUri?.toString(),
               ),
             ),
-          ),
+            const SizedBox(height: 10),
+            _ModeGlowCaption(label: 'CASSETTE • HF 90'),
+          ],
+        );
+      case PlayerVisualMode.minimal:
+        return Column(
+          children: [
+            Container(
+              width: artworkSize * 0.62,
+              height: artworkSize * 0.62,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 26,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: ArtworkImage(
+                  url: track.artUri?.toString(),
+                  borderRadius: 0,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _ModeGlowCaption(label: 'MINIMAL'),
+          ],
+        );
+      case PlayerVisualMode.modern:
+        return Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: gradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.35),
+                    blurRadius: 44,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 16),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(2.5),
+              child: AnimatedAlbumCover(
+                imageUrl: track.artUri?.toString(),
+                isPlaying: isPlaying,
+                size: artworkSize,
+                borderRadius: 24,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _ModeGlowCaption(label: 'MODERN • AURORA'),
+          ],
+        );
+    }
+  }
+}
+
+class _ModeGlowCaption extends StatelessWidget {
+  final String label;
+  const _ModeGlowCaption({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 0.6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.6,
         ),
       ),
     );
@@ -448,13 +693,21 @@ class _TopBar extends StatelessWidget {
             onPressed: onClose,
           ),
           const Spacer(),
-          Text(
-            modeLabel.toUpperCase(),
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceRaised.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border, width: 0.6),
+            ),
+            child: Text(
+              modeLabel.toUpperCase(),
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
             ),
           ),
           const Spacer(),
@@ -474,8 +727,10 @@ class _TopBar extends StatelessWidget {
 
 class _Controls extends StatelessWidget {
   final bool isPlaying;
+  final bool isBuffering;
   final LoopMode loopMode;
   final bool isShuffled;
+  final Gradient gradient;
   final VoidCallback onPlayPause;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
@@ -484,8 +739,10 @@ class _Controls extends StatelessWidget {
 
   const _Controls({
     required this.isPlaying,
+    required this.isBuffering,
     required this.loopMode,
     required this.isShuffled,
+    required this.gradient,
     required this.onPlayPause,
     required this.onPrevious,
     required this.onNext,
@@ -496,89 +753,173 @@ class _Controls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Shuffle
-          IconButton(
-            icon: Icon(
-              Icons.shuffle_rounded,
-              color: isShuffled
-                  ? AppColors.accent
-                  : AppColors.text.withValues(alpha: 0.6),
-              size: 22,
-            ),
-            onPressed: onShuffle,
+          _SmallRoundButton(
+            icon: Icons.shuffle_rounded,
+            active: isShuffled,
+            onTap: onShuffle,
+            tooltip: 'Shuffle',
           ),
-          // Previous
-          IconButton(
-            icon: Icon(
-              Icons.skip_previous_rounded,
-              color: AppColors.text,
-              size: 32,
-            ),
-            onPressed: onPrevious,
-          ),
-          // Play / Pause — aurora gradient hero button.
+          _SkipButton(icon: Icons.skip_previous_rounded, onTap: onPrevious),
+          // Play / Pause — adaptive gradient hero button
           GestureDetector(
             onTap: onPlayPause,
-            child: Container(
-              width: 72,
-              height: 72,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              width: 76,
+              height: 76,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                gradient: AppColors.accentGradient,
+                gradient: gradient,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.24),
-                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.28),
+                  width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.accent.withValues(alpha: 0.45),
                     blurRadius: 30,
-                    spreadRadius: 0,
                     offset: const Offset(0, 12),
                   ),
                   BoxShadow(
-                    color: AppColors.accentCyan.withValues(alpha: 0.20),
+                    color: AppColors.accentCyan.withValues(alpha: 0.22),
                     blurRadius: 52,
                     spreadRadius: 2,
                     offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: Colors.white,
-                size: 34,
-              ),
+              child: isBuffering
+                  ? const SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (c, a) => ScaleTransition(
+                        scale: Tween<double>(begin: 0.7, end: 1.0).animate(a),
+                        child: c,
+                      ),
+                      child: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        key: ValueKey(isPlaying),
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
             ),
           ),
-          // Next
-          IconButton(
-            icon: Icon(
-              Icons.skip_next_rounded,
-              color: AppColors.text,
-              size: 32,
-            ),
-            onPressed: onNext,
-          ),
-          // Loop
-          IconButton(
-            icon: Icon(
-              loopMode == LoopMode.one
-                  ? Icons.repeat_one_rounded
-                  : Icons.repeat_rounded,
-              color: loopMode != LoopMode.off
-                  ? AppColors.accent
-                  : AppColors.text.withValues(alpha: 0.6),
-              size: 22,
-            ),
-            onPressed: onLoop,
+          _SkipButton(icon: Icons.skip_next_rounded, onTap: onNext),
+          _SmallRoundButton(
+            icon: loopMode == LoopMode.one
+                ? Icons.repeat_one_rounded
+                : Icons.repeat_rounded,
+            active: loopMode != LoopMode.off,
+            onTap: onLoop,
+            tooltip: 'Repeat',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SmallRoundButton extends StatelessWidget {
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
+  final String tooltip;
+  const _SmallRoundButton({
+    required this.icon,
+    required this.active,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: active ? AppColors.accentGradient : null,
+            color: active
+                ? null
+                : AppColors.surfaceRaised.withValues(alpha: 0.7),
+            border: Border.all(
+              color: active
+                  ? Colors.white.withValues(alpha: 0.25)
+                  : AppColors.border,
+              width: 0.8,
+            ),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: AppColors.accent.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Icon(
+            icon,
+            color: active
+                ? Colors.white
+                : AppColors.text.withValues(alpha: 0.75),
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkipButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _SkipButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.card.withValues(alpha: 0.85),
+          border: Border.all(color: AppColors.border, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: AppColors.text, size: 30),
       ),
     );
   }
@@ -637,49 +978,156 @@ class _ActionIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.textMuted, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.textFaint,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceRaised.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.textMuted, size: 20),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.textFaint,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _AmbientLayer extends StatelessWidget {
-  final String artworkUrl;
-  const _AmbientLayer({required this.artworkUrl});
+/// #1 Adaptive background: per-track gradient + blurred artwork
+/// with animated cross-fade on track change.
+class _AdaptiveBackground extends StatefulWidget {
+  final String? artworkUrl;
+  final AdaptivePalette palette;
+  const _AdaptiveBackground({
+    super.key,
+    this.artworkUrl,
+    required this.palette,
+  });
+
+  @override
+  State<_AdaptiveBackground> createState() => _AdaptiveBackgroundState();
+}
+
+class _AdaptiveBackgroundState extends State<_AdaptiveBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 8))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: ColorFiltered(
-        colorFilter: ColorFilter.mode(
-          AppColors.background.withValues(alpha: 0.85),
-          BlendMode.srcOver,
-        ),
-        child: Image.network(
-          artworkUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, _, _) => Container(color: AppColors.background),
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) {
+        final t = _c.value;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Base
+            Container(color: AppColors.background),
+            // Adaptive gradient wash (animates hue position)
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(-1 + t * 0.4, -1),
+                  end: Alignment(1 - t * 0.4, 1),
+                  colors: [
+                    widget.palette.primary.withValues(alpha: 0.34),
+                    AppColors.background.withValues(alpha: 0.0),
+                    widget.palette.secondary.withValues(alpha: 0.26),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+            // Blurred artwork (soft, behind gradient scrim)
+            if (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty)
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                    AppColors.background.withValues(alpha: 0.78),
+                    BlendMode.srcOver,
+                  ),
+                  child: Image.network(
+                    widget.artworkUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            // Top + bottom scrims for legibility
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.background.withValues(alpha: 0.55),
+                    Colors.transparent,
+                    AppColors.background.withValues(alpha: 0.72),
+                  ],
+                  stops: const [0.0, 0.35, 1.0],
+                ),
+              ),
+            ),
+            // Aurora blobs
+            Positioned(
+              top: -60 + t * 24,
+              left: -50,
+              child: Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.palette.primary.withValues(alpha: 0.16),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -70 - t * 18,
+              right: -60,
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.palette.secondary.withValues(alpha: 0.14),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -691,8 +1139,9 @@ class _QueueSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(playerProvider);
     final queue = state.queue;
+    final notifier = ref.read(playerProvider.notifier);
     return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
+      height: MediaQuery.of(context).size.height * 0.62,
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: NexoraRadius.sheetTop,
@@ -711,14 +1160,37 @@ class _QueueSheet extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Queue',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Queue',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradientHorizontal,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${queue.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -728,69 +1200,97 @@ class _QueueSheet extends ConsumerWidget {
                       title: 'Queue is empty',
                       subtitle: 'Add songs from your library.',
                     )
-                  : ListView.builder(
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                       itemCount: queue.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (c, i) {
                         final item = queue[i];
                         final isCurrent = state.currentTrack?.id == item.id;
-                        return ListTile(
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: item.artUri != null
-                                ? Image.network(
-                                    item.artUri!.toString(),
-                                    width: 44,
-                                    height: 44,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(
-                                      width: 44,
-                                      height: 44,
-                                      color: AppColors.surfaceRaised,
-                                      child: Icon(
-                                        Icons.music_note_rounded,
-                                        color: AppColors.textDim,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    width: 44,
-                                    height: 44,
-                                    color: AppColors.surfaceRaised,
-                                    child: Icon(
-                                      Icons.music_note_rounded,
-                                      color: AppColors.textDim,
-                                      size: 20,
-                                    ),
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: isCurrent
+                                ? AppColors.selectionGradientHorizontal
+                                : null,
+                            color: isCurrent
+                                ? null
+                                : AppColors.surfaceRaised.withValues(
+                                    alpha: 0.55,
                                   ),
-                          ),
-                          title: Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
                               color: isCurrent
-                                  ? AppColors.accent
-                                  : AppColors.text,
-                              fontWeight: FontWeight.w600,
+                                  ? Colors.white.withValues(alpha: 0.22)
+                                  : AppColors.border.withValues(alpha: 0.6),
+                              width: 0.7,
                             ),
+                            boxShadow: isCurrent
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.accent.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          subtitle: Text(
-                            item.artist ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: AppColors.textMuted),
+                          child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: ArtworkImage(
+                                  url: item.artUri?.toString(),
+                                  borderRadius: 0,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isCurrent
+                                    ? Colors.white
+                                    : AppColors.text,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                              item.artist ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isCurrent
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : AppColors.textMuted,
+                              ),
+                            ),
+                            trailing: isCurrent
+                                ? NexoraEqualizerBars(
+                                    playing: state.isPlaying,
+                                    barWidth: 2.5,
+                                    minHeight: 3,
+                                    maxHeight: 12,
+                                    color: Colors.white,
+                                  )
+                                : IconButton(
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: AppColors.textDim,
+                                    ),
+                                    onPressed: () => notifier.removeAt(i),
+                                  ),
+                            onTap: () => notifier.seekToIndex(i),
                           ),
-                          trailing: isCurrent
-                              ? NexoraEqualizerBars(
-                                  playing: state.isPlaying,
-                                  barWidth: 2.5,
-                                  minHeight: 3,
-                                  maxHeight: 12,
-                                )
-                              : null,
-                          onTap: () =>
-                              ref.read(playerProvider.notifier).seekToIndex(i),
                         );
                       },
                     ),
@@ -899,7 +1399,7 @@ class _VisualModeSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.read(playerVisualModeProvider);
+    final current = ref.watch(playerVisualModeProvider);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -932,36 +1432,77 @@ class _VisualModeSheet extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
+              Text(
+                'Artwork stage updates instantly.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
               for (final mode in PlayerVisualMode.values)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: Icon(
-                      _modeIcon(mode),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: current == mode
+                          ? AppColors.selectionGradientHorizontal
+                          : null,
                       color: current == mode
-                          ? AppColors.accent
-                          : AppColors.textMuted,
-                    ),
-                    title: Text(
-                      mode.label,
-                      style: TextStyle(
+                          ? null
+                          : AppColors.surfaceRaised.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
                         color: current == mode
-                            ? AppColors.accent
-                            : AppColors.text,
-                        fontWeight: FontWeight.w600,
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : AppColors.border,
+                        width: 0.7,
                       ),
                     ),
-                    trailing: current == mode
-                        ? Icon(Icons.check_rounded, color: AppColors.accent)
-                        : null,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    child: ListTile(
+                      leading: Icon(
+                        _modeIcon(mode),
+                        color: current == mode
+                            ? Colors.white
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        mode.label,
+                        style: TextStyle(
+                          color: current == mode
+                              ? Colors.white
+                              : AppColors.text,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _modeDesc(mode),
+                        style: TextStyle(
+                          color: current == mode
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : AppColors.textMuted,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                      trailing: current == mode
+                          ? const Icon(Icons.check_rounded, color: Colors.white)
+                          : null,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(playerVisualModeProvider.notifier).set(mode);
+                        // Keep legacy provider synced (settings reads it)
+                        ref
+                            .read(playerVisualStyleProvider.notifier)
+                            .set(
+                              PlayerVisualStyle.values.firstWhere(
+                                (e) => e.name == mode.name,
+                                orElse: () => PlayerVisualStyle.modern,
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
                     ),
-                    onTap: () {
-                      ref.read(playerVisualModeProvider.notifier).set(mode);
-                      Navigator.pop(context);
-                    },
                   ),
                 ),
             ],
@@ -982,5 +1523,708 @@ class _VisualModeSheet extends ConsumerWidget {
       case PlayerVisualMode.minimal:
         return Icons.crop_square_rounded;
     }
+  }
+
+  String _modeDesc(PlayerVisualMode mode) {
+    switch (mode) {
+      case PlayerVisualMode.modern:
+        return 'Aurora frame, glowing square artwork';
+      case PlayerVisualMode.vinyl:
+        return 'Spinning record, artwork fills the label';
+      case PlayerVisualMode.cassette:
+        return 'Tape deck with rotating reels';
+      case PlayerVisualMode.minimal:
+        return 'Compact artwork, pure & quiet';
+    }
+  }
+}
+
+/// #1 Bottom-space dock — volume + speed + favorite + sleep + lyrics sync.
+/// Turns the dead gap below EQ into live, tactile controls.
+class _VolumeBar extends StatelessWidget {
+  final double volume;
+  final double speed;
+  final ValueChanged<double> onVolume;
+  final VoidCallback onSpeedTap;
+
+  const _VolumeBar({
+    required this.volume,
+    required this.speed,
+    required this.onVolume,
+    required this.onSpeedTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = volume <= 0.01;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.6),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onVolume(muted ? 1.0 : 0.0);
+            },
+            child: Icon(
+              muted
+                  ? Icons.volume_off_rounded
+                  : volume < 0.5
+                  ? Icons.volume_down_rounded
+                  : Icons.volume_up_rounded,
+              color: AppColors.textMuted,
+              size: 20,
+            ),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                activeTrackColor: AppColors.accent,
+                inactiveTrackColor: AppColors.surfaceHigh,
+                thumbColor: Colors.white,
+                overlayColor: AppColors.accent.withValues(alpha: 0.15),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              ),
+              child: Slider(value: volume.clamp(0.0, 1.0), onChanged: onVolume),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onSpeedTap();
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: speed == 1.0
+                    ? null
+                    : AppColors.accentGradientHorizontal,
+                color: speed == 1.0 ? AppColors.card : null,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: speed == 1.0
+                      ? AppColors.border
+                      : Colors.white.withValues(alpha: 0.25),
+                  width: 0.7,
+                ),
+              ),
+              child: Text(
+                '${speed.toStringAsFixed(speed.truncateToDouble() == speed ? 1 : 2)}×',
+                style: TextStyle(
+                  color: speed == 1.0 ? AppColors.textMuted : Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomDock extends ConsumerWidget {
+  final MediaItem track;
+  final String? rootId;
+  final String songId;
+  final LyricsData? lyricsData;
+  final VoidCallback onSleep;
+  final VoidCallback onSpeed;
+  final VoidCallback? onLyricsEdit;
+
+  const _BottomDock({
+    required this.track,
+    required this.rootId,
+    required this.songId,
+    required this.lyricsData,
+    required this.onSleep,
+    required this.onSpeed,
+    required this.onLyricsEdit,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sleep = ref.watch(sleepTimerProvider);
+    final synced = lyricsData?.synced ?? false;
+    final hasLyrics = lyricsData?.hasLyrics ?? false;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 0.7),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _FavoriteButton(track: track, songId: songId),
+          _DockButton(
+            icon: Icons.speed_rounded,
+            label: 'Speed',
+            onTap: onSpeed,
+          ),
+          _DockButton(
+            icon: Icons.bedtime_outlined,
+            label: sleep.isActive ? sleep.label : 'Sleep',
+            highlight: sleep.isActive,
+            onTap: onSleep,
+          ),
+          _DockButton(
+            icon: hasLyrics
+                ? (synced ? Icons.lyrics_rounded : Icons.lyrics_outlined)
+                : Icons.lyrics_outlined,
+            label: hasLyrics ? (synced ? 'Synced' : 'Plain') : 'No lyr',
+            highlight: hasLyrics && synced,
+            dimmed: !hasLyrics,
+            onTap:
+                onLyricsEdit ??
+                () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Lyrics editing needs a server track (root+path).',
+                    ),
+                  ),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DockButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool highlight;
+  final bool dimmed;
+
+  const _DockButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.highlight = false,
+    this.dimmed = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: highlight ? AppColors.accentGradient : null,
+          color: highlight ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: highlight
+                ? Colors.white.withValues(alpha: 0.25)
+                : Colors.transparent,
+            width: 0.7,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: highlight
+                  ? Colors.white
+                  : dimmed
+                  ? AppColors.textFaint
+                  : AppColors.textMuted,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: highlight
+                    ? Colors.white
+                    : dimmed
+                    ? AppColors.textFaint
+                    : AppColors.textMuted,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Optimistic favorite toggle wired to the real backend + offline queue.
+class _FavoriteButton extends ConsumerStatefulWidget {
+  final MediaItem track;
+  final String songId;
+  const _FavoriteButton({required this.track, required this.songId});
+
+  @override
+  ConsumerState<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
+  bool _liked = false;
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _busy
+          ? null
+          : () async {
+              HapticFeedback.lightImpact();
+              final next = !_liked;
+              setState(() {
+                _liked = next;
+                _busy = true;
+              });
+              try {
+                await ref
+                    .read(favoritesRepositoryProvider)
+                    .toggleFavorite(widget.songId, !next);
+              } catch (_) {
+                if (mounted) {
+                  setState(() => _liked = !next);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Favorite sync failed — queued offline'),
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _busy = false);
+              }
+            },
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            transitionBuilder: (c, a) => ScaleTransition(
+              scale: Tween<double>(begin: 0.6, end: 1.0).animate(a),
+              child: c,
+            ),
+            child: Icon(
+              _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              key: ValueKey(_liked),
+              size: 20,
+              color: _liked ? const Color(0xFFFF5C8A) : AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            _liked ? 'Loved' : 'Love',
+            style: TextStyle(
+              color: _liked ? const Color(0xFFFF5C8A) : AppColors.textMuted,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpeedSheet extends ConsumerWidget {
+  const _SpeedSheet();
+
+  static const _presets = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final speed = ref.watch(playerProvider).playbackSpeed;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: NexoraRadius.sheetTop,
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textFaint.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Playback speed',
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Pitch-correct tempo for podcasts, practice, audiobooks.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final p in _presets)
+                    ChoiceChip(
+                      label: Text(
+                        '${p.toStringAsFixed(p.truncateToDouble() == p ? 1 : 2)}×',
+                      ),
+                      selected: (speed - p).abs() < 0.001,
+                      selectedColor: AppColors.accent,
+                      backgroundColor: AppColors.surfaceRaised,
+                      labelStyle: TextStyle(
+                        color: (speed - p).abs() < 0.001
+                            ? Colors.white
+                            : AppColors.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(color: AppColors.border, width: 0.7),
+                      ),
+                      onSelected: (_) {
+                        HapticFeedback.selectionClick();
+                        ref.read(playerProvider.notifier).setSpeed(p);
+                        Navigator.pop(context);
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// #5 Lyrics sync monitor + editor.
+/// Shows backend sync state (synced/plain/missing + source) and lets the
+/// user save plain or LRC text straight to the sibling `.lrc` file.
+class _LyricsEditorSheet extends ConsumerStatefulWidget {
+  final String rootId;
+  final String songId;
+  final String initial;
+  final bool hasLyrics;
+  final bool synced;
+
+  const _LyricsEditorSheet({
+    required this.rootId,
+    required this.songId,
+    required this.initial,
+    required this.hasLyrics,
+    required this.synced,
+  });
+
+  @override
+  ConsumerState<_LyricsEditorSheet> createState() => _LyricsEditorSheetState();
+}
+
+class _LyricsEditorSheetState extends ConsumerState<_LyricsEditorSheet> {
+  late final TextEditingController _c;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: widget.initial);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final raw = _c.text.trimRight();
+    if (raw.trim().isEmpty || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(lyricsApiProvider)
+          .saveLyrics(widget.rootId, widget.songId, raw);
+      ref.invalidate(
+        lyricsProvider((rootId: widget.rootId, path: widget.songId)),
+      );
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lyrics synced to server (.lrc)')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _delete() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(lyricsApiProvider)
+          .deleteLyrics(widget.rootId, widget.songId);
+      ref.invalidate(
+        lyricsProvider((rootId: widget.rootId, path: widget.songId)),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final insets = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: NexoraRadius.sheetTop,
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.7)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: insets),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Lyrics sync',
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    _SyncPill(
+                      hasLyrics: widget.hasLyrics,
+                      synced: widget.synced,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Saved as sibling .lrc next to the track. Use [mm:ss.xx] tags for sync.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: AppColors.error, fontSize: 12),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceRaised.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border, width: 0.7),
+                    ),
+                    child: TextField(
+                      controller: _c,
+                      maxLines: 10,
+                      minLines: 6,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 13.5,
+                        height: 1.5,
+                      ),
+                      decoration: InputDecoration(
+                        hintText:
+                            '[00:12.00] First line\\n[00:15.50] Second line\\n\\nor plain text (unsynced)',
+                        hintStyle: TextStyle(
+                          color: AppColors.textFaint,
+                          fontSize: 13,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    if (widget.hasLyrics)
+                      TextButton.icon(
+                        onPressed: _busy ? null : _delete,
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 17,
+                        ),
+                        label: const Text('Remove'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                        ),
+                      ),
+                    const Spacer(),
+                    OutlinedButton(
+                      onPressed: _busy ? null : () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _busy ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text('Sync'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SyncPill extends StatelessWidget {
+  final bool hasLyrics;
+  final bool synced;
+  const _SyncPill({required this.hasLyrics, required this.synced});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = !hasLyrics
+        ? 'MISSING'
+        : synced
+        ? 'SYNCED'
+        : 'PLAIN';
+    final color = !hasLyrics
+        ? AppColors.textDim
+        : synced
+        ? AppColors.success
+        : AppColors.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -644,7 +644,19 @@ Example: if `GET /api/v1/lyrics/:songId` 404 → UI shows “Lyrics not availabl
 
 ---
 
+## 19b. Lyrics sync (verified against Go backend)
+
+Sibling `.lrc` files are the source of truth (`internal/api/handlers_lyrics.go`).
+
+- `GET /audio/lyrics?root=<id>&path=<rel>` → `{has_lyrics, raw, format:lrc|plain, source, synced, meta, cues:[{time,text}]}`
+- `POST /audio/lyrics?root=&path=` `{raw, format}` (2 MiB cap) → writes sibling `.lrc`, clears DB shadow row
+- `DELETE /audio/lyrics?root=&path=` → removes `.lrc` + shadow row → `{ok:true}`
+- `time<0` cues are unsynced plain lines (render, never highlight)
+- `[offset:ms]` shifts every cue; multi-tag lines fan out
+- Flutter: `LyricsApi.get/save/deleteLyrics` + `lyricsProvider` family + `_LyricsEditorSheet` with SYNCED/PLAIN/MISSING pill
+
 ## 20. Changelog
 
+- 2026-09-03: Lyrics sync verified (GET/POST/DELETE /audio/lyrics), background-audio config, bottom-dock (volume/speed/fav/sleep/lyrics)
 - 2026-08-31: Initial contract — covers auth, library, streaming, playlists, favorites, history, search, artwork, realtime, settings.
 
