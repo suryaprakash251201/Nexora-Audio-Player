@@ -557,14 +557,12 @@ class _SongRow extends StatelessWidget {
   final dynamic song;
   final bool isCurrent;
   final VoidCallback onTap;
-  final VoidCallback? onMore;
   final void Function(Rect anchor)? onMoreAt;
   const _SongRow({
     required this.index,
     required this.song,
     required this.isCurrent,
     required this.onTap,
-    this.onMore,
     this.onMoreAt,
   });
 
@@ -723,22 +721,19 @@ class _SongRow extends StatelessWidget {
                           : AppColors.textDim,
                     ),
                     onPressed: () {
-                      if (onMoreAt != null) {
-                        final box = btnContext.findRenderObject() as RenderBox?;
-                        if (box != null && box.hasSize) {
-                          final pos = box.localToGlobal(Offset.zero);
-                          onMoreAt!(
-                            Rect.fromLTWH(
-                              pos.dx,
-                              pos.dy,
-                              box.size.width,
-                              box.size.height,
-                            ),
-                          );
-                          return;
-                        }
+                      final box = btnContext.findRenderObject() as RenderBox?;
+                      if (box == null || !box.hasSize || onMoreAt == null) {
+                        return;
                       }
-                      onMore?.call();
+                      final pos = box.localToGlobal(Offset.zero);
+                      onMoreAt!(
+                        Rect.fromLTWH(
+                          pos.dx,
+                          pos.dy,
+                          box.size.width,
+                          box.size.height,
+                        ),
+                      );
                     },
                   ),
                 ),

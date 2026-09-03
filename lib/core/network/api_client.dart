@@ -281,16 +281,6 @@ class ApiClient {
     );
   }
 
-  Map<String, dynamic> _unwrap(Map<String, dynamic> json) {
-    // Handles {success:true, data:{...}} or {data: [...]}
-    if (json.containsKey('data')) {
-      final inner = json['data'];
-      if (inner is Map<String, dynamic>) return inner;
-      // If data is list, return original (caller will handle)
-    }
-    return json;
-  }
-
   Future<Response> get(
     String path, {
     Map<String, dynamic>? query,

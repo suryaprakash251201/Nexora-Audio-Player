@@ -3,7 +3,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../nexora/nexora_tokens.dart';
 import '../theme.dart';
 
 /// Full-screen synced lyrics — glass over blurred artwork, bold live line

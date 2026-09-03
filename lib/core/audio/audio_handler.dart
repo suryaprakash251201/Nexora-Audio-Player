@@ -210,7 +210,6 @@ class NexoraAudioHandler extends BaseAudioHandler
       return AudioSource.uri(Uri.parse(item.id), tag: item, headers: headers);
     }).toList();
 
-    final seq = _player.sequence;
     if (_player.audioSource is ConcatenatingAudioSource) {
       final concat = _player.audioSource as ConcatenatingAudioSource;
       await concat.addAll(sources);
@@ -368,7 +367,6 @@ class NexoraAudioHandler extends BaseAudioHandler
     );
   }
 
-  @override
   Future<void> setRepeatModeAudio(AudioServiceRepeatMode repeatMode) async {
     await setRepeatMode(repeatMode);
   }

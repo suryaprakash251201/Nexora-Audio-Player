@@ -53,7 +53,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.mode == AppThemeMode.dark;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -133,7 +132,6 @@ class _SegmentedTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.mode == AppThemeMode.dark;
     return SizedBox(
       height: 46,
       child: ListView.separated(
@@ -160,9 +158,7 @@ class _SegmentedTabs extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       gradient: selected ? AppColors.accentGradient : null,
-                      color: selected
-                          ? null
-                          : (isDark ? AppColors.card : AppColors.card),
+                      color: selected ? null : AppColors.card,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: selected
@@ -265,7 +261,6 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.mode == AppThemeMode.dark;
     if (_error != null)
       return ErrorView(message: _error!, onRetry: () => _load(refresh: true));
     if (_loading && _songs.isEmpty) return const LoadingView();

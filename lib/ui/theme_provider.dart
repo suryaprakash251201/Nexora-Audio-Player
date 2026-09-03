@@ -87,7 +87,7 @@ class PlayerVisualStyleNotifier extends Notifier<PlayerVisualStyle> {
           for (final s in PlayerVisualStyle.values) {
             if (s.name == v) {
               state = s;
-              return Future<void>.value();
+              return;
             }
           }
         }
@@ -95,7 +95,7 @@ class PlayerVisualStyleNotifier extends Notifier<PlayerVisualStyle> {
         for (final s in PlayerVisualStyle.values) {
           if (s.name == legacy) {
             state = s;
-            return Future<void>.value();
+            return;
           }
         }
       } catch (_) {}

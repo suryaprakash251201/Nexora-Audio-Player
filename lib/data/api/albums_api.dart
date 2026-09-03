@@ -40,7 +40,6 @@ class AlbumsApi {
   }
 
   Future<Album> getAlbum(String albumId) async {
-    final root = NexoraFiles.parseRootId(albumId);
     final path = NexoraFiles.parsePath(albumId);
     final name = path.split('/').where((s) => s.isNotEmpty).lastOrNull ?? path;
     return Album(id: albumId, title: name, artist: null);

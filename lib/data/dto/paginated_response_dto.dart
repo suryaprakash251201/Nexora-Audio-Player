@@ -52,13 +52,6 @@ class PaginatedResponseDto<T> {
       );
     }
     if (json is Map<String, dynamic>) {
-      // Unwrap success envelope
-      final payload =
-          json['data'] is Map &&
-              json['pagination'] == null &&
-              json['data'] is List
-          ? json['data']
-          : json;
       // Check variations
       List<dynamic>? rawList;
       Map<String, dynamic>? pagination;

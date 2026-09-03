@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/database_service.dart';
 import '../../core/errors/exceptions.dart';
-import '../../core/sync/sync_manager.dart';
 import '../../domain/entities/playlist.dart';
 import '../../domain/entities/song.dart';
 import '../api/playlists_api.dart';
@@ -11,15 +10,13 @@ import '../api/playlists_api.dart';
 final playlistsRepositoryProvider = Provider<PlaylistsRepository>((ref) {
   final api = ref.watch(playlistsApiProvider);
   final db = ref.watch(databaseProvider);
-  final sync = ref.watch(syncManagerProvider);
-  return PlaylistsRepository(api, db, sync);
+  return PlaylistsRepository(api, db);
 });
 
 class PlaylistsRepository {
   final PlaylistsApi _api;
   final DatabaseService _dbService;
-  final SyncManager _sync;
-  PlaylistsRepository(this._api, this._dbService, this._sync);
+  PlaylistsRepository(this._api, this._dbService);
 
   Future<List<Playlist>> getPlaylists() async {
     try {

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../ui/nexora/nexora_primitives.dart';
-import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
-import '../../../ui/widgets/error_view.dart';
 
 /// Downloads — audiophile redesign.
 ///

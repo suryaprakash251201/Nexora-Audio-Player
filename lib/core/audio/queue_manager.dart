@@ -7,18 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/song.dart';
 import '../database/database_service.dart';
 import '../logging/app_logger.dart';
-import '../storage/secure_storage_service.dart';
 
 final queueManagerProvider = Provider<QueueManager>((ref) {
   final db = ref.watch(databaseProvider);
-  final storage = ref.watch(secureStorageProvider);
-  return QueueManager(db, storage);
+  return QueueManager(db);
 });
 
 class QueueManager {
   final DatabaseService _db;
-  final SecureStorageService _storage;
-  QueueManager(this._db, this._storage);
+  QueueManager(this._db);
 
   static const _queueKey = 'queue';
 

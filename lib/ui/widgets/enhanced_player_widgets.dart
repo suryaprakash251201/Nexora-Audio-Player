@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../nexora/nexora_glass.dart';
 import '../theme.dart';
-import 'waveform_visualizer.dart';
 
 /// Hi-Fi primary play/pause button. Single accent fill, calm press scale.
 /// Enhanced with optional breathing glow effect.
