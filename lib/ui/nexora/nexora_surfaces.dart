@@ -7,17 +7,21 @@ import 'nexora_tokens.dart';
 
 /// Slow-moving ambient light that sits behind a screen's content.
 /// Faint depth without competing with artwork. Wrapped in [RepaintBoundary].
+/// 2.1: living gradient-blue — blobs drift AND shift hue through the blue
+/// cycle so the whole app breathes one color language.
 class NexoraAurora extends StatefulWidget {
   const NexoraAurora({
     super.key,
     this.intensity = 1,
     this.tint,
     this.duration = const Duration(seconds: 18),
+    this.animateColors = true,
   });
 
   final double intensity;
   final Color? tint;
   final Duration duration;
+  final bool animateColors;
 
   @override
   State<NexoraAurora> createState() => _NexoraAuroraState();
@@ -52,6 +56,7 @@ class _NexoraAuroraState extends State<NexoraAurora>
               intensity: widget.intensity,
               tint: widget.tint ?? AppColors.accent,
               background: AppColors.background,
+              animateColors: widget.animateColors,
             ),
           ),
         ),
@@ -66,18 +71,32 @@ class _AuroraPainter extends CustomPainter {
     required this.intensity,
     required this.tint,
     required this.background,
+    this.animateColors = true,
   });
 
   final double progress;
   final double intensity;
   final Color tint;
   final Color background;
+  final bool animateColors;
+
+  Color _shift(Color a, Color b, double t) => Color.lerp(a, b, t) ?? a;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = background);
 
     final shortest = size.shortestSide;
+    // Living blue cycle: deep blue -> primary blue -> sky -> cyan.
+    final c1 = animateColors
+        ? _shift(const Color(0xFF1D5CFF), const Color(0xFF2E7CF6), progress)
+        : const Color(0xFF2E7CF6);
+    final c2 = animateColors
+        ? _shift(const Color(0xFF2E7CF6), const Color(0xFF22D3EE), progress)
+        : const Color(0xFF22D3EE);
+    final c3 = animateColors
+        ? _shift(const Color(0xFF0EA5E9), const Color(0xFF60A5FA), 1 - progress)
+        : const Color(0xFF0EA5E9);
     final blobs = <_Blob>[
       _Blob(
         center: Offset(
@@ -85,8 +104,8 @@ class _AuroraPainter extends CustomPainter {
           size.height * 0.12,
         ),
         radius: shortest * 1.1,
-        color: const Color(0xFF7C5CFF),
-        alpha: 0.26,
+        color: c1,
+        alpha: 0.24,
       ),
       _Blob(
         center: Offset(
@@ -94,7 +113,7 @@ class _AuroraPainter extends CustomPainter {
           size.height * 0.30,
         ),
         radius: shortest * 0.9,
-        color: const Color(0xFF22D3EE),
+        color: c2,
         alpha: 0.14,
       ),
       _Blob(
@@ -103,8 +122,8 @@ class _AuroraPainter extends CustomPainter {
           size.height * 0.62,
         ),
         radius: shortest * 0.7,
-        color: const Color(0xFFFF5C8A),
-        alpha: 0.08,
+        color: c3,
+        alpha: 0.09,
       ),
       _Blob(
         center: Offset(
@@ -142,6 +161,7 @@ class _AuroraPainter extends CustomPainter {
       oldDelegate.progress != progress ||
       oldDelegate.intensity != intensity ||
       oldDelegate.tint != tint ||
+      oldDelegate.animateColors != animateColors ||
       oldDelegate.background != background;
 }
 

@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 /// Every entrance, transition and press response should pull its curve and
 /// duration from here, so the product feels like a single object rather than
 /// a collection of independently animated screens.
+///
+/// Color language: selection is ALWAYS gradient-blue
+/// ([AppColors.selectionGradient]), animated with [selectionShift] /
+/// [selectionPulse] so highlights breathe instead of snapping.
 class NexoraMotion {
   NexoraMotion._();
 
@@ -24,6 +28,11 @@ class NexoraMotion {
 
   /// Playful confirmation (badges, toggles).
   static const Curve overshoot = Curves.easeOutBack;
+
+  /// Gradient-blue selection transitions (rows, pills, tabs).
+  static const Curve selection = Curves.easeOutCubic;
+  static const Duration selectionShift = Duration(milliseconds: 320);
+  static const Duration selectionPulse = Duration(milliseconds: 1400);
 
   /// Screen entrance duration.
   static const Duration entrance = Duration(milliseconds: 420);
@@ -227,6 +236,148 @@ class _NexoraCountUpState extends State<NexoraCountUp>
         '${widget.suffix ?? ''}',
         style: widget.style,
       ),
+    );
+  }
+}
+
+/// Living gradient-blue container — slowly shifts its gradient alignment
+/// so selection surfaces, hero cards and headers feel alive.
+///
+/// Wrap any gradient-blue surface (current song, active tab, now-playing
+/// card) to get the unified breathing color animation.
+class NexoraShiftingGradient extends StatefulWidget {
+  const NexoraShiftingGradient({
+    super.key,
+    required this.child,
+    this.gradient = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF1D5CFF), Color(0xFF2E7CF6), Color(0xFF22D3EE)],
+    ),
+    this.duration = const Duration(seconds: 5),
+    this.borderRadius,
+  });
+
+  final Widget child;
+  final Gradient gradient;
+  final Duration duration;
+  final BorderRadius? borderRadius;
+
+  @override
+  State<NexoraShiftingGradient> createState() => _NexoraShiftingGradientState();
+}
+
+class _NexoraShiftingGradientState extends State<NexoraShiftingGradient>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: widget.duration)
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) {
+        final t = _c.value;
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + t * 0.6, -1.0 + t * 0.4),
+              end: Alignment(1.0 - t * 0.4, 1.0 - t * 0.6),
+              colors: const [
+                Color(0xFF1D5CFF),
+                Color(0xFF2E7CF6),
+                Color(0xFF22D3EE),
+              ],
+            ),
+            borderRadius: widget.borderRadius,
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// Breathing blue glow wrapper for the current selection.
+/// Subtle scale + opacity pulse on the shared blue glow.
+class NexoraSelectionGlow extends StatefulWidget {
+  const NexoraSelectionGlow({
+    super.key,
+    required this.child,
+    this.enabled = true,
+  });
+
+  final Widget child;
+  final bool enabled;
+
+  @override
+  State<NexoraSelectionGlow> createState() => _NexoraSelectionGlowState();
+}
+
+class _NexoraSelectionGlowState extends State<NexoraSelectionGlow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: NexoraMotion.selectionPulse,
+    );
+    if (widget.enabled) _c.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant NexoraSelectionGlow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled && !_c.isAnimating) {
+      _c.repeat(reverse: true);
+    } else if (!widget.enabled && _c.isAnimating) {
+      _c.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(
+                0xFF2E7CF6,
+              ).withValues(alpha: 0.22 + _c.value * 0.14),
+              blurRadius: 18 + _c.value * 10,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+      child: widget.child,
     );
   }
 }

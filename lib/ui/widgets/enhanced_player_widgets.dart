@@ -687,36 +687,33 @@ class EnhancedGlassNavBar extends StatelessWidget {
   }
 }
 
-/// Refined pill — aurora gradient wash with violet glow in dark,
-/// stronger tonal fill in light for legibility.
-/// Uses parent AnimatedPositioned for motion.
+/// Refined pill — unified gradient-blue selection, same pattern as
+/// library rows, tabs and buttons. Animated glow while selected.
 class _SelectedPill extends StatelessWidget {
   const _SelectedPill();
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.mode == AppThemeMode.dark;
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.accent.withValues(alpha: isDark ? 0.28 : 0.18),
-            AppColors.accentCyan.withValues(alpha: isDark ? 0.16 : 0.10),
-          ],
-        ),
+        gradient: AppColors.selectionGradient,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.accent.withValues(alpha: isDark ? 0.38 : 0.26),
+          color: Colors.white.withValues(alpha: 0.22),
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withValues(alpha: isDark ? 0.24 : 0.14),
+            color: AppColors.accent.withValues(alpha: 0.30),
             blurRadius: 18,
             spreadRadius: 0,
             offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: AppColors.accentCyan.withValues(alpha: 0.14),
+            blurRadius: 30,
+            spreadRadius: 1,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -779,8 +776,10 @@ class _NavItemState extends State<_NavItem>
 
   @override
   Widget build(BuildContext context) {
+    // Solid gradient-blue pill → white icon + label when selected,
+    // same pattern as library rows and tabs.
     final color = widget.selected
-        ? AppColors.accent
+        ? Colors.white
         : (widget.isDark ? AppColors.textDim : AppColors.textMuted);
     return GestureDetector(
       onTap: widget.onTap,
@@ -869,100 +868,141 @@ class GlassSongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isCurrent ? AppColors.accent : AppColors.text;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final textColor = isCurrent ? AppColors.onSelection : AppColors.text;
+    final subColor = isCurrent
+        ? AppColors.onSelection.withValues(alpha: 0.82)
+        : AppColors.textMuted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+          gradient: isCurrent ? AppColors.selectionGradient : null,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCurrent
+                ? Colors.white.withValues(alpha: 0.22)
+                : Colors.transparent,
+            width: 0.8,
           ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      image: artworkUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(artworkUrl!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      color: AppColors.surfaceRaised,
+          boxShadow: isCurrent
+              ? [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(
+                      alpha: isDark ? 0.35 : 0.24,
                     ),
-                    child: artworkUrl == null
-                        ? Icon(
-                            Icons.music_note_rounded,
-                            color: AppColors.textDim,
-                            size: 20,
-                          )
-                        : null,
+                    blurRadius: 18,
+                    offset: const Offset(0, 7),
                   ),
-                  if (isPlaying)
+                ]
+              : null,
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(12),
+                        image: artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(artworkUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        color: isCurrent
+                            ? Colors.white.withValues(alpha: 0.22)
+                            : AppColors.surfaceRaised,
                       ),
-                      child: Center(child: _MiniBars(color: AppColors.accent)),
+                      child: artworkUrl == null
+                          ? Icon(
+                              Icons.music_note_rounded,
+                              color: isCurrent
+                                  ? AppColors.onSelection
+                                  : AppColors.textDim,
+                              size: 20,
+                            )
+                          : null,
                     ),
-                ],
+                    if (isPlaying)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isCurrent
+                              ? Colors.black.withValues(alpha: 0.35)
+                              : Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: _MiniBars(
+                            color: isCurrent
+                                ? AppColors.onSelection
+                                : AppColors.accent,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      subtitle!,
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: isCurrent
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        letterSpacing: -0.1,
                       ),
                     ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: subColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ),
-            if (trailing != null)
-              trailing!
-            else if (onMore != null)
-              IconButton(
-                icon: Icon(
-                  Icons.more_horiz_rounded,
-                  color: AppColors.textDim,
-                  size: 20,
                 ),
-                onPressed: onMore,
               ),
-          ],
+              if (trailing != null)
+                trailing!
+              else if (onMore != null)
+                IconButton(
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: isCurrent
+                        ? AppColors.onSelection.withValues(alpha: 0.90)
+                        : AppColors.textDim,
+                    size: 20,
+                  ),
+                  onPressed: onMore,
+                ),
+            ],
+          ),
         ),
       ),
     );

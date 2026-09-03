@@ -86,28 +86,51 @@ class AppColors {
   static Color get textFaint =>
       mode == AppThemeMode.dark ? _textFaintDark : _textFaintLight;
 
-  // ── Accent — Aurora signature ──────────────────────────────
-  // Violet primary, blue mid, cyan end. Solid accent stays violet for
-  // legibility; gradient is used for hero moments.
-  static const Color accent = Color(0xFF7C5CFF);
-  static const Color accentSoft = Color(0xFFA78BFA);
-  static const Color accentDim = Color(0xFF5B45D6);
-  static const Color accentHover = Color(0xFF8D74FF);
+  // ── Accent — Gradient Blue signature ─────────────────────────
+  // Unified blue system: solid blue for meaning, blue gradient for
+  // every selection / hero moment across the app. Violet + pink remain
+  // only as ambient aurora tints, never for selection.
+  static const Color accent = Color(0xFF2E7CF6);
+  static const Color accentSoft = Color(0xFF6BA4FF);
+  static const Color accentDim = Color(0xFF1D5CFF);
+  static const Color accentHover = Color(0xFF4A90FF);
   static const Color accentCyan = Color(0xFF22D3EE);
-  static const Color accentBlue = Color(0xFF3A7BFF);
+  static const Color accentBlue = Color(0xFF2E7CF6);
+  static const Color accentBlueDeep = Color(0xFF1D5CFF);
+  static const Color accentBlueSoft = Color(0xFF60A5FA);
   static const Color accentPink = Color(0xFFFF5C8A);
 
+  /// Primary selection gradient — gradient blue, used EVERYWHERE:
+  /// library current song, tabs, nav pill, buttons, progress, mini-player.
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF7C5CFF), Color(0xFF3A7BFF), Color(0xFF22D3EE)],
+    colors: [Color(0xFF1D5CFF), Color(0xFF2E7CF6), Color(0xFF22D3EE)],
   );
 
   static const LinearGradient accentGradientHorizontal = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [Color(0xFF7C5CFF), Color(0xFF3A7BFF), Color(0xFF22D3EE)],
+    colors: [Color(0xFF1D5CFF), Color(0xFF2E7CF6), Color(0xFF22D3EE)],
   );
+
+  /// Soft wash for selected row backgrounds (with white text on top).
+  static const LinearGradient selectionGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF1D5CFF), Color(0xFF2E7CF6), Color(0xFF0EA5E9)],
+  );
+
+  static const LinearGradient selectionGradientHorizontal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF1D5CFF), Color(0xFF2E7CF6), Color(0xFF22D3EE)],
+  );
+
+  /// Subtle blue wash behind selected content in light mode.
+  static Color get selectionWash => accent.withValues(alpha: 0.10);
+  static Color get selectionWashStrong => accent.withValues(alpha: 0.18);
+  static const Color onSelection = Color(0xFFFFFFFF);
 
   static const LinearGradient cardSheen = LinearGradient(
     begin: Alignment.topCenter,
@@ -139,10 +162,20 @@ class AppColors {
   static const Color tertiary = accentPink;
 
   // ── Dynamic aurora mesh ────────────────────────────────────
+  // Ambient only — never used for selection. Selection is always blue.
   static const Color auroraViolet = Color(0xFF7C5CFF);
-  static const Color auroraBlue = Color(0xFF3A7BFF);
+  static const Color auroraBlue = Color(0xFF2E7CF6);
   static const Color auroraCyan = Color(0xFF22D3EE);
   static const Color auroraPink = Color(0xFFFF5C8A);
+
+  /// Animated aurora stops for color-shifting backgrounds.
+  /// Cycle through these with an AnimationController for living gradients.
+  static const List<Color> auroraCycle = [
+    Color(0xFF1D5CFF),
+    Color(0xFF2E7CF6),
+    Color(0xFF0EA5E9),
+    Color(0xFF22D3EE),
+  ];
 
   static Color ambientTint = const Color(0xFF141927);
   static Color ambientGlow = const Color(0xFF1E2639);

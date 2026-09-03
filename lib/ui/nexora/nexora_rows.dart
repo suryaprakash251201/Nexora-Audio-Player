@@ -43,147 +43,247 @@ class NexoraTrackRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = isCurrent ? AppColors.accent : AppColors.text;
-    final row = InkWell(
-      onTap: onTap,
-      onLongPress: onMore,
-      splashColor: AppColors.accent.withValues(alpha: 0.08),
-      highlightColor: AppColors.accent.withValues(alpha: 0.05),
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: NexoraSpacing.s16,
-          vertical: NexoraSpacing.s8,
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    // Gradient-blue selection: white text on blue gradient when current.
+    // Animated so selection slides / fades instead of snapping.
+    final titleColor = isCurrent ? AppColors.onSelection : AppColors.text;
+    final subtitleColor = isCurrent
+        ? AppColors.onSelection.withValues(alpha: 0.82)
+        : AppColors.textMuted;
+    final indexColor = isCurrent
+        ? AppColors.onSelection.withValues(alpha: 0.90)
+        : AppColors.textDim;
+    final durationColor = isCurrent
+        ? AppColors.onSelection.withValues(alpha: 0.85)
+        : AppColors.textDim;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          gradient: isCurrent ? AppColors.selectionGradient : null,
+          color: isCurrent ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCurrent
+                ? Colors.white.withValues(alpha: 0.22)
+                : Colors.transparent,
+            width: 0.8,
+          ),
+          boxShadow: isCurrent ? NexoraShadow.selection(isDark) : null,
         ),
-        child: Row(
-          children: [
-            // Index column (track number OR playing indicator)
-            SizedBox(
-              width: 28,
-              child: isPlaying
-                  ? Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onMore,
+          splashColor: isCurrent
+              ? Colors.white.withValues(alpha: 0.18)
+              : AppColors.accent.withValues(alpha: 0.08),
+          highlightColor: isCurrent
+              ? Colors.white.withValues(alpha: 0.10)
+              : AppColors.accent.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexoraSpacing.s12,
+              vertical: NexoraSpacing.s8,
+            ),
+            child: Row(
+              children: [
+                // Index column (track number OR playing indicator)
+                SizedBox(
+                  width: 28,
+                  child: isPlaying
+                      ? _PulsingEqBadge(isSelected: isCurrent)
+                      : Text(
+                          indexLabel ?? '',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: indexColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                ),
+                const SizedBox(width: NexoraSpacing.s12),
+                // Artwork
+                NexoraArtwork(
+                  url: artworkUrl,
+                  size: 48,
+                  radius: const BorderRadius.all(Radius.circular(12)),
+                ),
+                const SizedBox(width: NexoraSpacing.s12),
+                // Identity
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 15,
+                          fontWeight: isCurrent
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          letterSpacing: -0.2,
+                        ),
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.equalizer_rounded,
-                        size: 14,
-                        color: AppColors.accent,
-                      ),
-                    )
-                  : indexLabel != null
-                  ? Text(
-                      indexLabel!,
-                      textAlign: TextAlign.center,
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 12.5,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Quality / favorite indicators
+                if (isFavorite)
+                  Padding(
+                    padding: const EdgeInsets.only(left: NexoraSpacing.s8),
+                    child: Icon(
+                      Icons.favorite_rounded,
+                      size: 14,
+                      color: isCurrent
+                          ? AppColors.onSelection
+                          : AppColors.accent,
+                    ),
+                  ),
+                if (isDownloaded)
+                  Padding(
+                    padding: const EdgeInsets.only(left: NexoraSpacing.s8),
+                    child: Icon(
+                      Icons.download_done_rounded,
+                      size: 14,
+                      color: isCurrent
+                          ? AppColors.onSelection.withValues(alpha: 0.90)
+                          : AppColors.success,
+                    ),
+                  ),
+                if (trailing != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: NexoraSpacing.s8),
+                    child: trailing!,
+                  ),
+                // Duration + context menu
+                if (duration != null)
+                  SizedBox(
+                    width: 42,
+                    child: Text(
+                      duration!,
+                      textAlign: TextAlign.right,
                       style: TextStyle(
-                        color: isCurrent ? AppColors.accent : AppColors.textDim,
+                        color: durationColor,
                         fontSize: 12,
-                        fontWeight: FontWeight.w700,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            const SizedBox(width: NexoraSpacing.s12),
-            // Artwork
-            NexoraArtwork(
-              url: artworkUrl,
-              size: 48,
-              radius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            const SizedBox(width: NexoraSpacing.s12),
-            // Identity
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: titleColor,
-                      fontSize: 15,
-                      fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
-                      letterSpacing: -0.2,
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12.5,
-                        height: 1.3,
+                if (onMore != null && trailing == null)
+                  SizedBox(
+                    width: 36,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 18,
+                        color: isCurrent
+                            ? AppColors.onSelection.withValues(alpha: 0.90)
+                            : AppColors.textDim,
                       ),
+                      onPressed: onMore,
+                      tooltip: 'More',
                     ),
-                  ],
-                ],
-              ),
+                  ),
+              ],
             ),
-            // Quality / favorite indicators
-            if (isFavorite)
-              Padding(
-                padding: const EdgeInsets.only(left: NexoraSpacing.s8),
-                child: Icon(
-                  Icons.favorite_rounded,
-                  size: 14,
-                  color: AppColors.accent,
-                ),
-              ),
-            if (isDownloaded)
-              Padding(
-                padding: const EdgeInsets.only(left: NexoraSpacing.s8),
-                child: Icon(
-                  Icons.download_done_rounded,
-                  size: 14,
-                  color: AppColors.success,
-                ),
-              ),
-            if (trailing != null)
-              Padding(
-                padding: const EdgeInsets.only(left: NexoraSpacing.s8),
-                child: trailing!,
-              ),
-            // Duration + context menu
-            if (duration != null)
-              SizedBox(
-                width: 42,
-                child: Text(
-                  duration!,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 12,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-            if (onMore != null && trailing == null)
-              SizedBox(
-                width: 36,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    size: 18,
-                    color: AppColors.textDim,
-                  ),
-                  onPressed: onMore,
-                  tooltip: 'More',
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
-    return row;
+  }
+}
+
+/// Pulsing equalizer badge for the currently playing row.
+/// Glassy white pill on blue selection, blue tint otherwise,
+/// with a breathing scale animation while playing.
+class _PulsingEqBadge extends StatefulWidget {
+  final bool isSelected;
+  const _PulsingEqBadge({required this.isSelected});
+
+  @override
+  State<_PulsingEqBadge> createState() => _PulsingEqBadgeState();
+}
+
+class _PulsingEqBadgeState extends State<_PulsingEqBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) {
+        final pulse = 0.92 + (_c.value * 0.08);
+        return Transform.scale(
+          scale: pulse,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: widget.isSelected
+                  ? Colors.white.withValues(alpha: 0.22 + _c.value * 0.08)
+                  : AppColors.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.isSelected
+                    ? Colors.white.withValues(alpha: 0.35)
+                    : AppColors.accent.withValues(alpha: 0.25),
+                width: 0.7,
+              ),
+            ),
+            child: Icon(
+              Icons.equalizer_rounded,
+              size: 14,
+              color: widget.isSelected
+                  ? AppColors.onSelection
+                  : AppColors.accent,
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

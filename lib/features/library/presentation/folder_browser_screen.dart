@@ -514,108 +514,162 @@ class _SongRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = isCurrent ? AppColors.accent : AppColors.text;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            // Index
-            SizedBox(
-              width: 28,
-              child: Text(
-                '$index',
-                style: TextStyle(
-                  color: AppColors.textDim,
-                  fontSize: 12,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-            // Artwork
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: AppColors.surfaceRaised,
-                image: song.coverUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(song.coverUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: song.coverUrl == null
-                  ? Icon(
-                      Icons.music_note_rounded,
-                      color: AppColors.textDim,
-                      size: 20,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            // Title + artist
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    song.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    final titleColor = isCurrent ? AppColors.onSelection : AppColors.text;
+    final subtitleColor = isCurrent
+        ? AppColors.onSelection.withValues(alpha: 0.82)
+        : AppColors.textMuted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          gradient: isCurrent ? AppColors.selectionGradient : null,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCurrent
+                ? Colors.white.withValues(alpha: 0.22)
+                : Colors.transparent,
+            width: 0.8,
+          ),
+          boxShadow: isCurrent
+              ? [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(
+                      alpha: isDark ? 0.38 : 0.26,
+                    ),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                // Index
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '$index',
                     style: TextStyle(
-                      color: titleColor,
-                      fontSize: 14.5,
-                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: -0.1,
+                      color: isCurrent
+                          ? AppColors.onSelection.withValues(alpha: 0.90)
+                          : AppColors.textDim,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    song.artist ?? song.album ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+                // Artwork
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: isCurrent
+                        ? Colors.white.withValues(alpha: 0.22)
+                        : AppColors.surfaceRaised,
+                    image: song.coverUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(song.coverUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: song.coverUrl == null
+                      ? Icon(
+                          Icons.music_note_rounded,
+                          color: isCurrent
+                              ? AppColors.onSelection
+                              : AppColors.textDim,
+                          size: 20,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                // Title + artist
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 14.5,
+                          fontWeight: isCurrent
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        song.artist ?? song.album ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                // Codec badge
+                if (song.codec != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: isCurrent
+                          ? Colors.white.withValues(alpha: 0.20)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isCurrent
+                            ? Colors.white.withValues(alpha: 0.40)
+                            : AppColors.accent.withValues(alpha: 0.35),
+                        width: 0.6,
+                      ),
+                    ),
+                    child: Text(
+                      song.codec!.toUpperCase(),
+                      style: TextStyle(
+                        color: isCurrent
+                            ? AppColors.onSelection
+                            : AppColors.accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
                 ],
-              ),
-            ),
-            // Codec badge
-            if (song.codec != null) ...[
-              Container(
-                margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: AppColors.accent.withValues(alpha: 0.35),
-                    width: 0.6,
+                // More button
+                IconButton(
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    size: 20,
+                    color: isCurrent
+                        ? AppColors.onSelection.withValues(alpha: 0.90)
+                        : AppColors.textDim,
                   ),
+                  onPressed: onMore,
                 ),
-                child: Text(
-                  song.codec!.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
-            // More button
-            IconButton(
-              icon: Icon(
-                Icons.more_horiz_rounded,
-                size: 20,
-                color: AppColors.textDim,
-              ),
-              onPressed: onMore,
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

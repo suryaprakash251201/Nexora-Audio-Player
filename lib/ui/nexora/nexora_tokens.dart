@@ -72,7 +72,7 @@ class NexoraShadow {
   NexoraShadow._();
 
   /// Soft card shadow — default elevation for grouped cards.
-  /// 2.0: deeper, softer, with a whisper of violet in dark mode.
+  /// 2.0: deeper, softer, with a whisper of blue in dark mode.
   static List<BoxShadow> card(bool isDark) => [
     BoxShadow(
       color: isDark
@@ -83,7 +83,7 @@ class NexoraShadow {
     ),
     BoxShadow(
       color: isDark
-          ? const Color(0xFF7C5CFF).withValues(alpha: 0.06)
+          ? const Color(0xFF2E7CF6).withValues(alpha: 0.07)
           : const Color(0xFF0F1D3A).withValues(alpha: 0.04),
       blurRadius: 6,
       offset: const Offset(0, 2),
@@ -101,18 +101,19 @@ class NexoraShadow {
     ),
     BoxShadow(
       color: isDark
-          ? const Color(0xFF7C5CFF).withValues(alpha: 0.10)
-          : const Color(0xFF7C5CFF).withValues(alpha: 0.08),
+          ? const Color(0xFF2E7CF6).withValues(alpha: 0.12)
+          : const Color(0xFF2E7CF6).withValues(alpha: 0.09),
       blurRadius: 12,
       offset: const Offset(0, 4),
     ),
   ];
 
   /// Signature aurora glow for hero play buttons + artwork.
+  /// Unified gradient-blue glow — same pattern everywhere.
   static List<BoxShadow> glow(bool isDark, {Color? color}) => [
     BoxShadow(
-      color: (color ?? const Color(0xFF7C5CFF)).withValues(
-        alpha: isDark ? 0.42 : 0.28,
+      color: (color ?? const Color(0xFF2E7CF6)).withValues(
+        alpha: isDark ? 0.45 : 0.30,
       ),
       blurRadius: 28,
       spreadRadius: 0,
@@ -120,7 +121,7 @@ class NexoraShadow {
     ),
     BoxShadow(
       color: (color ?? const Color(0xFF22D3EE)).withValues(
-        alpha: isDark ? 0.16 : 0.12,
+        alpha: isDark ? 0.18 : 0.13,
       ),
       blurRadius: 48,
       spreadRadius: 2,
@@ -128,10 +129,26 @@ class NexoraShadow {
     ),
   ];
 
+  /// Gradient-blue selection glow for current song rows, pills, chips.
+  static List<BoxShadow> selection(bool isDark) => [
+    BoxShadow(
+      color: const Color(0xFF2E7CF6).withValues(alpha: isDark ? 0.38 : 0.26),
+      blurRadius: 20,
+      spreadRadius: 0,
+      offset: const Offset(0, 8),
+    ),
+    BoxShadow(
+      color: const Color(0xFF22D3EE).withValues(alpha: isDark ? 0.14 : 0.10),
+      blurRadius: 36,
+      spreadRadius: 1,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
   /// Subtle inner glow for the selected nav pill.
   static List<BoxShadow> pill(bool isDark) => [
     BoxShadow(
-      color: const Color(0xFF7C5CFF).withValues(alpha: isDark ? 0.28 : 0.18),
+      color: const Color(0xFF2E7CF6).withValues(alpha: isDark ? 0.30 : 0.20),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
