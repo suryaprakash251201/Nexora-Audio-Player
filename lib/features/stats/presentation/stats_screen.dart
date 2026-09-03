@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/stats_provider.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../data/api/server_stats_api.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_motion.dart';
@@ -68,6 +70,12 @@ class _StatsBody extends StatelessWidget {
       return CustomScrollView(
         slivers: [
           _appBar(context),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: _ServerLibraryCard(),
+            ),
+          ),
           const SliverFillRemaining(
             hasScrollBody: false,
             child: NexoraEmptyState(
@@ -90,6 +98,8 @@ class _StatsBody extends StatelessWidget {
             child: NexoraStaggeredColumn(
               children: [
                 const SizedBox(height: 12),
+                const _ServerLibraryCard(),
+                const SizedBox(height: 22),
                 _TotalTimeCard(stats: stats),
                 const SizedBox(height: 22),
                 _MetricRow(stats: stats),
@@ -144,6 +154,114 @@ class _StatsBody extends StatelessWidget {
 }
 
 /// The one figure that matters: total time spent listening.
+/// Server library at a glance (audio tracks, sizes, quota).
+/// Independent of local history: hides itself on error/offline/empty so
+/// the local stats below always render regardless.
+class _ServerLibraryCard extends ConsumerWidget {
+  const _ServerLibraryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(serverLibraryStatsProvider);
+    return async.when(
+      data: (s) {
+        if (s == null || s.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: AppColors.accentGradient,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.22),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.cloud_outlined,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'SERVER LIBRARY',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '${formatCount(s.audioCount)} tracks',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${formatFileSize(s.audioSize)} audio · ${formatCount(s.totalFiles)} files · ${formatFileSize(s.totalSize)} total',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 12,
+                ),
+              ),
+              if (s.quotaTotal > 0) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: s.quotaFraction,
+                    minHeight: 5,
+                    backgroundColor: Colors.white.withValues(alpha: 0.25),
+                    valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${formatFileSize(s.quotaUsed)} of ${formatFileSize(s.quotaTotal)} used',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 11,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      loading: () => ShimmerLoading(
+        child: Container(
+          height: 148,
+          decoration: BoxDecoration(
+            color: AppColors.shimmerBase,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
 class _TotalTimeCard extends StatelessWidget {
   const _TotalTimeCard({required this.stats});
 

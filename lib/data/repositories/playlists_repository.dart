@@ -55,6 +55,15 @@ class PlaylistsRepository {
     }
   }
 
+  /// Community playlists (empty offline — discovery needs the server).
+  Future<List<Playlist>> getPublicPlaylists() async {
+    try {
+      return await _api.getPublicPlaylists();
+    } on NoInternetException {
+      return const [];
+    }
+  }
+
   Future<Playlist> getPlaylist(String id) => _api.getPlaylist(id);
 
   Future<List<Song>> getPlaylistTracks(String id) => _api.getPlaylistTracks(id);

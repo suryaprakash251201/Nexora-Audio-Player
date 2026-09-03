@@ -76,11 +76,9 @@ class PlaylistsApi {
     return NexoraFiles.thumbnailUrl(base, root, path, token, size: 512);
   }
 
-  Future<List<Playlist>> getPlaylists() async {
-    final res = await _client.get(ApiConstants.playlists);
-    final data = res.data;
-    final items =
-        (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+  /// Shared parser for both `/playlists` and `/playlists/public`: same
+  /// envelope, same item hydration, owner cover preferred.
+  Future<List<Playlist>> _parsePlaylists(List<dynamic> items) async {
     final base = await _resolvedBaseUrl();
     final token = await _storage.getToken() ?? '';
     final out = <Playlist>[];
@@ -95,6 +93,7 @@ class PlaylistsApi {
       }
       // Prefer the owner's server-side cover; fall back to first track art.
       final serverCover = _serverCover(raw, base, token);
+      final owner = (raw['owner_username'] ?? '').toString();
       out.add(
         Playlist(
           id: (raw['id'] ?? '').toString(),
@@ -110,6 +109,7 @@ class PlaylistsApi {
                   ),
           trackCount: tracks.length,
           isPublic: raw['is_public'] == true,
+          ownerId: owner.isEmpty ? null : owner,
           tracks: tracks,
         ),
       );
@@ -117,12 +117,40 @@ class PlaylistsApi {
     return out;
   }
 
+  Future<List<Playlist>> getPlaylists() async {
+    final res = await _client.get(ApiConstants.playlists);
+    final data = res.data;
+    final items =
+        (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    return _parsePlaylists(items);
+  }
+
+  /// Community playlists shared by other users (same shape as mine).
+  Future<List<Playlist>> getPublicPlaylists() async {
+    final res = await _client.get(ApiConstants.playlistsPublic);
+    final data = res.data;
+    final items =
+        (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    final all = await _parsePlaylists(items);
+    // Never duplicate playlists the user already owns.
+    final mine = await getPlaylists();
+    final mineIds = mine.map((p) => p.id).toSet();
+    return all.where((p) => !mineIds.contains(p.id)).toList();
+  }
+
   Future<Playlist> getPlaylist(String id) async {
     final all = await getPlaylists();
-    return all.firstWhere(
-      (p) => p.id == id,
-      orElse: () => Playlist(id: id, name: 'Playlist'),
-    );
+    for (final p in all) {
+      if (p.id == id) return p;
+    }
+    // Discover cards open the same detail screen.
+    try {
+      final pub = await getPublicPlaylists();
+      for (final p in pub) {
+        if (p.id == id) return p;
+      }
+    } catch (_) {}
+    return Playlist(id: id, name: 'Playlist');
   }
 
   Future<List<Song>> getPlaylistTracks(String id) async {

@@ -657,6 +657,18 @@ Sibling `.lrc` files are the source of truth (`internal/api/handlers_lyrics.go`)
 
 ## 19c. Transcoding — analyzed, deferred
 
+## 19d. Discovery + server stats (wired)
+
+- `GET /playlists/public` → `{items:[Playlist]}` (same shape as `/playlists`,
+  plus `owner_username`). App: Discover scope in the Playlists tab, dedicated
+  cards show `by <owner>`, detail/reorder/remove degrade to server permission
+  errors for non-owners. Own playlists are filtered out of Discover.
+- `GET /stats?root=` → `{total_files,total_size,breakdown:{audio:{count,size}}}`.
+  App: gradient Server Library card on the stats screen (tracks, audio size,
+  quota bar from `/home/usage`). Null-safe: hides on error/offline/empty.
+- `GET /home/usage` → `{total,available,used,file_count,breakdown}`.
+  App: quota bar only; breakdown unused (audio stats come from `/stats`).
+
 `GET /files/transcode` needs a server **session** (`session` + `start` offset
 params, `quality=lossless|high|medium`) with server-side seeking. That model
 is incompatible with `just_audio`'s byte-range seeking/background pipeline

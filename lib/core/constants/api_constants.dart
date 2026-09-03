@@ -32,6 +32,7 @@ class ApiConstants {
 
   // Playlists
   static const playlists = '/playlists';
+  static const playlistsPublic = '/playlists/public';
   static String playlistById(String id) => '/playlists/$id';
   static String playlistItems(String id) => '/playlists/$id/items';
   static String playlistItemOrder(String id) => '/playlists/$id/items/order';

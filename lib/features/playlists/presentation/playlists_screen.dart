@@ -26,10 +26,13 @@ class PlaylistsScreen extends ConsumerStatefulWidget {
 
 class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   bool _grid = true;
+  bool _discover = false;
 
   @override
   Widget build(BuildContext context) {
-    final playlistsAsync = ref.watch(_playlistsProvider);
+    final playlistsAsync = ref.watch(
+      _discover ? _publicPlaylistsProvider : _playlistsProvider,
+    );
     final isDark = AppColors.mode == AppThemeMode.dark;
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -102,44 +105,82 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           ),
         ),
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.35),
-              blurRadius: 18,
-              spreadRadius: 0,
-              offset: const Offset(0, 6),
+      floatingActionButton: _discover
+          ? null
+          : Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                onPressed: _createPlaylist,
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
+                elevation: 0,
+                child: const Icon(Icons.add_rounded, size: 24),
+              ),
             ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: _createPlaylist,
-          backgroundColor: AppColors.accent,
-          foregroundColor: AppColors.onAccent,
-          elevation: 0,
-          child: const Icon(Icons.add_rounded, size: 24),
-        ),
-      ),
       body: Padding(
         padding: const EdgeInsets.only(top: 56),
-        child: playlistsAsync.when(
-          data: (list) => list.isEmpty
-              ? _EmptyPlaylists(isDark: isDark, onCreate: _createPlaylist)
-              : RefreshIndicator(
-                  color: AppColors.accent,
-                  backgroundColor: AppColors.card,
-                  onRefresh: () async => ref.invalidate(_playlistsProvider),
-                  child: _grid
-                      ? _PlaylistGrid(list: list)
-                      : _PlaylistList(list: list),
+        child: Column(
+          children: [
+            // Mine | Discover scope switch.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  _ScopePill(
+                    label: 'Mine',
+                    selected: !_discover,
+                    onTap: () => setState(() => _discover = false),
+                  ),
+                  const SizedBox(width: 8),
+                  _ScopePill(
+                    label: 'Discover',
+                    selected: _discover,
+                    onTap: () => setState(() => _discover = true),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: playlistsAsync.when(
+                data: (list) => list.isEmpty
+                    ? (_discover
+                          ? const _EmptyDiscover()
+                          : _EmptyPlaylists(
+                              isDark: isDark,
+                              onCreate: _createPlaylist,
+                            ))
+                    : RefreshIndicator(
+                        color: AppColors.accent,
+                        backgroundColor: AppColors.card,
+                        onRefresh: () async => ref.invalidate(
+                          _discover
+                              ? _publicPlaylistsProvider
+                              : _playlistsProvider,
+                        ),
+                        child: _grid
+                            ? _PlaylistGrid(list: list, showOwner: _discover)
+                            : _PlaylistList(list: list, showOwner: _discover),
+                      ),
+                loading: () => const LoadingView(),
+                error: (e, _) => ErrorView(
+                  message: e.toString(),
+                  onRetry: () => ref.invalidate(
+                    _discover ? _publicPlaylistsProvider : _playlistsProvider,
+                  ),
                 ),
-          loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(
-            message: e.toString(),
-            onRetry: () => ref.invalidate(_playlistsProvider),
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -351,6 +392,72 @@ final _playlistsProvider = FutureProvider(
   (ref) async => ref.watch(playlistsRepositoryProvider).getPlaylists(),
 );
 
+final _publicPlaylistsProvider = FutureProvider(
+  (ref) async => ref.watch(playlistsRepositoryProvider).getPublicPlaylists(),
+);
+
+/// Mine | Discover scope pill.
+class _ScopePill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ScopePill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.accentGradientHorizontal : null,
+          color: selected ? null : AppColors.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? Colors.white.withValues(alpha: 0.25)
+                : AppColors.border,
+            width: 0.7,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textMuted,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyDiscover extends StatelessWidget {
+  const _EmptyDiscover();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: NexoraEmptyState(
+          icon: Icons.explore_outlined,
+          title: 'Nothing shared yet',
+          subtitle:
+              'Public playlists from other listeners will appear here. Offline? Discovery needs a connection.',
+        ),
+      ),
+    );
+  }
+}
+
 final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
   ref,
   pl,
@@ -403,7 +510,8 @@ final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
 
 class _PlaylistGrid extends StatelessWidget {
   final List<Playlist> list;
-  const _PlaylistGrid({required this.list});
+  final bool showOwner;
+  const _PlaylistGrid({required this.list, this.showOwner = false});
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +526,7 @@ class _PlaylistGrid extends StatelessWidget {
       itemCount: list.length,
       itemBuilder: (c, i) => _PlaylistCard(
         playlist: list[i],
+        owner: showOwner ? list[i].ownerId : null,
         onTap: () => context.push('/playlists/${list[i].id}', extra: list[i]),
       ),
     );
@@ -426,8 +535,13 @@ class _PlaylistGrid extends StatelessWidget {
 
 class _PlaylistCard extends ConsumerWidget {
   final Playlist playlist;
+  final String? owner;
   final VoidCallback onTap;
-  const _PlaylistCard({required this.playlist, required this.onTap});
+  const _PlaylistCard({
+    required this.playlist,
+    this.owner,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -537,7 +651,9 @@ class _PlaylistCard extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+            owner != null && owner!.isNotEmpty
+                ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
+                : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
@@ -550,7 +666,8 @@ class _PlaylistCard extends ConsumerWidget {
 
 class _PlaylistList extends StatelessWidget {
   final List<Playlist> list;
-  const _PlaylistList({required this.list});
+  final bool showOwner;
+  const _PlaylistList({required this.list, this.showOwner = false});
 
   @override
   Widget build(BuildContext context) {
@@ -562,6 +679,7 @@ class _PlaylistList extends StatelessWidget {
         final p = list[i];
         return _PlaylistRow(
           playlist: p,
+          owner: showOwner ? p.ownerId : null,
           onTap: () => context.push('/playlists/${p.id}', extra: p),
         );
       },
@@ -571,8 +689,9 @@ class _PlaylistList extends StatelessWidget {
 
 class _PlaylistRow extends ConsumerWidget {
   final Playlist playlist;
+  final String? owner;
   final VoidCallback onTap;
-  const _PlaylistRow({required this.playlist, required this.onTap});
+  const _PlaylistRow({required this.playlist, this.owner, required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -659,7 +778,9 @@ class _PlaylistRow extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+                            owner != null && owner!.isNotEmpty
+                                ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
+                                : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
