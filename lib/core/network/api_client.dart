@@ -9,6 +9,7 @@ import '../config/app_config.dart';
 import '../errors/exceptions.dart';
 import '../logging/app_logger.dart';
 import '../storage/secure_storage_service.dart';
+import 'connectivity_reporter.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final secureStorage = ref.watch(secureStorageProvider);
@@ -75,6 +76,8 @@ class ApiClient {
               '← ${response.statusCode} ${response.requestOptions.path}',
             );
           }
+          // Any HTTP response (even 4xx) proves the network path works.
+          ConnectivityReporter.instance.reportOnline();
           // Map 401..499 to exception handling in call-site, but we still intercept 401 for auto-logout/refresh
           return handler.next(response);
         },
@@ -92,6 +95,7 @@ class ApiClient {
           if (error.type == DioExceptionType.connectionTimeout ||
               error.type == DioExceptionType.receiveTimeout ||
               error.type == DioExceptionType.sendTimeout) {
+            ConnectivityReporter.instance.reportOffline();
             return handler.reject(
               DioException(
                 requestOptions: req,
@@ -102,6 +106,7 @@ class ApiClient {
           }
           if (error.type == DioExceptionType.connectionError ||
               (error.error is SocketException)) {
+            ConnectivityReporter.instance.reportOffline();
             return handler.reject(
               DioException(
                 requestOptions: req,
@@ -471,6 +476,41 @@ class ApiClient {
       // If all probes fail, try direct TCP connect via Dio error type check
       return false;
     } catch (_) {
+      return false;
+    }
+  }
+
+  /// Lightweight reachability ping for the background monitor.
+  /// Single `/healthz` hit (5s budget) against the configured server —
+  /// cheap enough to run every 20s. Returns false when no server is
+  /// configured (caller treats that as "don't touch state").
+  /// Returns null when the check is not applicable.
+  Future<bool?> ping() async {
+    final serverUrl = await _secureStorage.getServerUrl();
+    final base = (serverUrl != null && serverUrl.isNotEmpty)
+        ? serverUrl
+        : AppConfig.envBaseUrl;
+    if (base.isEmpty) return null;
+    final origin = AppConfig.normalizeUrl(base).split('/api').first;
+    final probe = Dio(
+      BaseOptions(
+        baseUrl: origin,
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    );
+    try {
+      final r = await probe.get('/healthz');
+      final ok = r.statusCode != null && r.statusCode! < 500;
+      if (ok) {
+        ConnectivityReporter.instance.reportOnline();
+      } else {
+        ConnectivityReporter.instance.reportOffline();
+      }
+      return ok;
+    } catch (_) {
+      ConnectivityReporter.instance.reportOffline();
       return false;
     }
   }

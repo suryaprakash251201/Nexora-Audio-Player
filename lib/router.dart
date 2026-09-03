@@ -26,9 +26,13 @@ import 'features/albums/presentation/album_detail_screen.dart';
 import 'features/artists/presentation/artist_detail_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/player/providers/player_provider.dart';
+import 'core/network/api_client.dart';
+import 'core/network/connectivity_service.dart';
+import 'core/sync/sync_manager.dart';
 import 'domain/entities/album.dart';
 import 'domain/entities/artist.dart';
 import 'domain/entities/playlist.dart';
+import 'ui/widgets/connectivity_banner.dart';
 import 'ui/widgets/enhanced_player_widgets.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -187,6 +191,8 @@ class _AppShellState extends ConsumerState<AppShell>
   late final AnimationController _navController;
   late final AnimationController _miniController;
 
+  bool _connectivityWired = false;
+
   @override
   void initState() {
     super.initState();
@@ -196,6 +202,32 @@ class _AppShellState extends ConsumerState<AppShell>
     // Drive both springs to their resting positions.
     _springTo(_navController, 0.0);
     _springTo(_miniController, 0.0);
+  }
+
+  /// Attach probe + reconnect exactly once (needs ref → post-frame).
+  void _wireConnectivity() {
+    if (_connectivityWired) return;
+    _connectivityWired = true;
+    final monitor = ref.read(connectivityMonitorProvider.notifier);
+    monitor.attach(
+      onProbe: () async {
+        final r = await ref.read(apiClientProvider).ping();
+        // null = no server configured → don't touch state.
+        return r ?? true;
+      },
+      onReconnect: () async {
+        // Flush offline mutations, then refresh caches so lists,
+        // playlists, favorites and lyrics pick up server truth.
+        try {
+          await ref.read(syncManagerProvider).processSyncQueue();
+        } catch (_) {}
+        // Keep legacy compat provider in sync.
+        try {
+          ref.read(connectivityProvider.notifier).state =
+              ConnectivityStatus.online;
+        } catch (_) {}
+      },
+    );
   }
 
   @override
@@ -289,6 +321,15 @@ class _AppShellState extends ConsumerState<AppShell>
     final location = GoRouterState.of(context).matchedLocation;
     final idx = _indexForLocation(location);
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _wireConnectivity());
+    // Mirror debounced state into the legacy provider for old watchers.
+    ref.listen<ConnectivityState>(connectivityMonitorProvider, (prev, next) {
+      try {
+        ref.read(connectivityProvider.notifier).state = next.status;
+      } catch (_) {}
+      // Flush + refresh handled in onReconnect; the banner animates itself.
+    });
 
     return Scaffold(
       extendBody: true,
@@ -297,6 +338,13 @@ class _AppShellState extends ConsumerState<AppShell>
           NotificationListener<UserScrollNotification>(
             onNotification: _onUserScroll,
             child: widget.child,
+          ),
+          // Global offline / back-online banner (auto-hides).
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: ConnectivityBanner(top: topInset),
           ),
           Positioned(
             left: 0,

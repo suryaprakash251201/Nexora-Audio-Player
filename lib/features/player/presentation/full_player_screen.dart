@@ -20,6 +20,7 @@ import '../../../ui/theme.dart';
 import '../../../ui/theme_provider.dart';
 import '../../../ui/widgets/animated_cover.dart';
 import '../../../ui/widgets/artwork_image.dart';
+import '../../../ui/widgets/connectivity_banner.dart';
 import '../../../ui/widgets/lyrics_display.dart';
 import '../../../ui/widgets/vinyl_disc.dart';
 import '../../playlists/presentation/add_to_playlist_sheet.dart';
@@ -331,6 +332,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
+                                    // Inline offline marker — player keeps
+                                    // working on cache/downloads.
+                                    const OfflineChip(),
                                     const SizedBox(height: 8),
                                     if (audioInfo != null)
                                       audioInfo.when(

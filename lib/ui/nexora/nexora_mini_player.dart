@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/player/providers/player_provider.dart';
+import '../../core/network/connectivity_service.dart';
 import '../theme.dart';
 import '../widgets/animated_cover.dart';
 import 'nexora_artwork.dart';
@@ -97,6 +98,33 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                             url: track.artUri?.toString(),
                             size: 46,
                           ),
+                          // Offline dot — queue/downloads keep playing.
+                          if (ref.watch(
+                            connectivityMonitorProvider.select(
+                              (s) => s.isOffline,
+                            ),
+                          ))
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.warning,
+                                  border: Border.all(
+                                    color: AppColors.card,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.wifi_off_rounded,
+                                  size: 9,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           if (state.isPlaying)
                             Container(
                               decoration: BoxDecoration(

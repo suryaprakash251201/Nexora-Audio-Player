@@ -189,9 +189,12 @@ class NexoraAudioHandler extends BaseAudioHandler
     }).toList();
 
     final source = ConcatenatingAudioSource(children: audioSources);
+    // OFFLINE GUARD: set the audio source FIRST. If it throws (no
+    // internet + remote URL, DNS, socket), the previous playable queue
+    // (downloads / cache) stays intact instead of being wiped.
+    await _player.setAudioSource(source, initialIndex: initialIndex);
     queue.add(items);
     mediaItem.add(items[initialIndex.clamp(0, items.length - 1)]);
-    await _player.setAudioSource(source, initialIndex: initialIndex);
     if (playOnLoad) await _player.play();
   }
 

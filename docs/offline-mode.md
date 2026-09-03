@@ -35,6 +35,36 @@ offline changes → SyncManager.processSyncQueue() → server → confirm → up
 ```
 Triggered on app resume + periodic check.
 
+## 2026-09 — Live connectivity architecture (no native plugin)
+
+```
+ApiClient ──success/fail──▶ ConnectivityReporter (broadcast bus)
+                                  │
+                                  ▼
+                    ConnectivityMonitor (debounced StateNotifier)
+                     ├─ 2× fail ⇒ offline · 1× ok ⇒ online
+                     ├─ 20s light ping (GET /healthz) as idle backstop
+                     ├─ offline→online ⇒ showBackOnline pill (4s) + onReconnect
+                     └─ mirrors legacy connectivityProvider for old watchers
+                                  │
+                    AppShell (router.dart)
+                     ├─ attach(onProbe: ApiClient.ping, onReconnect: sync+refresh)
+                     ├─ ConnectivityBanner top overlay (offline persistent /
+                     │   back-online transient, auto-hide, AnimatedSwitcher)
+                     ├─ MiniPlayer keeps playing (queue_state + downloads)
+                     │   + amber cloud-off dot on artwork while offline
+                     └─ FullPlayer shows inline OfflineChip under title
+
+AudioHandler.loadMedia — source-first ordering: setAudioSource() before
+queue.add(), so a failed remote load offline never wipes the playable queue.
+```
+
+- No `connectivity_plus` needed: HTTP outcomes + `/healthz` ping work on
+  Android/iOS/web/desktop with zero native config.
+- `unknown` counts as online (cold start never flashes offline).
+- Banner lives in the shell Stack above content + below nothing else, so
+  Home/Search/Library/Playlists/Settings all get it free.
+
 ## Download Manager
 - `DownloadManager.downloadTrack` → `Dio.download` to `appDocuments/tracks/{id}.mp3` → update `tracks.isDownloaded`
 - Progress via callback; `removeTrackDownload` deletes file + DB flag.
