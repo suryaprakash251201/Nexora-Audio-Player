@@ -162,6 +162,7 @@ class _NexoraPressableState extends State<NexoraPressable> {
 }
 
 /// Minimal text button used in actions rows.
+/// 2.0: primary uses the aurora gradient with glow; secondary is frosted card.
 class NexoraTextButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
@@ -176,26 +177,30 @@ class NexoraTextButton extends StatelessWidget {
     this.onTap,
     this.icon,
     this.primary = false,
-    this.padding = const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     this.fullWidth = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = primary ? AppColors.accent : AppColors.text;
+    final isDark = AppColors.mode == AppThemeMode.dark;
     final btn = NexoraPressable(
       onTap: onTap,
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: primary ? AppColors.accent : AppColors.card,
+          gradient: primary ? AppColors.accentGradient : null,
+          color: primary ? null : AppColors.card,
           borderRadius: NexoraRadius.button,
           border: Border.all(
             color: primary
-                ? AppColors.accent
+                ? Colors.white.withValues(alpha: 0.18)
                 : AppColors.border.withValues(alpha: 0.9),
             width: 0.8,
           ),
+          boxShadow: primary
+              ? NexoraShadow.glow(isDark)
+              : NexoraShadow.card(isDark),
         ),
         child: Row(
           mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
@@ -204,16 +209,20 @@ class NexoraTextButton extends StatelessWidget {
               : MainAxisAlignment.start,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16, color: primary ? AppColors.onAccent : color),
+              Icon(
+                icon,
+                size: 17,
+                color: primary ? AppColors.onAccent : AppColors.text,
+              ),
               const SizedBox(width: 8),
             ],
             Text(
               label,
               style: TextStyle(
-                color: primary ? AppColors.onAccent : color,
-                fontSize: 13,
+                color: primary ? AppColors.onAccent : AppColors.text,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
+                letterSpacing: 0.1,
               ),
             ),
           ],
@@ -225,6 +234,7 @@ class NexoraTextButton extends StatelessWidget {
 }
 
 /// Calm square icon button used in the full player and the equalizer.
+/// 2.0: tonal pill background, 16px radius, active = aurora tint + glow ring.
 class NexoraIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -239,7 +249,7 @@ class NexoraIconButton extends StatelessWidget {
     required this.icon,
     this.onTap,
     this.active = false,
-    this.size = 44,
+    this.size = 46,
     this.iconSize = 20,
     this.color,
     this.tooltip,
@@ -250,16 +260,22 @@ class NexoraIconButton extends StatelessWidget {
     final c = color ?? (active ? AppColors.accent : AppColors.text);
     final btn = NexoraPressable(
       onTap: onTap,
-      scale: 0.92,
+      scale: 0.9,
       child: Container(
         width: size,
         height: size,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: active
-              ? AppColors.accent.withValues(alpha: 0.12)
-              : Colors.transparent,
-          shape: BoxShape.circle,
+              ? AppColors.accent.withValues(alpha: 0.14)
+              : AppColors.card.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: active
+                ? AppColors.accent.withValues(alpha: 0.35)
+                : AppColors.border.withValues(alpha: 0.8),
+            width: 0.8,
+          ),
         ),
         child: Icon(icon, size: iconSize, color: c),
       ),
@@ -270,6 +286,7 @@ class NexoraIconButton extends StatelessWidget {
 }
 
 /// Calm empty-state used by every list.
+/// 2.0: frosted icon tile with aurora tint + bolder title.
 class NexoraEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -292,16 +309,35 @@ class NexoraEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textDim, size: 28),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.accent.withValues(alpha: 0.18),
+                    AppColors.accentCyan.withValues(alpha: 0.10),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.22),
+                  width: 0.8,
+                ),
+              ),
+              child: Icon(icon, color: AppColors.accent, size: 26),
+            ),
             const SizedBox(height: NexoraSpacing.s16),
             Text(
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.text,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.1,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
             if (subtitle != null) ...[
@@ -311,8 +347,8 @@ class NexoraEmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textMuted,
-                  fontSize: 13,
-                  height: 1.4,
+                  fontSize: 13.5,
+                  height: 1.5,
                 ),
               ),
             ],
@@ -373,6 +409,7 @@ class NexoraIconLabel extends StatelessWidget {
 }
 
 /// Pill-shaped small tag with subtle accent or neutral fill.
+/// 2.0: gradient-aware, 10px radius, bolder tracking.
 class NexoraTag extends StatelessWidget {
   final String label;
   final IconData? icon;
@@ -391,27 +428,33 @@ class NexoraTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = color ?? AppColors.accent;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
+        gradient: solid ? AppColors.accentGradient : null,
         color: solid
-            ? c
+            ? null
             : c.withValues(
-                alpha: AppColors.mode == AppThemeMode.dark ? 0.14 : 0.10,
+                alpha: AppColors.mode == AppThemeMode.dark ? 0.15 : 0.10,
               ),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: c.withValues(
-            alpha: AppColors.mode == AppThemeMode.dark ? 0.30 : 0.20,
-          ),
-          width: 0.7,
+          color: solid
+              ? Colors.white.withValues(alpha: 0.20)
+              : c.withValues(
+                  alpha: AppColors.mode == AppThemeMode.dark ? 0.32 : 0.22,
+                ),
+          width: 0.8,
         ),
+        boxShadow: solid
+            ? NexoraShadow.glow(AppColors.mode == AppThemeMode.dark, color: c)
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 11, color: solid ? Colors.white : c),
-            const SizedBox(width: 4),
+            Icon(icon, size: 12, color: solid ? Colors.white : c),
+            const SizedBox(width: 5),
           ],
           Text(
             label,
@@ -419,7 +462,7 @@ class NexoraTag extends StatelessWidget {
               color: solid ? Colors.white : c,
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.7,
+              letterSpacing: 0.8,
             ),
           ),
         ],

@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'nexora_tokens.dart';
 
-/// Square album artwork with no glow, no gradient — just the artwork at the
-/// size you ask for. Falls back to a quiet charcoal tile if the URL is
-/// missing or fails to load. Used everywhere in the redesign in place of
-/// the rounded/glowing artwork of the previous design.
+/// Modern album artwork — soft 14px radius, hairline rim, layered shadow.
+/// Falls back to an aurora-tinted tile if the URL is missing or fails.
+/// Used everywhere in the 2.0 redesign.
 class NexoraArtwork extends StatelessWidget {
   final String? url;
   final double size;
@@ -25,9 +24,20 @@ class NexoraArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final isDark = AppColors.mode == AppThemeMode.dark;
+    return Container(
       width: size,
       height: size,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: ClipRRect(
         borderRadius: radius,
         child: url != null && url!.isNotEmpty
@@ -68,13 +78,23 @@ class _Placeholder extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: AppColorTokens.surfaceRaised),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent.withValues(alpha: 0.22),
+            AppColors.accentCyan.withValues(alpha: 0.10),
+            AppColorTokens.surfaceRaised,
+          ],
+        ),
+      ),
       alignment: Alignment.center,
       child: loading
           ? SizedBox(
               width: size * 0.18,
               height: size * 0.18,
-              child: const CircularProgressIndicator(strokeWidth: 1.4),
+              child: const CircularProgressIndicator(strokeWidth: 1.6),
             )
           : Icon(icon, size: size * 0.32, color: AppColorTokens.textDim),
     );

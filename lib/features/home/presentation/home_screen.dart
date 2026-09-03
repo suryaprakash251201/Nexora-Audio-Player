@@ -705,18 +705,22 @@ class _HeroPlayButton extends ConsumerWidget {
       onTap: () => ref.read(playerProvider.notifier).togglePlay(),
       scale: 0.9,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.accent,
+          gradient: AppColors.accentGradient,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.22),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.30),
-              blurRadius: 14,
+              color: AppColors.accent.withValues(alpha: 0.40),
+              blurRadius: 20,
               spreadRadius: 0,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -729,8 +733,8 @@ class _HeroPlayButton extends ConsumerWidget {
           child: Icon(
             isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
             key: ValueKey<bool>(isPlaying),
-            color: AppColors.onAccent,
-            size: 26,
+            color: Colors.white,
+            size: 27,
           ),
         ),
       ),

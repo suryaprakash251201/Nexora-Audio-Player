@@ -13,6 +13,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Nexora'), findsWidgets);
+    // Branding is uppercase NEXORA across login + home.
+    expect(find.text('NEXORA'), findsWidgets);
   });
 }

@@ -81,30 +81,39 @@ class _AuroraPainter extends CustomPainter {
     final blobs = <_Blob>[
       _Blob(
         center: Offset(
-          size.width * (0.18 + 0.06 * progress),
-          size.height * 0.16,
+          size.width * (0.15 + 0.07 * progress),
+          size.height * 0.12,
         ),
-        radius: shortest * 1.05,
-        color: tint,
-        alpha: 0.20,
+        radius: shortest * 1.1,
+        color: const Color(0xFF7C5CFF),
+        alpha: 0.26,
       ),
       _Blob(
         center: Offset(
-          size.width * (0.88 - 0.08 * progress),
-          size.height * 0.34,
+          size.width * (0.90 - 0.09 * progress),
+          size.height * 0.30,
         ),
-        radius: shortest * 0.85,
-        color: AppColors.accentSoft,
-        alpha: 0.13,
+        radius: shortest * 0.9,
+        color: const Color(0xFF22D3EE),
+        alpha: 0.14,
       ),
       _Blob(
         center: Offset(
-          size.width * (0.5 + 0.05 * progress),
-          size.height * 0.94,
+          size.width * (0.72 - 0.05 * progress),
+          size.height * 0.62,
         ),
-        radius: shortest * 0.95,
+        radius: shortest * 0.7,
+        color: const Color(0xFFFF5C8A),
+        alpha: 0.08,
+      ),
+      _Blob(
+        center: Offset(
+          size.width * (0.42 + 0.06 * progress),
+          size.height * 0.96,
+        ),
+        radius: shortest * 1.0,
         color: tint,
-        alpha: 0.09,
+        alpha: 0.10,
       ),
     ];
 
@@ -152,14 +161,16 @@ class _Blob {
 
 /// Premium card with subtle gradient, refined border and layered shadows.
 /// The default surface for hero cards, stat tiles and featured content.
+/// 2.0: aurora-tinted gradient, 20px radius, violet whisper glow in dark.
 class NexoraGradientCard extends StatelessWidget {
   const NexoraGradientCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = const EdgeInsets.all(20),
     this.borderRadius,
     this.tint,
     this.onTap,
+    this.showGlow = false,
   });
 
   final Widget child;
@@ -167,10 +178,11 @@ class NexoraGradientCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final Color? tint;
   final VoidCallback? onTap;
+  final bool showGlow;
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? NexoraRadius.card;
+    final radius = borderRadius ?? NexoraRadius.cardLarge;
     final accent = tint ?? AppColors.accent;
     final isDark = AppColors.mode == AppThemeMode.dark;
 
@@ -181,21 +193,28 @@ class NexoraGradientCard extends StatelessWidget {
         border: Border.all(
           color: isDark
               ? AppColors.border.withValues(alpha: 0.9)
-              : AppColors.border.withValues(alpha: 0.7),
+              : AppColors.border.withValues(alpha: 0.8),
           width: 0.8,
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            isDark ? AppColors.card : Colors.white,
+            isDark ? const Color(0xFF111728) : Colors.white,
             Color.alphaBlend(
-              accent.withValues(alpha: isDark ? 0.08 : 0.05),
-              isDark ? AppColors.card : Colors.white,
+              accent.withValues(alpha: isDark ? 0.14 : 0.07),
+              isDark ? const Color(0xFF111728) : Colors.white,
+            ),
+            Color.alphaBlend(
+              AppColors.accentCyan.withValues(alpha: isDark ? 0.06 : 0.04),
+              isDark ? const Color(0xFF111728) : Colors.white,
             ),
           ],
+          stops: const [0.0, 0.62, 1.0],
         ),
-        boxShadow: NexoraShadow.card(isDark),
+        boxShadow: showGlow
+            ? NexoraShadow.glow(isDark, color: accent)
+            : NexoraShadow.card(isDark),
       ),
       child: child,
     );

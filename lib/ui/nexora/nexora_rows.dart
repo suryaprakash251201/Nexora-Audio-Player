@@ -47,11 +47,12 @@ class NexoraTrackRow extends StatelessWidget {
     final row = InkWell(
       onTap: onTap,
       onLongPress: onMore,
-      splashColor: AppColors.surfaceHigh.withValues(alpha: 0.35),
-      highlightColor: AppColors.surfaceHigh.withValues(alpha: 0.18),
+      splashColor: AppColors.accent.withValues(alpha: 0.08),
+      highlightColor: AppColors.accent.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: NexoraSpacing.s20,
+          horizontal: NexoraSpacing.s16,
           vertical: NexoraSpacing.s8,
         ),
         child: Row(
@@ -60,10 +61,18 @@ class NexoraTrackRow extends StatelessWidget {
             SizedBox(
               width: 28,
               child: isPlaying
-                  ? Icon(
-                      Icons.equalizer_rounded,
-                      size: 16,
-                      color: AppColors.accent,
+                  ? Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.equalizer_rounded,
+                        size: 14,
+                        color: AppColors.accent,
+                      ),
                     )
                   : indexLabel != null
                   ? Text(
@@ -72,7 +81,7 @@ class NexoraTrackRow extends StatelessWidget {
                       style: TextStyle(
                         color: isCurrent ? AppColors.accent : AppColors.textDim,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w700,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     )
@@ -82,8 +91,8 @@ class NexoraTrackRow extends StatelessWidget {
             // Artwork
             NexoraArtwork(
               url: artworkUrl,
-              size: 44,
-              radius: const BorderRadius.all(Radius.circular(NexoraRadius.r4)),
+              size: 48,
+              radius: const BorderRadius.all(Radius.circular(12)),
             ),
             const SizedBox(width: NexoraSpacing.s12),
             // Identity
@@ -99,8 +108,8 @@ class NexoraTrackRow extends StatelessWidget {
                     style: TextStyle(
                       color: titleColor,
                       fontSize: 15,
-                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: -0.1,
+                      fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -111,7 +120,7 @@ class NexoraTrackRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textMuted,
-                        fontSize: 12,
+                        fontSize: 12.5,
                         height: 1.3,
                       ),
                     ),

@@ -122,14 +122,15 @@ class NexoraGlass extends StatelessWidget {
 
 /// Optimized glass dock for the bottom navigation bar.
 /// Pinned to the very bottom with refined blur and tighter margins.
+/// 2.0: true floating pill — 14px margins, 28px radius, heavier blur.
 class NexoraGlassDock extends StatelessWidget {
   const NexoraGlassDock({
     super.key,
     required this.child,
-    this.borderRadius = const BorderRadius.all(Radius.circular(24)),
-    this.padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-    this.margin = const EdgeInsets.fromLTRB(10, 0, 10, 10),
-    this.horizontalMargin = 10,
+    this.borderRadius = const BorderRadius.all(Radius.circular(28)),
+    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    this.margin = const EdgeInsets.fromLTRB(14, 0, 14, 12),
+    this.horizontalMargin = 14,
   });
 
   final Widget child;
@@ -144,10 +145,10 @@ class NexoraGlassDock extends StatelessWidget {
       borderRadius: borderRadius,
       padding: padding,
       margin: margin,
-      blur: 28,
-      tintAlpha: 0.62,
-      borderAlpha: 0.38,
-      borderWidth: 0.7,
+      blur: 32,
+      tintAlpha: 0.68,
+      borderAlpha: 0.30,
+      borderWidth: 0.8,
       child: child,
     );
   }
@@ -155,6 +156,7 @@ class NexoraGlassDock extends StatelessWidget {
 
 /// Glass for the mini player — matches the dock but slightly less blur
 /// so the artwork remains crisp.
+/// 2.0: floating card with 20px radius and aurora edge highlight.
 class NexoraMiniGlass extends StatelessWidget {
   const NexoraMiniGlass({super.key, required this.child});
 
@@ -163,12 +165,12 @@ class NexoraMiniGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NexoraGlass(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       padding: EdgeInsets.zero,
-      blur: 24,
-      tintAlpha: 0.60,
-      borderAlpha: 0.36,
-      borderWidth: 0.6,
+      blur: 28,
+      tintAlpha: 0.66,
+      borderAlpha: 0.28,
+      borderWidth: 0.8,
       child: child,
     );
   }

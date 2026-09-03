@@ -317,8 +317,9 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 }
 
-/// Bottom dock — pinned to the true bottom, safe-area aware.
+/// Bottom dock — floating aurora chrome, safe-area aware.
 /// Mini player and nav bar share a single stack so they swap without overlap.
+/// 2.0: 14px side margins, 12px bottom float, 10px inter-gap.
 class _BottomDock extends StatelessWidget {
   final Animation<double> navController;
   final Animation<double> miniController;
@@ -326,9 +327,9 @@ class _BottomDock extends StatelessWidget {
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  static const double _miniHeight = 68;
-  static const double _gap = 6;
-  static const double _hiddenOffset = 96;
+  static const double _miniHeight = 70;
+  static const double _gap = 10;
+  static const double _hiddenOffset = 110;
 
   const _BottomDock({
     required this.navController,
@@ -341,8 +342,8 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    // Hug the bottom — only the system inset, no extra floating gap.
-    final double dockBottom = bottomInset;
+    // Float above the system inset — modern pill dock, not edge-pinned.
+    final double dockBottom = bottomInset + 4;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(

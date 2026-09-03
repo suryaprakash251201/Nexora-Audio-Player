@@ -130,7 +130,7 @@ class _SegmentedTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = AppColors.mode == AppThemeMode.dark;
     return SizedBox(
-      height: 44,
+      height: 46,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -145,32 +145,42 @@ class _SegmentedTabs extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () => controller.animateTo(i),
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(24),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 240),
                     curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                      horizontal: 18,
+                      vertical: 11,
                     ),
                     decoration: BoxDecoration(
+                      gradient: selected ? AppColors.accentGradient : null,
                       color: selected
-                          ? AppColors.text
-                          : (isDark ? AppColors.surfaceRaised : AppColors.card),
-                      borderRadius: BorderRadius.circular(22),
+                          ? null
+                          : (isDark ? AppColors.card : AppColors.card),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: selected
-                            ? AppColors.text
-                            : AppColors.border.withValues(alpha: 0.8),
-                        width: 0.7,
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : AppColors.border.withValues(alpha: 0.9),
+                        width: 0.8,
                       ),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.30),
+                                blurRadius: 16,
+                                offset: const Offset(0, 5),
+                              ),
+                            ]
+                          : null,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       tabs[i],
                       style: TextStyle(
-                        color: selected ? AppColors.background : AppColors.text,
-                        fontSize: 12.5,
+                        color: selected ? Colors.white : AppColors.text,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.1,
                       ),

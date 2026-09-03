@@ -30,10 +30,11 @@ class NexoraSpacing {
   static const EdgeInsets screenGutter = EdgeInsets.fromLTRB(20, 12, 20, 20);
 
   /// Reserve above the floating dock so lists never hide behind it.
-  static const double dockBottomReserve = 148;
+  /// Dock is now floating with larger margins — needs a bit more air.
+  static const double dockBottomReserve = 172;
 
   /// Section gap between settings groups.
-  static const double sectionGap = 20;
+  static const double sectionGap = 24;
 }
 
 class NexoraRadius {
@@ -48,37 +49,44 @@ class NexoraRadius {
   static const double r20 = 20;
   static const double r24 = 24;
   static const double r28 = 28;
+  static const double r32 = 32;
 
-  static const BorderRadius artwork = BorderRadius.all(Radius.circular(r8));
-  static const BorderRadius chip = BorderRadius.all(Radius.circular(r10));
-  static const BorderRadius button = BorderRadius.all(Radius.circular(r12));
-  static const BorderRadius sheetTop = BorderRadius.vertical(
-    top: Radius.circular(24),
+  // Modern 2.0: softer, larger. Artwork breathes with 14-16px,
+  // cards float at 20-24px, sheets rise at 28px.
+  static const BorderRadius artwork = BorderRadius.all(Radius.circular(r14));
+  static const BorderRadius artworkLarge = BorderRadius.all(
+    Radius.circular(r20),
   );
-  static const BorderRadius card = BorderRadius.all(Radius.circular(16));
-  static const BorderRadius cardLarge = BorderRadius.all(Radius.circular(20));
+  static const BorderRadius chip = BorderRadius.all(Radius.circular(r10));
+  static const BorderRadius button = BorderRadius.all(Radius.circular(r16));
+  static const BorderRadius sheetTop = BorderRadius.vertical(
+    top: Radius.circular(28),
+  );
+  static const BorderRadius card = BorderRadius.all(Radius.circular(20));
+  static const BorderRadius cardLarge = BorderRadius.all(Radius.circular(24));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
-  static const BorderRadius dialog = BorderRadius.all(Radius.circular(20));
+  static const BorderRadius dialog = BorderRadius.all(Radius.circular(24));
 }
 
 class NexoraShadow {
   NexoraShadow._();
 
   /// Soft card shadow — default elevation for grouped cards.
+  /// 2.0: deeper, softer, with a whisper of violet in dark mode.
   static List<BoxShadow> card(bool isDark) => [
     BoxShadow(
       color: isDark
-          ? const Color(0xFF000000).withValues(alpha: 0.30)
-          : const Color(0xFF1A2A4A).withValues(alpha: 0.08),
-      blurRadius: 16,
-      offset: const Offset(0, 6),
+          ? const Color(0xFF000000).withValues(alpha: 0.42)
+          : const Color(0xFF0F1D3A).withValues(alpha: 0.08),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
     ),
     BoxShadow(
       color: isDark
-          ? const Color(0xFF000000).withValues(alpha: 0.18)
-          : const Color(0xFF1A2A4A).withValues(alpha: 0.04),
-      blurRadius: 4,
-      offset: const Offset(0, 1),
+          ? const Color(0xFF7C5CFF).withValues(alpha: 0.06)
+          : const Color(0xFF0F1D3A).withValues(alpha: 0.04),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
     ),
   ];
 
@@ -86,26 +94,46 @@ class NexoraShadow {
   static List<BoxShadow> floating(bool isDark) => [
     BoxShadow(
       color: isDark
-          ? const Color(0xFF000000).withValues(alpha: 0.45)
-          : const Color(0xFF1A2A4A).withValues(alpha: 0.14),
-      blurRadius: 28,
-      offset: const Offset(0, 12),
+          ? const Color(0xFF000000).withValues(alpha: 0.55)
+          : const Color(0xFF0F1D3A).withValues(alpha: 0.16),
+      blurRadius: 36,
+      offset: const Offset(0, 16),
     ),
     BoxShadow(
       color: isDark
-          ? const Color(0xFF000000).withValues(alpha: 0.22)
-          : const Color(0xFF1A2A4A).withValues(alpha: 0.06),
-      blurRadius: 8,
-      offset: const Offset(0, 3),
+          ? const Color(0xFF7C5CFF).withValues(alpha: 0.10)
+          : const Color(0xFF7C5CFF).withValues(alpha: 0.08),
+      blurRadius: 12,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
+  /// Signature aurora glow for hero play buttons + artwork.
+  static List<BoxShadow> glow(bool isDark, {Color? color}) => [
+    BoxShadow(
+      color: (color ?? const Color(0xFF7C5CFF)).withValues(
+        alpha: isDark ? 0.42 : 0.28,
+      ),
+      blurRadius: 28,
+      spreadRadius: 0,
+      offset: const Offset(0, 10),
+    ),
+    BoxShadow(
+      color: (color ?? const Color(0xFF22D3EE)).withValues(
+        alpha: isDark ? 0.16 : 0.12,
+      ),
+      blurRadius: 48,
+      spreadRadius: 2,
+      offset: const Offset(0, 6),
     ),
   ];
 
   /// Subtle inner glow for the selected nav pill.
   static List<BoxShadow> pill(bool isDark) => [
     BoxShadow(
-      color: const Color(0xFF3A7BFF).withValues(alpha: isDark ? 0.22 : 0.16),
-      blurRadius: 12,
-      offset: const Offset(0, 3),
+      color: const Color(0xFF7C5CFF).withValues(alpha: isDark ? 0.28 : 0.18),
+      blurRadius: 16,
+      offset: const Offset(0, 4),
     ),
   ];
 }

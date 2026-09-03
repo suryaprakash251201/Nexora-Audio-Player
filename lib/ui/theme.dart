@@ -6,113 +6,146 @@ import 'package:google_fonts/google_fonts.dart';
 /// light is an airy, paper-inspired companion with real depth.
 enum AppThemeMode { dark, light }
 
-/// Centralized design tokens for Nexora.
-/// Palette philosophy: restrained, tactile, built for long listening sessions.
+/// Centralized design tokens for Nexora 2.0.
+///
+/// Palette philosophy — "Midnight Aurora":
+/// deep space blacks, frosted glass, and a signature violet → blue → cyan
+/// aurora gradient. Single accent for meaning, gradient for moments of
+/// delight (play buttons, progress, hero cards).
 class AppColors {
   AppColors._();
 
   static AppThemeMode mode = AppThemeMode.dark;
 
   // ── Backgrounds ─────────────────────────────────────────────
-  // Dark: inky studio navy — depth without pure black harshness.
-  // Light: cool mist with subtle warmth, cards pop as pure white.
-  static const Color _backgroundDark = Color(0xFF080B14);
-  static const Color _backgroundLight = Color(0xFFF2F4F8);
+  // Dark: deep space — richer than pure black, tuned for OLED + artwork pop.
+  // Light: frosted mist — cool, airy, cards float as pure white.
+  static const Color _backgroundDark = Color(0xFF06070C);
+  static const Color _backgroundLight = Color(0xFFF4F5FA);
   static Color get background =>
       mode == AppThemeMode.dark ? _backgroundDark : _backgroundLight;
 
-  static const Color _surfaceDark = Color(0xFF111827);
+  static const Color _surfaceDark = Color(0xFF0C0F16);
   static const Color _surfaceLight = Color(0xFFFFFFFF);
   static Color get surface =>
       mode == AppThemeMode.dark ? _surfaceDark : _surfaceLight;
 
-  static const Color _surfaceRaisedDark = Color(0xFF172033);
-  static const Color _surfaceRaisedLight = Color(0xFFE8ECF3);
+  static const Color _surfaceRaisedDark = Color(0xFF141927);
+  static const Color _surfaceRaisedLight = Color(0xFFEBEEF5);
   static Color get surfaceRaised =>
       mode == AppThemeMode.dark ? _surfaceRaisedDark : _surfaceRaisedLight;
 
-  static const Color _surfaceHighDark = Color(0xFF1E2D4A);
+  static const Color _surfaceHighDark = Color(0xFF1E2639);
   static const Color _surfaceHighLight = Color(0xFFDDE3F0);
   static Color get surfaceHigh =>
       mode == AppThemeMode.dark ? _surfaceHighDark : _surfaceHighLight;
 
   // Card-specific elevation surfaces
-  static const Color _cardDark = Color(0xFF131C2E);
+  static const Color _cardDark = Color(0xFF0E1320);
   static const Color _cardLight = Color(0xFFFFFFFF);
   static Color get card => mode == AppThemeMode.dark ? _cardDark : _cardLight;
 
-  static const Color _cardElevatedDark = Color(0xFF1A2744);
+  static const Color _cardElevatedDark = Color(0xFF182038);
   static const Color _cardElevatedLight = Color(0xFFFFFFFF);
   static Color get cardElevated =>
       mode == AppThemeMode.dark ? _cardElevatedDark : _cardElevatedLight;
 
   // ── Borders ────────────────────────────────────────────────
-  static const Color _borderDark = Color(0xFF223047);
-  static const Color _borderLight = Color(0xFFD8DEEB);
+  static const Color _borderDark = Color(0xFF222B42);
+  static const Color _borderLight = Color(0xFFE1E6F1);
   static Color get border =>
       mode == AppThemeMode.dark ? _borderDark : _borderLight;
 
-  static const Color _hairlineDark = Color(0xFF18233A);
-  static const Color _hairlineLight = Color(0xFFE5EAF3);
+  static const Color _hairlineDark = Color(0xFF141B2E);
+  static const Color _hairlineLight = Color(0xFFECEFF7);
   static Color get hairline =>
       mode == AppThemeMode.dark ? _hairlineDark : _hairlineLight;
 
-  static const Color _borderStrongDark = Color(0xFF2A3A56);
-  static const Color _borderStrongLight = Color(0xFFC5CFE3);
+  static const Color _borderStrongDark = Color(0xFF2E3A55);
+  static const Color _borderStrongLight = Color(0xFFC8D1E5);
   static Color get borderStrong =>
       mode == AppThemeMode.dark ? _borderStrongDark : _borderStrongLight;
 
   // ── Text ───────────────────────────────────────────────────
-  static const Color _textDark = Color(0xFFE8ECF1);
-  static const Color _textLight = Color(0xFF0F1729);
+  static const Color _textDark = Color(0xFFF4F6FB);
+  static const Color _textLight = Color(0xFF0C1222);
   static Color get text => mode == AppThemeMode.dark ? _textDark : _textLight;
 
-  static const Color _textMutedDark = Color(0xFF8FA0BE);
-  static const Color _textMutedLight = Color(0xFF5B6B8E);
+  static const Color _textMutedDark = Color(0xFF9BA7C2);
+  static const Color _textMutedLight = Color(0xFF5B6B8C);
   static Color get textMuted =>
       mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
 
-  static const Color _textDimDark = Color(0xFF5E6E8C);
-  static const Color _textDimLight = Color(0xFF7A8CB0);
+  static const Color _textDimDark = Color(0xFF6B7894);
+  static const Color _textDimLight = Color(0xFF8A99B8);
   static Color get textDim =>
       mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
-  static const Color _textFaintDark = Color(0xFF3E4D6A);
-  static const Color _textFaintLight = Color(0xFF9AA9C7);
+  static const Color _textFaintDark = Color(0xFF3E4A63);
+  static const Color _textFaintLight = Color(0xFFB4BED6);
   static Color get textFaint =>
       mode == AppThemeMode.dark ? _textFaintDark : _textFaintLight;
 
-  // ── Accent ─────────────────────────────────────────────────
-  static const Color accent = Color(0xFF3A7BFF);
-  static const Color accentSoft = Color(0xFF6B9FFF);
-  static const Color accentDim = Color(0xFF2A5FCC);
-  static const Color accentHover = Color(0xFF4A8AFF);
+  // ── Accent — Aurora signature ──────────────────────────────
+  // Violet primary, blue mid, cyan end. Solid accent stays violet for
+  // legibility; gradient is used for hero moments.
+  static const Color accent = Color(0xFF7C5CFF);
+  static const Color accentSoft = Color(0xFFA78BFA);
+  static const Color accentDim = Color(0xFF5B45D6);
+  static const Color accentHover = Color(0xFF8D74FF);
+  static const Color accentCyan = Color(0xFF22D3EE);
+  static const Color accentBlue = Color(0xFF3A7BFF);
+  static const Color accentPink = Color(0xFFFF5C8A);
+
+  static const LinearGradient accentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF7C5CFF), Color(0xFF3A7BFF), Color(0xFF22D3EE)],
+  );
+
+  static const LinearGradient accentGradientHorizontal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF7C5CFF), Color(0xFF3A7BFF), Color(0xFF22D3EE)],
+  );
+
+  static const LinearGradient cardSheen = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x14FFFFFF), Color(0x00000000)],
+    stops: [0.0, 0.45],
+  );
 
   // Accent tints for backgrounds
-  static Color get accentTint => accent.withValues(alpha: 0.10);
-  static Color get accentTintStrong => accent.withValues(alpha: 0.16);
-  static Color get accentTintSubtle => accent.withValues(alpha: 0.06);
+  static Color get accentTint => accent.withValues(alpha: 0.12);
+  static Color get accentTintStrong => accent.withValues(alpha: 0.18);
+  static Color get accentTintSubtle => accent.withValues(alpha: 0.07);
 
   // ── Status ─────────────────────────────────────────────────
-  static const Color success = Color(0xFF30C9B0);
+  static const Color success = Color(0xFF2DD4BF);
   static const Color warning = Color(0xFFFFB020);
-  static const Color error = Color(0xFFEF4458);
+  static const Color error = Color(0xFFFF4D6A);
 
   // ── Convenience ────────────────────────────────────────────
   static Color get accentOnDark => accent;
   static const Color onAccent = Color(0xFFFFFFFF);
-  static const Color ambientNeutral = Color(0xFF172033);
+  static const Color ambientNeutral = Color(0xFF141927);
 
   static const Color primary = accent;
   static const Color primaryLight = accent;
   static const Color primaryDark = accentSoft;
-  static const Color secondary = accent;
-  static const Color secondaryLight = accent;
-  static const Color tertiary = accent;
+  static const Color secondary = accentCyan;
+  static const Color secondaryLight = accentCyan;
+  static const Color tertiary = accentPink;
 
-  // ── Dynamic ────────────────────────────────────────────────
-  static Color ambientTint = const Color(0xFF172033);
-  static Color ambientGlow = const Color(0xFF1E2D4A);
+  // ── Dynamic aurora mesh ────────────────────────────────────
+  static const Color auroraViolet = Color(0xFF7C5CFF);
+  static const Color auroraBlue = Color(0xFF3A7BFF);
+  static const Color auroraCyan = Color(0xFF22D3EE);
+  static const Color auroraPink = Color(0xFFFF5C8A);
+
+  static Color ambientTint = const Color(0xFF141927);
+  static Color ambientGlow = const Color(0xFF1E2639);
 
   // ── Glass ─────────────────────────────────────────────────
   static Color get glassBase => surface;
@@ -124,35 +157,35 @@ class AppColors {
     return Color.alphaBlend(ambientTint.withValues(alpha: 0.12), base);
   }
 
-  static Color get glowColor => accent.withValues(alpha: 0.28);
+  static Color get glowColor => accent.withValues(alpha: 0.32);
 
   static Color get shadowColor => mode == AppThemeMode.dark
-      ? const Color(0xFF000000).withValues(alpha: 0.45)
-      : const Color(0xFF1A2A4A).withValues(alpha: 0.10);
+      ? const Color(0xFF000000).withValues(alpha: 0.50)
+      : const Color(0xFF0F1D3A).withValues(alpha: 0.10);
 
   static Color get shadowColorStrong => mode == AppThemeMode.dark
-      ? const Color(0xFF000000).withValues(alpha: 0.60)
-      : const Color(0xFF1A2A4A).withValues(alpha: 0.16);
+      ? const Color(0xFF000000).withValues(alpha: 0.65)
+      : const Color(0xFF0F1D3A).withValues(alpha: 0.16);
 
   static Color get shadowColorSoft => mode == AppThemeMode.dark
-      ? const Color(0xFF000000).withValues(alpha: 0.25)
-      : const Color(0xFF1A2A4A).withValues(alpha: 0.06);
+      ? const Color(0xFF000000).withValues(alpha: 0.28)
+      : const Color(0xFF0F1D3A).withValues(alpha: 0.06);
 
   static Color get premiumSurface {
     if (mode == AppThemeMode.dark) {
-      return const Color(0xFF0E1729);
+      return const Color(0xFF0A0F1C);
     }
     return const Color(0xFFF8FAFF);
   }
 
   // ── Overlay ────────────────────────────────────────────────
   static Color get overlayScrim => mode == AppThemeMode.dark
-      ? Colors.black.withValues(alpha: 0.55)
-      : Colors.black.withValues(alpha: 0.25);
+      ? Colors.black.withValues(alpha: 0.60)
+      : Colors.black.withValues(alpha: 0.28);
 
   static Color get overlayStrong => mode == AppThemeMode.dark
-      ? Colors.black.withValues(alpha: 0.72)
-      : Colors.black.withValues(alpha: 0.42);
+      ? Colors.black.withValues(alpha: 0.76)
+      : Colors.black.withValues(alpha: 0.45);
 
   // ── Spacing ────────────────────────────────────────────────
   static const double s4 = 4;
@@ -180,10 +213,10 @@ class AppColors {
   static const Duration durPage = Duration(milliseconds: 420);
 
   static Color get shimmerBase => mode == AppThemeMode.dark
-      ? const Color(0xFF111827)
+      ? const Color(0xFF101625)
       : const Color(0xFFE8ECF3);
   static Color get shimmerHighlight => mode == AppThemeMode.dark
-      ? const Color(0xFF1E2D4A)
+      ? const Color(0xFF1E2639)
       : const Color(0xFFF2F4F8);
 
   static const LinearGradient subtleVerticalFade = LinearGradient(
@@ -193,7 +226,9 @@ class AppColors {
   );
 }
 
-/// Typography — editorial, calm, deliberately restrained.
+/// Typography — modern, expressive, built for music.
+/// Display uses Plus Jakarta Sans ExtraBold with tight tracking;
+/// body stays highly legible with relaxed line-height.
 class AppTypography {
   AppTypography._();
 
@@ -201,93 +236,109 @@ class AppTypography {
     final base = isDark
         ? ThemeData.dark().textTheme
         : ThemeData.light().textTheme;
-    final tx = GoogleFonts.interTextTheme(base);
+    final tx = GoogleFonts.plusJakartaSansTextTheme(base);
     final text = AppColors.text;
     final muted = AppColors.textMuted;
     final dim = AppColors.textDim;
 
+    TextStyle jakarta({
+      required Color color,
+      required double size,
+      required FontWeight weight,
+      double? spacing,
+      double? height,
+    }) => GoogleFonts.plusJakartaSans(
+      color: color,
+      fontSize: size,
+      fontWeight: weight,
+      letterSpacing: spacing ?? -0.2,
+      height: height,
+    );
+
     return tx.copyWith(
-      displayLarge: GoogleFonts.inter(
+      displayLarge: jakarta(
         color: text,
-        fontSize: 40,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -1.4,
+        size: 44,
+        weight: FontWeight.w800,
+        spacing: -1.6,
         height: 1.0,
       ),
-      displayMedium: GoogleFonts.inter(
+      displayMedium: jakarta(
         color: text,
-        fontSize: 32,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.9,
+        size: 34,
+        weight: FontWeight.w800,
+        spacing: -1.0,
+        height: 1.05,
+      ),
+      headlineLarge: jakarta(
+        color: text,
+        size: 30,
+        weight: FontWeight.w800,
+        spacing: -0.8,
         height: 1.1,
       ),
-      headlineLarge: GoogleFonts.inter(
+      headlineMedium: jakarta(
         color: text,
-        fontSize: 30,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.7,
+        size: 26,
+        weight: FontWeight.w700,
+        spacing: -0.6,
         height: 1.15,
       ),
-      headlineMedium: GoogleFonts.inter(
+      titleLarge: jakarta(
         color: text,
-        fontSize: 26,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.5,
-        height: 1.2,
+        size: 22,
+        weight: FontWeight.w700,
+        spacing: -0.4,
       ),
-      titleLarge: GoogleFonts.inter(
+      titleMedium: jakarta(
         color: text,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.4,
+        size: 17,
+        weight: FontWeight.w700,
+        spacing: -0.2,
       ),
-      titleMedium: GoogleFonts.inter(
-        color: text,
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.2,
-      ),
-      titleSmall: GoogleFonts.inter(
+      titleSmall: jakarta(
         color: muted,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.2,
+        size: 14,
+        weight: FontWeight.w600,
+        spacing: 0.1,
       ),
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: jakarta(
         color: text,
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        height: 1.4,
-      ),
-      bodyMedium: GoogleFonts.inter(
-        color: muted,
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
+        size: 16,
+        weight: FontWeight.w500,
+        spacing: -0.1,
         height: 1.45,
       ),
-      bodySmall: GoogleFonts.inter(
-        color: dim,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.35,
-      ),
-      labelLarge: GoogleFonts.inter(
-        color: text,
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.2,
-      ),
-      labelMedium: GoogleFonts.inter(
+      bodyMedium: jakarta(
         color: muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.3,
+        size: 14,
+        weight: FontWeight.w500,
+        spacing: -0.1,
+        height: 1.5,
       ),
-      labelSmall: GoogleFonts.inter(
+      bodySmall: jakarta(
         color: dim,
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.6,
+        size: 12.5,
+        weight: FontWeight.w500,
+        height: 1.4,
+      ),
+      labelLarge: jakarta(
+        color: text,
+        size: 14,
+        weight: FontWeight.w700,
+        spacing: 0.1,
+      ),
+      labelMedium: jakarta(
+        color: muted,
+        size: 12.5,
+        weight: FontWeight.w600,
+        spacing: 0.2,
+      ),
+      labelSmall: jakarta(
+        color: dim,
+        size: 11,
+        weight: FontWeight.w700,
+        spacing: 0.8,
       ),
     );
   }
@@ -302,9 +353,9 @@ class AppTheme {
         ? ColorScheme.dark(
             primary: AppColors.accent,
             onPrimary: AppColors.onAccent,
-            secondary: AppColors.accentSoft,
-            onSecondary: AppColors.onAccent,
-            tertiary: AppColors.accent,
+            secondary: AppColors.accentCyan,
+            onSecondary: const Color(0xFF06070C),
+            tertiary: AppColors.accentPink,
             onTertiary: AppColors.onAccent,
             surface: AppColors.surface,
             onSurface: AppColors.text,
@@ -318,9 +369,9 @@ class AppTheme {
         : ColorScheme.light(
             primary: AppColors.accent,
             onPrimary: AppColors.onAccent,
-            secondary: AppColors.accentSoft,
+            secondary: AppColors.accentBlue,
             onSecondary: AppColors.onAccent,
-            tertiary: AppColors.accent,
+            tertiary: AppColors.accentPink,
             onTertiary: AppColors.onAccent,
             surface: AppColors.surface,
             onSurface: AppColors.text,
@@ -368,20 +419,20 @@ class AppTheme {
         titleTextStyle: textTheme.headlineMedium,
         centerTitle: false,
       ),
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,
         modalBackgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       cardTheme: CardThemeData(
         color: AppColors.card,
@@ -389,42 +440,42 @@ class AppTheme {
         elevation: 0,
         shadowColor: AppColors.shadowColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 0.7),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.border, width: 0.8),
         ),
         margin: EdgeInsets.zero,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.92),
+        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.95),
         contentTextStyle: TextStyle(color: AppColors.text, fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
-        elevation: 8,
+        elevation: 12,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.card,
         hintStyle: TextStyle(color: AppColors.textDim, fontSize: 14),
         labelStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 18,
+          vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border, width: 0.7),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.border, width: 0.8),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border, width: 0.7),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.border, width: 0.8),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.accent, width: 1.4),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.accent, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error, width: 0.7),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.error, width: 0.8),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -436,28 +487,28 @@ class AppTheme {
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.text,
-          side: BorderSide(color: AppColors.border, width: 0.7),
+          side: BorderSide(color: AppColors.border, width: 0.8),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           textStyle: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
         ),
       ),
@@ -466,26 +517,26 @@ class AppTheme {
           foregroundColor: AppColors.text,
           textStyle: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceRaised,
-        side: BorderSide(color: AppColors.border, width: 0.6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        side: BorderSide(color: AppColors.border, width: 0.7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         labelStyle: TextStyle(color: AppColors.text, fontSize: 13),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.accent,
         inactiveTrackColor: AppColors.surfaceHigh,
-        thumbColor: AppColors.accent,
-        overlayColor: AppColors.accent.withValues(alpha: 0.14),
-        trackHeight: 2.5,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+        thumbColor: Colors.white,
+        overlayColor: AppColors.accent.withValues(alpha: 0.16),
+        trackHeight: 4,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.accent,

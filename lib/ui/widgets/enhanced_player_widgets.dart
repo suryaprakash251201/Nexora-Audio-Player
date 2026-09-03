@@ -72,6 +72,7 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.mode == AppThemeMode.dark;
     Widget button = GestureDetector(
       onTapDown: (_) {
         HapticFeedback.lightImpact();
@@ -91,12 +92,23 @@ class _EnhancedPlayButtonState extends State<EnhancedPlayButton>
           height: widget.size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.accent,
+            gradient: AppColors.accentGradient,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.30),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.25),
-                blurRadius: 20,
+                color: AppColors.accent.withValues(alpha: 0.42),
+                blurRadius: 28,
+                spreadRadius: 0,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: AppColors.accentCyan.withValues(alpha: 0.18),
+                blurRadius: 48,
                 spreadRadius: 2,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -597,9 +609,10 @@ class _MiniIconButton extends StatelessWidget {
   }
 }
 
-/// Bottom navigation bar — pinned, glassmorphic, pixel-perfect.
+/// Bottom navigation bar — floating aurora pill, pixel-perfect.
 /// Pill tracks Expanded cells exactly (no spaceAround drift),
-/// hugs bottom with safe-area awareness, and slides with easeOutCubic.
+/// floats with 14px margins, and slides with easeOutCubic.
+/// 2.0: gradient selected pill, tonal icons, 28px dock radius.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -610,8 +623,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  static const double height = 64;
-  static const double bottomMargin = 8;
+  static const double height = 68;
+  static const double bottomMargin = 12;
   static const double totalHeight = height + bottomMargin;
 
   static const _destinations = [
@@ -628,9 +641,9 @@ class EnhancedGlassNavBar extends StatelessWidget {
     return Semantics(
       label: 'Main navigation',
       child: NexoraGlassDock(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: SizedBox(
-          height: height - 10,
+          height: height - 16,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final count = _destinations.length;
@@ -640,8 +653,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 420),
                     curve: Curves.easeOutCubic,
-                    left: selectedIndex * itemWidth + 4,
-                    right: (count - 1 - selectedIndex) * itemWidth + 4,
+                    left: selectedIndex * itemWidth + 6,
+                    right: (count - 1 - selectedIndex) * itemWidth + 6,
                     top: 2,
                     bottom: 2,
                     child: const _SelectedPill(),
@@ -674,8 +687,9 @@ class EnhancedGlassNavBar extends StatelessWidget {
   }
 }
 
-/// Refined pill — stronger fill in light mode for legibility, soft glow
-/// in dark mode. Uses parent AnimatedPositioned for motion.
+/// Refined pill — aurora gradient wash with violet glow in dark,
+/// stronger tonal fill in light for legibility.
+/// Uses parent AnimatedPositioned for motion.
 class _SelectedPill extends StatelessWidget {
   const _SelectedPill();
 
@@ -684,20 +698,25 @@ class _SelectedPill extends StatelessWidget {
     final isDark = AppColors.mode == AppThemeMode.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.accent.withValues(alpha: 0.15)
-            : AppColors.accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent.withValues(alpha: isDark ? 0.28 : 0.18),
+            AppColors.accentCyan.withValues(alpha: isDark ? 0.16 : 0.10),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.accent.withValues(alpha: isDark ? 0.32 : 0.22),
-          width: 0.7,
+          color: AppColors.accent.withValues(alpha: isDark ? 0.38 : 0.26),
+          width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withValues(alpha: isDark ? 0.18 : 0.10),
-            blurRadius: 14,
+            color: AppColors.accent.withValues(alpha: isDark ? 0.24 : 0.14),
+            blurRadius: 18,
             spreadRadius: 0,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 5),
           ),
         ],
       ),

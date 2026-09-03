@@ -160,12 +160,12 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                           child: Column(
                             children: [
                               const SizedBox(height: 12),
-                              // Animated cover
+                              // Animated cover — larger, softer, glowing.
                               AnimatedAlbumCover(
                                 imageUrl: track.artUri?.toString(),
                                 isPlaying: isPlaying,
                                 size: artworkSize,
-                                borderRadius: 16,
+                                borderRadius: 24,
                               ),
                               const SizedBox(height: 28),
                               // Title + artist
@@ -520,29 +520,39 @@ class _Controls extends StatelessWidget {
             ),
             onPressed: onPrevious,
           ),
-          // Play / Pause
+          // Play / Pause — aurora gradient hero button.
           GestureDetector(
             onTap: onPlayPause,
             child: Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                gradient: AppColors.accentGradient,
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.30),
-                    blurRadius: 20,
+                    color: AppColors.accent.withValues(alpha: 0.45),
+                    blurRadius: 30,
                     spreadRadius: 0,
-                    offset: const Offset(0, 8),
+                    offset: const Offset(0, 12),
+                  ),
+                  BoxShadow(
+                    color: AppColors.accentCyan.withValues(alpha: 0.20),
+                    blurRadius: 52,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Icon(
                 isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 color: Colors.white,
-                size: 32,
+                size: 34,
               ),
             ),
           ),
