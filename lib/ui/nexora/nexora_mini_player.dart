@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/player/providers/player_provider.dart';
@@ -189,6 +190,19 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                       ),
                       onPressed: () => ref.read(playerProvider.notifier).next(),
                       tooltip: 'Next',
+                    ),
+                    // Close — stops playback and dismisses the player.
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.textDim,
+                        size: 18,
+                      ),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(playerProvider.notifier).clearQueue();
+                      },
+                      tooltip: 'Close player',
                     ),
                   ],
                 ),

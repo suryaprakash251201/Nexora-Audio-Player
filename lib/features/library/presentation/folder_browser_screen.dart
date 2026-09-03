@@ -475,12 +475,68 @@ class _FolderCard extends ConsumerWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: ArtworkImage(url: coverAsync.value, borderRadius: 0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border, width: 0.6),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.30),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ArtworkImage(url: coverAsync.value, borderRadius: 0),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.45),
+                          ],
+                          stops: const [0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             folder.name,
             maxLines: 1,
@@ -491,6 +547,11 @@ class _FolderCard extends ConsumerWidget {
               fontSize: 13.5,
               letterSpacing: -0.2,
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Folder',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
           ),
         ],
       ),

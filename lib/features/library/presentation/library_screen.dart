@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/repositories/songs_repository.dart';
+import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/api/albums_api.dart';
 import '../../../data/api/artists_api.dart';
 import '../../../data/api/files_api.dart';
 import '../../../domain/entities/song.dart';
 import '../../../domain/entities/album.dart';
 import '../../../domain/entities/artist.dart';
+import '../../../domain/entities/playlist.dart';
+import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
@@ -380,6 +383,26 @@ final _albumsLibraryProvider = FutureProvider<List<Album>>((ref) async {
   return ref.watch(albumsApiProvider).getAlbums(limit: 200);
 });
 
+/// Folder cover for an album id ("root|path") — albums are directories,
+/// so the cover is the image inside the folder (cover.jpg / first track
+/// art), resolved lazily per card.
+final _albumCoverProvider = FutureProvider.family<String?, String>((
+  ref,
+  albumId,
+) async {
+  final api = ref.watch(filesApiProvider);
+  final idx = albumId.indexOf('|');
+  if (idx <= 0) return null;
+  try {
+    return await api.folderCoverUrl(
+      albumId.substring(0, idx),
+      albumId.substring(idx + 1),
+    );
+  } catch (_) {
+    return null;
+  }
+});
+
 class _AlbumsTab extends ConsumerWidget {
   const _AlbumsTab();
 
@@ -401,28 +424,52 @@ class _AlbumsTab extends ConsumerWidget {
           : GridView.builder(
               padding: const EdgeInsets.fromLTRB(
                 16,
-                16,
+                20,
                 16,
                 NexoraSpacing.dockBottomReserve,
               ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 170,
-                mainAxisSpacing: 14,
+                mainAxisSpacing: 18,
                 crossAxisSpacing: 14,
-                childAspectRatio: 0.80,
+                childAspectRatio: 0.78,
               ),
               itemCount: albums.length,
-              itemBuilder: (c, i) => NexoraAlbumCard(
-                coverUrl: albums[i].coverUrl,
-                title: albums[i].title,
-                subtitle: albums[i].artist,
-                size: 170,
-                onTap: () => context.push(
-                  '/album/${Uri.encodeComponent(albums[i].id)}',
-                  extra: albums[i],
-                ),
-              ),
+              itemBuilder: (c, i) => _AlbumGridCard(album: albums[i]),
             ),
+    );
+  }
+}
+
+/// Album card with lazily resolved folder cover (image inside the album
+/// folder). Falls back to the artwork icon while loading / when missing.
+class _AlbumGridCard extends ConsumerWidget {
+  final Album album;
+  const _AlbumGridCard({required this.album});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coverAsync = ref.watch(_albumCoverProvider(album.id));
+    final url = coverAsync.value ?? album.coverUrl;
+    return NexoraAlbumCard(
+      coverUrl: url,
+      title: album.title,
+      subtitle: album.artist ?? 'Album',
+      size: 170,
+      onTap: () => context.push(
+        '/album/${Uri.encodeComponent(album.id)}',
+        extra: Album(
+          id: album.id,
+          title: album.title,
+          artist: album.artist,
+          artistId: album.artistId,
+          year: album.year,
+          genre: album.genre,
+          coverUrl: url,
+          trackCount: album.trackCount,
+          duration: album.duration,
+        ),
+      ),
     );
   }
 }
@@ -480,64 +527,198 @@ class _ArtistsTab extends ConsumerWidget {
 // PLAYLISTS TAB
 // ═══════════════════════════════════════════════════════════════
 
+/// All playlists, inline in Library (same source as the Playlists tab).
+final _libraryPlaylistsProvider = FutureProvider<List<Playlist>>((ref) async {
+  return ref.watch(playlistsRepositoryProvider).getPlaylists();
+});
+
+/// Mosaic covers for a library playlist card (direct cover + track art).
+final _libraryPlaylistCoversProvider =
+    FutureProvider.family<List<String?>, String>((ref, playlistId) async {
+      final repo = ref.watch(playlistsRepositoryProvider);
+      try {
+        final p = await repo.getPlaylist(playlistId);
+        final urls = <String?>[];
+        if (p.coverUrl != null && p.coverUrl!.isNotEmpty) {
+          urls.add(p.coverUrl);
+        }
+        var tracks = p.tracks ?? const <Song>[];
+        if (tracks.isEmpty) {
+          try {
+            tracks = await repo.getPlaylistTracks(playlistId);
+          } catch (_) {}
+        }
+        for (final t in tracks) {
+          final u = t.coverUrl ?? t.artworkUrl;
+          if (u != null && u.isNotEmpty) {
+            urls.add(u);
+            if (urls.length >= 4) break;
+          }
+        }
+        return urls;
+      } catch (_) {
+        return const <String?>[];
+      }
+    });
+
 class _PlaylistsTab extends ConsumerWidget {
   const _PlaylistsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.11),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AppColors.accent.withValues(alpha: 0.22),
-                  width: 0.7,
+    final async = ref.watch(_libraryPlaylistsProvider);
+    return async.when(
+      loading: () => const LoadingView(),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(_libraryPlaylistsProvider),
+      ),
+      data: (list) => list.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.11),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.22),
+                          width: 0.7,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.queue_music_rounded,
+                        color: AppColors.accent,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      'No playlists yet',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create one from the Playlists tab.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    NexoraTextButton(
+                      label: 'Open Playlists',
+                      icon: Icons.arrow_forward_rounded,
+                      primary: true,
+                      onTap: () => context.go('/playlists'),
+                    ),
+                  ],
                 ),
               ),
-              child: Icon(
-                Icons.queue_music_rounded,
-                color: AppColors.accent,
-                size: 32,
+            )
+          : RefreshIndicator(
+              color: AppColors.accent,
+              backgroundColor: AppColors.card,
+              onRefresh: () async => ref.invalidate(_libraryPlaylistsProvider),
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  20,
+                  16,
+                  NexoraSpacing.dockBottomReserve,
+                ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 18,
+                  crossAxisSpacing: 14,
+                  childAspectRatio: 0.76,
+                ),
+                itemCount: list.length,
+                itemBuilder: (c, i) => _LibraryPlaylistCard(playlist: list[i]),
               ),
             ),
-            const SizedBox(height: 22),
-            Text(
-              'Playlists, your way',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
+    );
+  }
+}
+
+class _LibraryPlaylistCard extends ConsumerWidget {
+  final Playlist playlist;
+  const _LibraryPlaylistCard({required this.playlist});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coversAsync = ref.watch(_libraryPlaylistCoversProvider(playlist.id));
+    final count = playlist.trackCount ?? playlist.tracks?.length ?? 0;
+    return NexoraPressable(
+      onTap: () => context.push('/playlists/${playlist.id}', extra: playlist),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: Hero(
+              tag: 'playlist-cover-${playlist.id}',
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: AppColors.mode == AppThemeMode.dark
+                      ? null
+                      : NexoraShadow.card(false),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: coversAsync.when(
+                    data: (urls) => PlaylistCover(
+                      artworkUrls: urls,
+                      borderRadius: 0,
+                      title: playlist.name,
+                    ),
+                    loading: () => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 0,
+                      title: playlist.name,
+                    ),
+                    error: (_, __) => PlaylistCover(
+                      artworkUrls: const [],
+                      borderRadius: 0,
+                      title: playlist.name,
+                    ),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Curated collections live in their own section.\nOpen the Playlists tab in the bottom bar.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-                height: 1.5,
-              ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            playlist.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5,
+              letterSpacing: -0.2,
             ),
-            const SizedBox(height: 22),
-            NexoraTextButton(
-              label: 'Open Playlists',
-              icon: Icons.arrow_forward_rounded,
-              primary: true,
-              onTap: () => context.go('/playlists'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$count ${count == 1 ? 'song' : 'songs'}',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+          ),
+        ],
       ),
     );
   }
@@ -592,6 +773,24 @@ final _foldersProvider = FutureProvider.family<List<FolderEntry>, String>((
   ];
 });
 
+/// Folder cover = image inside the folder (cover art / first track art).
+final _libraryFolderCoverProvider = FutureProvider.family<String?, String>((
+  ref,
+  folderId,
+) async {
+  final api = ref.watch(filesApiProvider);
+  final idx = folderId.indexOf('|');
+  if (idx <= 0) return null;
+  try {
+    return await api.folderCoverUrl(
+      folderId.substring(0, idx),
+      folderId.substring(idx + 1),
+    );
+  } catch (_) {
+    return null;
+  }
+});
+
 class _FolderGrid extends ConsumerWidget {
   final String rootId;
   const _FolderGrid({required this.rootId});
@@ -614,27 +813,149 @@ class _FolderGrid extends ConsumerWidget {
           : GridView.builder(
               padding: const EdgeInsets.fromLTRB(
                 16,
-                16,
+                20,
                 16,
                 NexoraSpacing.dockBottomReserve,
               ),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 170,
-                mainAxisSpacing: 14,
+                mainAxisSpacing: 18,
                 crossAxisSpacing: 14,
-                childAspectRatio: 0.80,
+                childAspectRatio: 0.76,
               ),
               itemCount: folders.length,
-              itemBuilder: (c, i) => NexoraAlbumCard(
-                coverUrl: null,
-                title: folders[i].name,
-                subtitle: 'Folder',
-                size: 170,
-                onTap: () => context.push(
-                  '/folder?root=${folders[i].rootId}&path=${Uri.encodeComponent(folders[i].path)}',
+              itemBuilder: (c, i) => _LibraryFolderCard(entry: folders[i]),
+            ),
+    );
+  }
+}
+
+/// Folder card — cover image from inside the folder, gradient overlay +
+/// folder badge + name. Same visual language as album cards.
+class _LibraryFolderCard extends ConsumerWidget {
+  final FolderEntry entry;
+  const _LibraryFolderCard({required this.entry});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coverAsync = ref.watch(_libraryFolderCoverProvider(entry.id));
+    return GestureDetector(
+      onTap: () => context.push(
+        '/folder?root=${entry.rootId}&path=${Uri.encodeComponent(entry.path)}',
+      ),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: AppColors.mode == AppThemeMode.dark
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : NexoraShadow.card(false),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    coverAsync.when(
+                      data: (url) => url != null && url.isNotEmpty
+                          ? Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  const _FolderFallback(),
+                            )
+                          : const _FolderFallback(),
+                      loading: () => Container(
+                        color: AppColors.surfaceRaised,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, __) => const _FolderFallback(),
+                    ),
+                    // Bottom gradient for badge legibility
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.45),
+                          ],
+                          stops: const [0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            entry.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Folder',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FolderFallback extends StatelessWidget {
+  const _FolderFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surfaceRaised,
+      child: Center(
+        child: Icon(Icons.folder_rounded, color: AppColors.textDim, size: 40),
+      ),
     );
   }
 }

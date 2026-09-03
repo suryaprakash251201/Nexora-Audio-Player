@@ -815,9 +815,9 @@ class _Controls extends StatelessWidget {
             onTap: onShuffle,
             tooltip: 'Shuffle',
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           _SkipButton(icon: Icons.skip_previous_rounded, onTap: onPrevious),
-          const SizedBox(width: 14),
+          const SizedBox(width: 18),
           // Play / Pause — adaptive gradient hero button
           GestureDetector(
             onTap: onPlayPause,
@@ -875,9 +875,9 @@ class _Controls extends StatelessWidget {
                     ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 18),
           _SkipButton(icon: Icons.skip_next_rounded, onTap: onNext),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           _SmallRoundButton(
             icon: loopMode == LoopMode.one
                 ? Icons.repeat_one_rounded
@@ -906,43 +906,49 @@ class _SmallRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Direct on background — no card/box. Active = accent icon + dot.
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: active ? AppColors.accentGradient : null,
-            color: active
-                ? null
-                : AppColors.surfaceRaised.withValues(alpha: 0.7),
-            border: Border.all(
-              color: active
-                  ? Colors.white.withValues(alpha: 0.25)
-                  : AppColors.border,
-              width: 0.8,
-            ),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Icon(
-            icon,
-            color: active
-                ? Colors.white
-                : AppColors.text.withValues(alpha: 0.75),
-            size: 20,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (c, a) =>
+                    ScaleTransition(scale: a, child: c),
+                child: Icon(
+                  icon,
+                  key: ValueKey(active),
+                  color: active
+                      ? AppColors.accent
+                      : AppColors.text.withValues(alpha: 0.7),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 4),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: active ? AppColors.accent : Colors.transparent,
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.7),
+                            blurRadius: 6,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -957,25 +963,14 @@ class _SkipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Direct on background — no card circle. Big tactile icon.
+    // (Haptic lives at the call site.)
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.card.withValues(alpha: 0.85),
-          border: Border.all(color: AppColors.border, width: 0.8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: AppColors.text, size: 30),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: AppColors.text, size: 38),
       ),
     );
   }
@@ -1063,24 +1058,20 @@ class _ActionIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Direct on background — icon + label, no box.
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         onTap();
       },
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 0.6),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textMuted, size: 20),
-            const SizedBox(height: 3),
+            Icon(icon, color: AppColors.textMuted, size: 22),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
@@ -1685,21 +1676,17 @@ class _VolumeBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Direct on background — no card. Slider + plain speed text.
     final muted = volume <= 0.01;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 0.6),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onVolume(muted ? 1.0 : 0.0);
-            },
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onVolume(muted ? 1.0 : 0.0);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(6),
             child: Icon(
               muted
                   ? Icons.volume_off_rounded
@@ -1710,54 +1697,41 @@ class _VolumeBar extends StatelessWidget {
               size: 20,
             ),
           ),
-          Expanded(
-            child: SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 4,
-                activeTrackColor: AppColors.accent,
-                inactiveTrackColor: AppColors.surfaceHigh,
-                thumbColor: Colors.white,
-                overlayColor: AppColors.accent.withValues(alpha: 0.15),
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-              ),
-              child: Slider(value: volume.clamp(0.0, 1.0), onChanged: onVolume),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 4,
+              activeTrackColor: AppColors.accent,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.18),
+              thumbColor: Colors.white,
+              overlayColor: AppColors.accent.withValues(alpha: 0.15),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             ),
+            child: Slider(value: volume.clamp(0.0, 1.0), onChanged: onVolume),
           ),
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onSpeedTap();
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                gradient: speed == 1.0
-                    ? null
-                    : AppColors.accentGradientHorizontal,
-                color: speed == 1.0 ? AppColors.card : null,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: speed == 1.0
-                      ? AppColors.border
-                      : Colors.white.withValues(alpha: 0.25),
-                  width: 0.7,
-                ),
-              ),
-              child: Text(
-                '${speed.toStringAsFixed(speed.truncateToDouble() == speed ? 1 : 2)}×',
-                style: TextStyle(
-                  color: speed == 1.0 ? AppColors.textMuted : Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onSpeedTap();
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Text(
+              '${speed.toStringAsFixed(speed.truncateToDouble() == speed ? 1 : 2)}×',
+              style: TextStyle(
+                color: speed == 1.0 ? AppColors.textMuted : AppColors.accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1788,13 +1762,9 @@ class _BottomDock extends ConsumerWidget {
     final sleep = ref.watch(sleepTimerProvider);
     final synced = lyricsData?.synced ?? false;
     final hasLyrics = lyricsData?.hasLyrics ?? false;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.card.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border, width: 0.7),
-      ),
+    // Direct on background — no card. Evenly spread actions.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -1850,51 +1820,43 @@ class _DockButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Direct on background — highlight = accent icon + dot, no box.
+    final Color main = highlight
+        ? AppColors.accent
+        : dimmed
+        ? AppColors.textFaint
+        : AppColors.textMuted;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         onTap();
       },
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: highlight ? AppColors.accentGradient : null,
-          color: highlight ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: highlight
-                ? Colors.white.withValues(alpha: 0.25)
-                : Colors.transparent,
-            width: 0.7,
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: highlight
-                  ? Colors.white
-                  : dimmed
-                  ? AppColors.textFaint
-                  : AppColors.textMuted,
-            ),
-            const SizedBox(height: 3),
+            Icon(icon, size: 22, color: main),
+            const SizedBox(height: 4),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: highlight
-                    ? Colors.white
-                    : dimmed
-                    ? AppColors.textFaint
-                    : AppColors.textMuted,
+                color: main,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: highlight ? AppColors.accent : Colors.transparent,
               ),
             ),
           ],

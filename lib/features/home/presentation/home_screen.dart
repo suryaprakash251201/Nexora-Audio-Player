@@ -13,6 +13,7 @@ import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/shimmer_loading.dart';
 import '../providers/home_provider.dart';
 import '../../player/providers/player_provider.dart';
+import '../../../data/api/files_api.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../domain/entities/album.dart';
 import '../../../domain/entities/song.dart';
@@ -32,6 +33,7 @@ class HomeScreen extends ConsumerWidget {
     final recentlyPlayed = ref.watch(recentlyPlayedProvider);
     final albums = ref.watch(featuredAlbumsProvider);
     final artists = ref.watch(featuredArtistsProvider);
+    final folders = ref.watch(homeFoldersProvider);
     final current = ref.watch(playerProvider).currentTrack;
 
     return Scaffold(
@@ -50,6 +52,7 @@ class HomeScreen extends ConsumerWidget {
                 ref.invalidate(featuredAlbumsProvider);
                 ref.invalidate(featuredArtistsProvider);
                 ref.invalidate(favoritesProvider);
+                ref.invalidate(homeFoldersProvider);
               },
               child: CustomScrollView(
                 slivers: [
@@ -121,6 +124,13 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(height: 14),
                             _ArtistsRow(asyncArtists: artists),
                           ],
+                          const SizedBox(height: 34),
+                          _SectionHeader(
+                            'Folders',
+                            onSeeAll: () => context.go('/library'),
+                          ),
+                          const SizedBox(height: 14),
+                          _FoldersRow(asyncFolders: folders),
                           const SizedBox(height: 12),
                         ],
                       ),
@@ -1146,6 +1156,212 @@ class _AlbumCard extends StatelessWidget {
         path: '/folder',
         queryParameters: {'root': rootId, 'path': path},
       ).toString(),
+    );
+  }
+}
+
+/// Top-level music folders for the Home rail (cover = image inside folder).
+final homeFoldersProvider = FutureProvider<List<_HomeFolderEntry>>((ref) async {
+  final api = ref.watch(filesApiProvider);
+  final rootId = await api.musicRootId();
+  if (rootId == null) return const [];
+  final items = await api.list(rootId, '', limit: 200);
+  return [
+    for (final f in items)
+      if (f.isDir)
+        _HomeFolderEntry(
+          rootId: rootId,
+          path: f.path.isEmpty ? f.name : f.path,
+          name: f.name,
+        ),
+  ];
+});
+
+class _HomeFolderEntry {
+  final String rootId;
+  final String path;
+  final String name;
+  const _HomeFolderEntry({
+    required this.rootId,
+    required this.path,
+    required this.name,
+  });
+}
+
+final _homeFolderCoverProvider = FutureProvider.family<String?, String>((
+  ref,
+  folderId,
+) async {
+  final api = ref.watch(filesApiProvider);
+  final idx = folderId.indexOf('|');
+  if (idx <= 0) return null;
+  try {
+    return await api.folderCoverUrl(
+      folderId.substring(0, idx),
+      folderId.substring(idx + 1),
+    );
+  } catch (_) {
+    return null;
+  }
+});
+
+/// Horizontal folders rail with cover images (image from inside folder).
+class _FoldersRow extends ConsumerWidget {
+  const _FoldersRow({required this.asyncFolders});
+
+  final AsyncValue<List<_HomeFolderEntry>> asyncFolders;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return asyncFolders.when(
+      data: (folders) {
+        if (folders.isEmpty) {
+          return const _EmptyHint(
+            icon: Icons.folder_outlined,
+            text: 'No folders yet',
+          );
+        }
+        return SizedBox(
+          height: 172,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: folders.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (context, i) => _HomeFolderCard(entry: folders[i]),
+          ),
+        );
+      },
+      loading: () => const _SkeletonRow(height: 172, width: 128),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(homeFoldersProvider),
+      ),
+    );
+  }
+}
+
+class _HomeFolderCard extends ConsumerWidget {
+  const _HomeFolderCard({required this.entry});
+
+  final _HomeFolderEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coverAsync = ref.watch(
+      _homeFolderCoverProvider('${entry.rootId}|${entry.path}'),
+    );
+    return NexoraPressable(
+      onTap: () => context.push(
+        Uri(
+          path: '/folder',
+          queryParameters: {'root': entry.rootId, 'path': entry.path},
+        ).toString(),
+      ),
+      child: SizedBox(
+        width: 128,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border, width: 0.6),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    coverAsync.when(
+                      data: (url) => url != null && url.isNotEmpty
+                          ? Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: AppColors.surfaceRaised,
+                                child: Icon(
+                                  Icons.folder_rounded,
+                                  color: AppColors.textDim,
+                                  size: 36,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              color: AppColors.surfaceRaised,
+                              child: Icon(
+                                Icons.folder_rounded,
+                                color: AppColors.textDim,
+                                size: 36,
+                              ),
+                            ),
+                      loading: () => Container(
+                        color: AppColors.surfaceRaised,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, __) => Container(
+                        color: AppColors.surfaceRaised,
+                        child: Icon(
+                          Icons.folder_rounded,
+                          color: AppColors.textDim,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.45),
+                          ],
+                          stops: const [0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              entry.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

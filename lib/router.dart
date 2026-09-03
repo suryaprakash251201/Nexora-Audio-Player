@@ -378,7 +378,9 @@ class _BottomDock extends StatelessWidget {
   final VoidCallback onOpenPlayer;
 
   static const double _miniHeight = 70;
-  static const double _gap = 8;
+  // Mini sits just above the nav with a small breathing gap; both
+  // centered (maxWidth 640) and hugging the bottom edge.
+  static const double _gap = 6;
   static const double _hiddenOffset = 110;
 
   const _BottomDock({
@@ -392,10 +394,9 @@ class _BottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navTotal = EnhancedGlassNavBar.totalHeight;
-    // #4 FIX: hug the bottom edge — previously bottomInset+4 plus the
-    // dock's own 12px margin left a dead band under Home/Search/Library.
-    // iOS home-indicator area is already in bottomInset, so add nothing.
-    final double dockBottom = bottomInset <= 0 ? 6 : bottomInset * 0.35;
+    // Hug the bottom edge — the system inset already reserves the
+    // home-indicator area, so only a hair of extra float is needed.
+    final double dockBottom = bottomInset <= 0 ? 4 : bottomInset * 0.2;
     return Padding(
       padding: EdgeInsets.only(bottom: dockBottom),
       child: SizedBox(

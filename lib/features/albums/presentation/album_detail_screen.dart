@@ -52,14 +52,16 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
       final api = ref.read(albumsApiProvider);
       final album = _album ?? await api.getAlbum(widget.albumId);
       final tracks = await api.getAlbumTracks(widget.albumId);
+      // Album cover = image inside the album folder (cover art / first
+      // track art). thumbnailUrl on a *directory* path 404s — use the
+      // folder-cover resolver instead.
       String? cover;
       try {
         cover = await ref
             .read(filesApiProvider)
-            .thumbnailUrl(
+            .folderCoverUrl(
               NexoraFiles.parseRootId(widget.albumId),
               NexoraFiles.parsePath(widget.albumId),
-              size: 600,
             );
       } catch (_) {
         cover = null;
