@@ -17,8 +17,13 @@ class QueueSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(playerProvider);
-    final queue = state.queue;
+    // Selective watches: position ticks must not rebuild (and disturb)
+    // an in-progress reorder drag.
+    final queue = ref.watch(playerProvider.select((s) => s.queue));
+    final currentId = ref.watch(
+      playerProvider.select((s) => s.currentTrack?.id),
+    );
+    final isPlaying = ref.watch(playerProvider.select((s) => s.isPlaying));
     final notifier = ref.read(playerProvider.notifier);
     return Container(
       height: MediaQuery.of(context).size.height * 0.62,
@@ -40,7 +45,7 @@ class QueueSheet extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Row(
                 children: [
                   Text(
@@ -73,6 +78,28 @@ class QueueSheet extends ConsumerWidget {
                 ],
               ),
             ),
+            if (queue.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.drag_handle_rounded,
+                      size: 13,
+                      color: AppColors.textFaint,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Long-press artwork to reorder',
+                      style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: queue.isEmpty
                   ? const NexoraEmptyState(
@@ -80,14 +107,28 @@ class QueueSheet extends ConsumerWidget {
                       title: 'Queue is empty',
                       subtitle: 'Add songs from your library.',
                     )
-                  : ListView.separated(
+                  : ReorderableListView.builder(
                       padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                      buildDefaultDragHandles: false,
                       itemCount: queue.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      proxyDecorator: (child, _, __) =>
+                          Material(color: Colors.transparent, child: child),
+                      onReorder: (oldIndex, newIndex) {
+                        // List semantics: dropping below the removed slot
+                        // shifts the target up by one.
+                        if (newIndex > oldIndex) newIndex -= 1;
+                        if (oldIndex != newIndex) {
+                          notifier.move(oldIndex, newIndex);
+                        }
+                      },
                       itemBuilder: (c, i) {
                         final item = queue[i];
-                        final isCurrent = state.currentTrack?.id == item.id;
+                        final isCurrent = currentId == item.id;
                         return Container(
+                          // Index-suffixed key: queue entries may repeat
+                          // the same track, ids alone are not unique.
+                          key: ValueKey('${item.id}#$i'),
+                          margin: const EdgeInsets.only(bottom: 8),
                           decoration: BoxDecoration(
                             gradient: isCurrent
                                 ? AppColors.selectionGradientHorizontal
@@ -120,15 +161,18 @@ class QueueSheet extends ConsumerWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: ArtworkImage(
-                                  url: item.artUri?.toString(),
-                                  borderRadius: 0,
-                                  fit: BoxFit.cover,
+                            leading: ReorderableDragStartListener(
+                              index: i,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: ArtworkImage(
+                                    url: item.artUri?.toString(),
+                                    borderRadius: 0,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
@@ -155,7 +199,7 @@ class QueueSheet extends ConsumerWidget {
                             ),
                             trailing: isCurrent
                                 ? NexoraEqualizerBars(
-                                    playing: state.isPlaying,
+                                    playing: isPlaying,
                                     barWidth: 2.5,
                                     minHeight: 3,
                                     maxHeight: 12,

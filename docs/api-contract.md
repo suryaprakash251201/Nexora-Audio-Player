@@ -655,6 +655,14 @@ Sibling `.lrc` files are the source of truth (`internal/api/handlers_lyrics.go`)
 - `[offset:ms]` shifts every cue; multi-tag lines fan out
 - Flutter: `LyricsApi.get/save/deleteLyrics` + `lyricsProvider` family + `_LyricsEditorSheet` with SYNCED/PLAIN/MISSING pill
 
+## 19c. Transcoding — analyzed, deferred
+
+`GET /files/transcode` needs a server **session** (`session` + `start` offset
+params, `quality=lossless|high|medium`) with server-side seeking. That model
+is incompatible with `just_audio`'s byte-range seeking/background pipeline
+without a custom `AudioSource` + session lifecycle. Deferred until a native
+transcode-source is built; the app always streams `/files/raw` originals.
+
 ## 20. Changelog
 
 - 2026-09-03: Lyrics sync verified (GET/POST/DELETE /audio/lyrics), background-audio config, bottom-dock (volume/speed/fav/sleep/lyrics)
