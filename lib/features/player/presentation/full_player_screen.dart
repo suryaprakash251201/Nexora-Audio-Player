@@ -107,6 +107,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
     // Position/duration only needed for the lyrics overlay here;
     // the timeline itself lives in _LiveSeekBar (isolated rebuilds).
     final pos = ref.watch(playerProvider.select((s) => s.position));
+    final durState = ref.watch(playerProvider.select((s) => s.duration));
+    final dur = durState.inMilliseconds == 0
+        ? (track.duration ?? Duration.zero)
+        : durState;
 
     // #3 FIX: resolve root + file path for /audio/* (sibling .lrc).
     // extras now carry rootId+path (queue_manager), but old persisted
@@ -151,6 +155,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
       return LyricsDisplay(
         lyrics: lyricLines,
         currentPosition: pos,
+        duration: dur,
         onClose: () => setState(() => _showLyrics = false),
         // Tap a synced line → jump the song to that line.
         onLineTap: (ts) => notifier.seek(ts),

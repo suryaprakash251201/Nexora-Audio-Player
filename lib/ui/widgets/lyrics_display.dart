@@ -12,6 +12,10 @@ import '../theme.dart';
 class LyricsDisplay extends StatefulWidget {
   final List<LyricLine> lyrics;
   final Duration currentPosition;
+
+  /// Total track length — enables plain-text sync (progress-ratio
+  /// highlight) when no line carries a timestamp.
+  final Duration duration;
   final VoidCallback? onClose;
   final ValueChanged<Duration>? onLineTap;
   final String? title;
@@ -22,6 +26,7 @@ class LyricsDisplay extends StatefulWidget {
     super.key,
     required this.lyrics,
     required this.currentPosition,
+    this.duration = Duration.zero,
     this.onClose,
     this.onLineTap,
     this.title,
@@ -43,20 +48,43 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
     _updateCurrentLine();
   }
 
+  /// True when at least one line carries a timestamp.
+  bool get _hasTiming => widget.lyrics.any((l) => l.timestamp != null);
+
   void _updateCurrentLine() {
     if (widget.lyrics.isEmpty) return;
     final pos = widget.currentPosition;
-    int newLine = -1;
-    for (var i = 0; i < widget.lyrics.length; i++) {
-      if (widget.lyrics[i].timestamp != null &&
-          widget.lyrics[i].timestamp! <= pos) {
-        newLine = i;
+    int newLine;
+    if (_hasTiming) {
+      // Synced lyrics — last line whose time has passed.
+      newLine = -1;
+      for (var i = 0; i < widget.lyrics.length; i++) {
+        if (widget.lyrics[i].timestamp != null &&
+            widget.lyrics[i].timestamp! <= pos) {
+          newLine = i;
+        }
       }
+    } else {
+      // Plain-text sync — highlight follows song progress ratio so
+      // unsynced lyrics still move live with the music.
+      final totalMs = widget.duration.inMilliseconds;
+      if (totalMs <= 0) return;
+      final ratio = (pos.inMilliseconds / totalMs).clamp(0.0, 0.999);
+      newLine = (ratio * widget.lyrics.length).floor().clamp(
+        0,
+        widget.lyrics.length - 1,
+      );
     }
     if (newLine != _currentLine && newLine >= 0) {
       setState(() => _currentLine = newLine);
       _scrollToLine(newLine);
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCurrentLine());
   }
 
   void _scrollToLine(int index) {
@@ -319,6 +347,34 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
           final isPast = _currentLine >= 0 && index < _currentLine;
           final tappable = line.timestamp != null && widget.onLineTap != null;
 
+          // Plain text lines — no cards. The live line pops in the
+          // signature blue gradient + spring scale; others fade by
+          // position. Works for synced AND plain-text lyrics.
+          final text = AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            style: TextStyle(
+              color: isCurrent
+                  ? Colors.white
+                  : isPast
+                  ? Colors.white.withValues(alpha: 0.38)
+                  : Colors.white.withValues(alpha: 0.72),
+              fontSize: isCurrent ? 23 : 16.5,
+              fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+              height: 1.45,
+              letterSpacing: isCurrent ? -0.3 : 0,
+              shadows: isCurrent
+                  ? [
+                      Shadow(
+                        color: AppColors.accent.withValues(alpha: 0.8),
+                        blurRadius: 18,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Text(line.text, textAlign: TextAlign.center),
+          );
+
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: tappable
@@ -327,54 +383,23 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
                     widget.onLineTap!(line.timestamp!);
                   }
                 : null,
-            child: AnimatedContainer(
+            child: AnimatedPadding(
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
-              margin: const EdgeInsets.symmetric(vertical: 3),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: isCurrent ? AppColors.accentGradient : null,
-                color: isCurrent ? null : Colors.white.withValues(alpha: 0.04),
-                border: Border.all(
-                  color: isCurrent
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.05),
-                  width: 0.8,
-                ),
-                boxShadow: isCurrent
-                    ? [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.45),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                style: TextStyle(
-                  color: isCurrent
-                      ? Colors.white
-                      : isPast
-                      ? Colors.white.withValues(alpha: 0.45)
-                      : Colors.white.withValues(alpha: 0.75),
-                  fontSize: isCurrent ? 21 : 16.5,
-                  fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                  height: 1.45,
-                  letterSpacing: isCurrent ? -0.3 : 0,
-                  shadows: isCurrent
-                      ? [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(line.text, textAlign: TextAlign.center),
+              padding: EdgeInsets.symmetric(vertical: isCurrent ? 14 : 8),
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutBack,
+                scale: isCurrent ? 1.0 : 0.94,
+                child: isCurrent
+                    ? ShaderMask(
+                        shaderCallback: (bounds) => AppColors
+                            .accentGradientHorizontal
+                            .createShader(bounds),
+                        blendMode: BlendMode.srcIn,
+                        child: text,
+                      )
+                    : text,
               ),
             ),
           );
