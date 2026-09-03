@@ -167,10 +167,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.card,
                       borderRadius: NexoraRadius.card,
-                      border: Border.all(
-                        color: AppColors.border,
-                        width: 0.7,
-                      ),
+                      border: Border.all(color: AppColors.border, width: 0.7),
                       boxShadow: isDark ? null : NexoraShadow.card(false),
                     ),
                     child: ClipRRect(
@@ -181,10 +178,11 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                             Builder(
                               builder: (c) {
                                 final s = _songs[i];
-                                final isCurrent = ref
-                                    .watch(playerProvider)
-                                    .currentTrack
-                                    ?.id ==
+                                final isCurrent =
+                                    ref
+                                        .watch(playerProvider)
+                                        .currentTrack
+                                        ?.id ==
                                     s.id;
                                 return NexoraTrackRow(
                                   artworkUrl: s.coverUrl,
@@ -193,10 +191,13 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                                   duration: formatDuration(
                                     Duration(seconds: s.duration ?? 0),
                                   ),
-                                  indexLabel:
-                                      (i + 1).toString().padLeft(2, '0'),
+                                  indexLabel: (i + 1).toString().padLeft(
+                                    2,
+                                    '0',
+                                  ),
                                   isCurrent: isCurrent,
-                                  isPlaying: isCurrent &&
+                                  isPlaying:
+                                      isCurrent &&
                                       ref.watch(playerProvider).isPlaying,
                                   isFavorite: s.isFavorite,
                                   isDownloaded: s.isDownloaded,
@@ -217,9 +218,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                 ),
               ),
             const SliverPadding(
-              padding: EdgeInsets.only(
-                bottom: NexoraSpacing.dockBottomReserve,
-              ),
+              padding: EdgeInsets.only(bottom: NexoraSpacing.dockBottomReserve),
             ),
           ],
         ),

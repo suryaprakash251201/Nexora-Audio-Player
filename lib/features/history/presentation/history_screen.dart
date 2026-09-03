@@ -87,8 +87,7 @@ class HistoryScreen extends ConsumerWidget {
                     child: RefreshIndicator(
                       color: AppColors.accent,
                       backgroundColor: AppColors.card,
-                      onRefresh: () async =>
-                          ref.invalidate(_historyProvider),
+                      onRefresh: () async => ref.invalidate(_historyProvider),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -107,23 +106,19 @@ class HistoryScreen extends ConsumerWidget {
                           child: ListView.separated(
                             padding: EdgeInsets.zero,
                             itemCount: items.length,
-                            separatorBuilder: (_, __) => const NexoraDivider(
-                              indent: 64,
-                              endIndent: 0,
-                            ),
+                            separatorBuilder: (_, __) =>
+                                const NexoraDivider(indent: 64, endIndent: 0),
                             itemBuilder: (c, i) {
                               final h = items[i];
                               final s = h.song;
-                              final isCurrent = ref
-                                      .watch(playerProvider)
-                                      .currentTrack
-                                      ?.id ==
+                              final isCurrent =
+                                  ref.watch(playerProvider).currentTrack?.id ==
                                   s?.id;
                               return InkWell(
                                 onTap: s != null
                                     ? () => ref
-                                        .read(playerProvider.notifier)
-                                        .playSongs([s])
+                                          .read(playerProvider.notifier)
+                                          .playSongs([s])
                                     : null,
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -156,8 +151,7 @@ class HistoryScreen extends ConsumerWidget {
                                               child: s?.coverUrl == null
                                                   ? Icon(
                                                       Icons.music_note_rounded,
-                                                      color:
-                                                          AppColors.textDim,
+                                                      color: AppColors.textDim,
                                                       size: 20,
                                                     )
                                                   : null,

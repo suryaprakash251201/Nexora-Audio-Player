@@ -37,27 +37,29 @@ class FolderContent {
 /// Loads a folder: sub-folders + audio songs.
 final folderContentProvider = FutureProvider.autoDispose
     .family<FolderContent, ({String rootId, String path})>((ref, args) async {
-  final api = ref.watch(filesApiProvider);
-  final items = await api.list(args.rootId, args.path, limit: 500);
+      final api = ref.watch(filesApiProvider);
+      final items = await api.list(args.rootId, args.path, limit: 500);
 
-  final folders = <FolderEntry>[];
-  final songs = <dynamic>[];
+      final folders = <FolderEntry>[];
+      final songs = <dynamic>[];
 
-  for (final f in items) {
-    if (f.isDir) {
-      final dirPath = f.path.isEmpty ? f.name : f.path;
-      folders.add(FolderEntry(rootId: args.rootId, path: dirPath, name: f.name));
-    } else if (NexoraFiles.isAudio(f)) {
-      final song = NexoraFiles.toSong(
-        f,
-        streamUrl: await api.rawUrl(args.rootId, f.path),
-        artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
-      );
-      songs.add(song);
-    }
-  }
-  return FolderContent(folders: folders, songs: songs);
-});
+      for (final f in items) {
+        if (f.isDir) {
+          final dirPath = f.path.isEmpty ? f.name : f.path;
+          folders.add(
+            FolderEntry(rootId: args.rootId, path: dirPath, name: f.name),
+          );
+        } else if (NexoraFiles.isAudio(f)) {
+          final song = NexoraFiles.toSong(
+            f,
+            streamUrl: await api.rawUrl(args.rootId, f.path),
+            artworkUrl: await api.thumbnailUrl(args.rootId, f.path, size: 512),
+          );
+          songs.add(song);
+        }
+      }
+      return FolderContent(folders: folders, songs: songs);
+    });
 
 final folderCoverProvider = FutureProvider.autoDispose.family<String?, String>((
   ref,
@@ -212,11 +214,11 @@ class FolderBrowserScreen extends ConsumerWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.82,
-                        ),
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.82,
+                            ),
                         itemCount: content.folders.length,
                         itemBuilder: (c, i) =>
                             _FolderCard(folder: content.folders[i]),
@@ -254,7 +256,8 @@ class FolderBrowserScreen extends ConsumerWidget {
                             _SongRow(
                               index: i + 1,
                               song: content.songs[i],
-                              isCurrent: ref.watch(playerProvider).currentTrack?.id ==
+                              isCurrent:
+                                  ref.watch(playerProvider).currentTrack?.id ==
                                   content.songs[i].id,
                               onTap: () => ref
                                   .read(playerProvider.notifier)
@@ -262,11 +265,8 @@ class FolderBrowserScreen extends ConsumerWidget {
                                     content.songs.cast(),
                                     initialIndex: i,
                                   ),
-                              onMore: () => _showSongMenu(
-                                context,
-                                ref,
-                                content.songs[i],
-                              ),
+                              onMore: () =>
+                                  _showSongMenu(context, ref, content.songs[i]),
                             ),
                             if (i != content.songs.length - 1)
                               const NexoraDivider(indent: 64, endIndent: 0),
@@ -340,11 +340,7 @@ class _PrimaryAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
-  const _PrimaryAction({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _PrimaryAction({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -388,11 +384,7 @@ class _SecondaryAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
-  const _SecondaryAction({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _SecondaryAction({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -485,10 +477,7 @@ class _FolderCard extends ConsumerWidget {
             aspectRatio: 1,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: ArtworkImage(
-                url: coverAsync.value,
-                borderRadius: 0,
-              ),
+              child: ArtworkImage(url: coverAsync.value, borderRadius: 0),
             ),
           ),
           const SizedBox(height: 8),

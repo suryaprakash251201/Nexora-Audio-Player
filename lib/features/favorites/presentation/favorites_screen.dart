@@ -97,8 +97,7 @@ class FavoritesScreen extends ConsumerWidget {
                     child: RefreshIndicator(
                       color: AppColors.accent,
                       backgroundColor: AppColors.card,
-                      onRefresh: () async =>
-                          ref.invalidate(_favoritesProvider),
+                      onRefresh: () async => ref.invalidate(_favoritesProvider),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -117,16 +116,12 @@ class FavoritesScreen extends ConsumerWidget {
                           child: ListView.separated(
                             padding: EdgeInsets.zero,
                             itemCount: songs.length,
-                            separatorBuilder: (_, __) => const NexoraDivider(
-                              indent: 64,
-                              endIndent: 0,
-                            ),
+                            separatorBuilder: (_, __) =>
+                                const NexoraDivider(indent: 64, endIndent: 0),
                             itemBuilder: (c, i) {
                               final s = songs[i];
-                              final isCurrent = ref
-                                      .watch(playerProvider)
-                                      .currentTrack
-                                      ?.id ==
+                              final isCurrent =
+                                  ref.watch(playerProvider).currentTrack?.id ==
                                   s.id;
                               return InkWell(
                                 onTap: () => ref
@@ -144,8 +139,9 @@ class FavoritesScreen extends ConsumerWidget {
                                         width: 44,
                                         height: 44,
                                         decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           color: AppColors.surfaceRaised,
                                           image: s.coverUrl != null
                                               ? DecorationImage(

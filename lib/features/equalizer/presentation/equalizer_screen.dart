@@ -20,7 +20,16 @@ const double kMaxDb = 12;
 
 /// Frequency grid that presets are authored against.
 const List<double> kPresetFreqs = [
-  32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,
+  32,
+  64,
+  125,
+  250,
+  500,
+  1000,
+  2000,
+  4000,
+  8000,
+  16000,
 ];
 
 class _BandSpec {
@@ -329,14 +338,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.accent
-                            : AppColors.card,
+                        color: selected ? AppColors.accent : AppColors.card,
                         borderRadius: NexoraRadius.button,
                         border: Border.all(
-                          color: selected
-                              ? AppColors.accent
-                              : AppColors.border,
+                          color: selected ? AppColors.accent : AppColors.border,
                           width: 0.7,
                         ),
                       ),
@@ -344,9 +349,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                       child: Text(
                         p.name,
                         style: TextStyle(
-                          color: selected
-                              ? Colors.white
-                              : AppColors.text,
+                          color: selected ? Colors.white : AppColors.text,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.1,
