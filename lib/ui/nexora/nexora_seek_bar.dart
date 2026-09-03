@@ -171,8 +171,11 @@ class _NexoraSeekBarState extends State<NexoraSeekBar> {
                         thumbShape: const RoundSliderThumbShape(
                           enabledThumbRadius: 11,
                         ),
+                        // Zero-radius overlay: even if a theme overlay color
+                        // ever leaks in (focus/hover/press), no halo geometry
+                        // exists to paint it with.
                         overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 24,
+                          overlayRadius: 0,
                         ),
                       ),
                       child: Slider(
