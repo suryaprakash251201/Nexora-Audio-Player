@@ -55,3 +55,22 @@ Song.streamUrl (relative or absolute)
 ## Quality Metadata
 - Display only when available: `codec`, `bitrate`, `sampleRate`, `lossless`, `fileSize`
 - Badge logic in `Song.qualityBadge` — never fake “Hi-Res”
+
+## Platform parity matrix
+
+| Capability | Android | iOS | Windows | macOS/Linux |
+|---|---|---|---|---|
+| Background playback + notification/lock-screen | ✅ foreground service | ✅ audio bg mode | ✅ (desktop keeps playing) | ✅ |
+| Headset / Bluetooth controls | ✅ media buttons + `BLUETOOTH_CONNECT` | ✅ Control Center + AirPods | ⚠️ OS media keys only | ⚠️ OS media keys only |
+| System EQ (native engine) | ✅ `MainActivity` (`nexora/equalizer` + session tracking) | ✅ `IOSAudioEqualizerBridge` (AVAudioUnitEQ) | ➖ honest no-op (curve stored) | ➖ honest no-op (curve stored) |
+| Preamp | ✅ folded into bands | ✅ folded into bands | ✅ folded (applies if engine appears) | ✅ same |
+| Release signing | ✅ `key.properties` opt-in (debug fallback) | ➖ unsigned IPA (manual Xcode signing) | ➖ MSIX/store signing manual | ➖ manual |
+
+## Deferred with reason
+
+- **Riverpod 2 → 3 migration**: v3 removes/replaces legacy provider APIs
+  the whole state core is built on (`StateNotifierProvider`, `StateProvider`).
+  The migration touches player, connectivity, sleep timer and every screen —
+  it needs a dedicated, device-verified pass, not a drive-by bump. Pinned
+  on v2 (still maintained) until then.
+- **Server transcode sessions**: see `api-contract.md §19c`.

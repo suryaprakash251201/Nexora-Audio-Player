@@ -1,0 +1,13 @@
+# Release signing (DO NOT COMMIT the real file).
+#
+# 1. Generate a keystore once:
+#      keytool -genkeypair -v -keystore nexora-release.jks -alias nexora \
+#        -keyalg RSA -keysize 2048 -validity 10000
+# 2. Copy this file to `android/key.properties` and fill in the values.
+# 3. Tag a release (`git tag v1.0.0 && git push origin v1.0.0`) — CI signs
+#    the APK automatically when this file is present as an Actions secret.
+#    Without it, CI still builds, signed with debug keys.
+storeFile=nexora-release.jks
+storePassword=CHANGE_ME
+keyAlias=nexora
+keyPassword=CHANGE_ME

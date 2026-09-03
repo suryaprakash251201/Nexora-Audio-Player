@@ -49,3 +49,8 @@ app.*.map.json
 
 # WorkBuddy project memory (local only)
 .workbuddy-ai/
+
+# Release signing secrets — never commit the real keystore config.
+android/key.properties
+*.jks
+*.keystore
