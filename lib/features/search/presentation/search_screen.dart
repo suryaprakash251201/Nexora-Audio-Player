@@ -155,6 +155,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 onChanged: (v) =>
                     ref.read(searchQueryProvider.notifier).state = v,
+                onSubmitted: (v) async {
+                  ref.read(searchQueryProvider.notifier).state = v;
+                  await ref.read(searchRepositoryProvider).saveRecentSearch(v);
+                  ref.invalidate(recentSearchesProvider);
+                },
               ),
             ),
             if (query.isNotEmpty)

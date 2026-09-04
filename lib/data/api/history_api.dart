@@ -28,25 +28,26 @@ class HistoryApi {
   }
 
   /// Stream URL so a history entry is actually playable.
-  Future<String> _streamUrl(String rootId, String path) async {
-    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+  Future<String> _streamUrl(String rootId, String path, String token) async {
+    final t = Uri.encodeComponent(token);
     final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesRaw}'
         '?root=${Uri.encodeComponent(rootId)}'
-        '&path=${Uri.encodeComponent(path)}&token=$token';
+        '&path=${Uri.encodeComponent(path)}&token=$t';
   }
 
   /// Artwork URL so history cards show real cover art.
   Future<String> _artworkUrl(
     String rootId,
-    String path, {
+    String path,
+    String token, {
     int size = 512,
   }) async {
-    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final t = Uri.encodeComponent(token);
     final base = await _resolvedBaseUrl();
     return '$base${ApiConstants.filesThumbnail}'
         '?root=${Uri.encodeComponent(rootId)}'
-        '&path=${Uri.encodeComponent(path)}&size=$size&token=$token';
+        '&path=${Uri.encodeComponent(path)}&size=$size&token=$t';
   }
 
   Future<List<PlaybackHistoryItem>> getHistory({
@@ -60,6 +61,8 @@ class HistoryApi {
     final data = res.data;
     final items =
         (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
+    // One token read for the whole page — not per history entry.
+    final token = await _storage.getToken() ?? '';
     final out = <PlaybackHistoryItem>[];
     final seen = <String>{};
     for (final raw in items) {
@@ -98,8 +101,8 @@ class HistoryApi {
           songId: NexoraFiles.songId(f),
           song: NexoraFiles.toSong(
             f,
-            streamUrl: await _streamUrl(rootId, path),
-            artworkUrl: await _artworkUrl(rootId, path),
+            streamUrl: await _streamUrl(rootId, path, token),
+            artworkUrl: await _artworkUrl(rootId, path, token),
           ),
           playedAt: playedAt,
         ),

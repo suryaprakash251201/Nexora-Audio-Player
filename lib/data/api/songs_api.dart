@@ -33,21 +33,26 @@ class SongsApi {
   /// Stream URL for a song: /files/raw?root=&path=&token=
   /// Token as query param bypasses CSRF; the audio player also sends the
   /// Authorization header (see queue_manager). Both are accepted by Nexora.
-  Future<String> streamUrl(String songId) async {
+  /// Pass a batch [token] to avoid one secure-storage roundtrip per song.
+  Future<String> streamUrl(String songId, {String? token}) async {
     final root = Uri.encodeComponent(NexoraFiles.parseRootId(songId));
     final path = Uri.encodeComponent(NexoraFiles.parsePath(songId));
-    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final t = Uri.encodeComponent(token ?? await _storage.getToken() ?? '');
     final base = await _resolvedBaseUrl();
-    return '$base${ApiConstants.filesRaw}?root=$root&path=$path&token=$token';
+    return '$base${ApiConstants.filesRaw}?root=$root&path=$path&token=$t';
   }
 
   /// Artwork (embedded cover fallback chain on the server).
-  Future<String> artworkUrl(String songId, {int size = 512}) async {
+  Future<String> artworkUrl(
+    String songId, {
+    int size = 512,
+    String? token,
+  }) async {
     final root = Uri.encodeComponent(NexoraFiles.parseRootId(songId));
     final path = Uri.encodeComponent(NexoraFiles.parsePath(songId));
-    final token = Uri.encodeComponent(await _storage.getToken() ?? '');
+    final t = Uri.encodeComponent(token ?? await _storage.getToken() ?? '');
     final base = await _resolvedBaseUrl();
-    return '$base${ApiConstants.filesThumbnail}?root=$root&path=$path&size=$size&token=$token';
+    return '$base${ApiConstants.filesThumbnail}?root=$root&path=$path&size=$size&token=$t';
   }
 
   /// Download URL for offline.
@@ -87,16 +92,20 @@ class SongsApi {
     } else if (data is List) {
       items = data;
     }
+    // One token/base read per page — not per song (secure storage is a
+    // platform-channel roundtrip each time).
+    final token = await _storage.getToken() ?? '';
     final songs = <Song>[];
     for (final raw in items) {
       if (raw is! Map<String, dynamic>) continue;
       final f = FileItemDto.fromJson(raw);
       if (!NexoraFiles.isAudio(f)) continue;
+      final id = NexoraFiles.songId(f);
       songs.add(
         NexoraFiles.toSong(
           f,
-          streamUrl: await streamUrl(NexoraFiles.songId(f)),
-          artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
+          streamUrl: await streamUrl(id, token: token),
+          artworkUrl: await artworkUrl(id, size: 512, token: token),
         ),
       );
     }
@@ -128,6 +137,7 @@ class SongsApi {
     final data = res.data;
     final items =
         (data is Map<String, dynamic> ? (data['items'] as List?) : null) ?? [];
+    final token = await _storage.getToken() ?? '';
     final songs = <Song>[];
     final dirs = <({String id, String name})>[];
     for (final raw in items) {
@@ -137,11 +147,12 @@ class SongsApi {
         final dirPath = f.path.isEmpty ? f.name : f.path;
         dirs.add((id: '$rootId|$dirPath', name: f.name));
       } else if (NexoraFiles.isAudio(f)) {
+        final id = NexoraFiles.songId(f);
         songs.add(
           NexoraFiles.toSong(
             f,
-            streamUrl: await streamUrl(NexoraFiles.songId(f)),
-            artworkUrl: await artworkUrl(NexoraFiles.songId(f), size: 512),
+            streamUrl: await streamUrl(id, token: token),
+            artworkUrl: await artworkUrl(id, size: 512, token: token),
           ),
         );
       }

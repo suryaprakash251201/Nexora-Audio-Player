@@ -16,14 +16,19 @@ class SearchRepository {
   final PrefsService _prefs;
   SearchRepository(this._api, this._prefs);
 
+  /// Pure search — never touches recents. Recents are saved explicitly on
+  /// submit (see `saveRecentSearch`), otherwise every intermediate
+  /// keystroke that completes pollutes the recent list.
   Future<SearchResult> search(String query, {CancelToken? cancelToken}) async {
-    final res = await _api.search(query, cancelToken: cancelToken);
-    if (query.trim().isNotEmpty) {
-      try {
-        await _prefs.addRecentSearch(query.trim());
-      } catch (_) {}
-    }
-    return res;
+    return _api.search(query, cancelToken: cancelToken);
+  }
+
+  Future<void> saveRecentSearch(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return;
+    try {
+      await _prefs.addRecentSearch(q);
+    } catch (_) {}
   }
 
   Future<List<String>> recentSearches() => _prefs.getRecentSearches();

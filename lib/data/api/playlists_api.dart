@@ -35,7 +35,23 @@ class PlaylistsApi {
     return _client.dio.options.baseUrl;
   }
 
-  Future<Song> _itemToSong(Map<String, dynamic> raw) async {
+  /// Memoized playlist list: detail, covers, home and library rails all
+  /// hit `getPlaylists()` within seconds of each other, and the backend has
+  /// no single-playlist endpoint — one fetch per [cacheTtl], not per caller.
+  static const cacheTtl = Duration(seconds: 30);
+  List<Playlist>? _cached;
+  DateTime? _cachedAt;
+
+  void invalidateCache() {
+    _cached = null;
+    _cachedAt = null;
+  }
+
+  Future<Song> _itemToSong(
+    Map<String, dynamic> raw,
+    String base,
+    String token,
+  ) async {
     final rootId = (raw['root_id'] ?? '').toString();
     final path = (raw['path'] ?? '').toString();
     final name = (raw['name'] ?? '').toString();
@@ -51,8 +67,6 @@ class PlaylistsApi {
           (raw['extension'] ?? (name.contains('.') ? name.split('.').last : ''))
               .toString(),
     );
-    final base = await _resolvedBaseUrl();
-    final token = await _storage.getToken() ?? '';
     return NexoraFiles.toSong(
       f,
       artworkUrl: NexoraFiles.thumbnailUrl(
@@ -78,9 +92,11 @@ class PlaylistsApi {
 
   /// Shared parser for both `/playlists` and `/playlists/public`: same
   /// envelope, same item hydration, owner cover preferred.
-  Future<List<Playlist>> _parsePlaylists(List<dynamic> items) async {
-    final base = await _resolvedBaseUrl();
-    final token = await _storage.getToken() ?? '';
+  Future<List<Playlist>> _parsePlaylists(
+    List<dynamic> items,
+    String base,
+    String token,
+  ) async {
     final out = <Playlist>[];
     for (final raw in items) {
       if (raw is! Map<String, dynamic>) continue;
@@ -88,7 +104,7 @@ class PlaylistsApi {
       final rawItems = (raw['items'] as List?) ?? [];
       for (final it in rawItems) {
         if (it is Map<String, dynamic>) {
-          tracks.add(await _itemToSong(it));
+          tracks.add(await _itemToSong(it, base, token));
         }
       }
       // Prefer the owner's server-side cover; fall back to first track art.
@@ -118,11 +134,19 @@ class PlaylistsApi {
   }
 
   Future<List<Playlist>> getPlaylists() async {
+    final fresh =
+        _cachedAt != null && DateTime.now().difference(_cachedAt!) < cacheTtl;
+    if (fresh && _cached != null) return _cached!;
     final res = await _client.get(ApiConstants.playlists);
     final data = res.data;
     final items =
         (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
-    return _parsePlaylists(items);
+    final base = await _resolvedBaseUrl();
+    final token = await _storage.getToken() ?? '';
+    final parsed = await _parsePlaylists(items, base, token);
+    _cached = parsed;
+    _cachedAt = DateTime.now();
+    return parsed;
   }
 
   /// Community playlists shared by other users (same shape as mine).
@@ -131,7 +155,9 @@ class PlaylistsApi {
     final data = res.data;
     final items =
         (data is Map<String, dynamic> ? data['items'] as List? : null) ?? [];
-    final all = await _parsePlaylists(items);
+    final base = await _resolvedBaseUrl();
+    final token = await _storage.getToken() ?? '';
+    final all = await _parsePlaylists(items, base, token);
     // Never duplicate playlists the user already owns.
     final mine = await getPlaylists();
     final mineIds = mine.map((p) => p.id).toSet();
@@ -172,12 +198,15 @@ class PlaylistsApi {
     );
     final raw = res.data;
     if (raw is Map<String, dynamic>) {
-      final tracks = <Song>[];
-      for (final it in (raw['items'] as List?) ?? []) {
-        if (it is Map<String, dynamic>) tracks.add(await _itemToSong(it));
-      }
       final base = await _resolvedBaseUrl();
       final token = await _storage.getToken() ?? '';
+      final tracks = <Song>[];
+      for (final it in (raw['items'] as List?) ?? []) {
+        if (it is Map<String, dynamic>) {
+          tracks.add(await _itemToSong(it, base, token));
+        }
+      }
+      invalidateCache();
       return Playlist(
         id: (raw['id'] ?? '').toString(),
         name: (raw['name'] ?? name).toString(),
@@ -192,6 +221,7 @@ class PlaylistsApi {
 
   Future<void> renamePlaylist(String id, String name) async {
     await _client.put(ApiConstants.playlistById(id), data: {'name': name});
+    invalidateCache();
   }
 
   Future<void> updateDescription(String id, String description) async {
@@ -203,6 +233,7 @@ class PlaylistsApi {
 
   Future<void> deletePlaylist(String id) async {
     await _client.delete(ApiConstants.playlistById(id));
+    invalidateCache();
   }
 
   Future<void> addTrack(String playlistId, String songId) async {
@@ -215,6 +246,7 @@ class PlaylistsApi {
         ],
       },
     );
+    invalidateCache();
   }
 
   Future<void> removeTrack(String playlistId, String itemId) async {
@@ -222,6 +254,7 @@ class PlaylistsApi {
       ApiConstants.playlistItems(playlistId),
       query: {'item_id': itemId},
     );
+    invalidateCache();
   }
 
   Future<void> reorder(String playlistId, List<String> orderedItemIds) async {
@@ -229,6 +262,7 @@ class PlaylistsApi {
       ApiConstants.playlistItemOrder(playlistId),
       data: {'item_ids': orderedItemIds},
     );
+    invalidateCache();
   }
 
   /// Collaborators (`{collaborators:[{playlist_id,user_id,role,

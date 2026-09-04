@@ -12,7 +12,8 @@ final searchResultsProvider = FutureProvider<SearchResult?>((ref) async {
   final query = ref.watch(searchQueryProvider).trim();
   if (query.isEmpty) return null;
   final repo = ref.watch(searchRepositoryProvider);
-  // Debounce is handled in UI via debouncer; here we add cancellation
+  // Per-keystroke debounce: each keystroke rebuilds this provider,
+  // cancelling the previous evaluation (and its request) via onDispose.
   final cancelToken = CancelToken();
   ref.onDispose(() => cancelToken.cancel());
   // Small delay to debounce rapid provider changes
