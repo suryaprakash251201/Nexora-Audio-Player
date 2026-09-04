@@ -101,7 +101,7 @@ class TagsScreen extends ConsumerWidget {
               backgroundColor: AppColors.card,
               onRefresh: () async => ref.invalidate(tagsProvider),
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 168),
                 itemCount: tags.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (c, i) => _TagRow(tag: tags[i]),

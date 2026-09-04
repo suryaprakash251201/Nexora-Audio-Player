@@ -61,13 +61,18 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     final isDark = AppColors.mode == AppThemeMode.dark;
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
+        preferredSize: const Size.fromHeight(78),
         child: SafeArea(
           bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border(
+                bottom: BorderSide(color: AppColors.hairline, width: 0.5),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 10, 8, 8),
             child: Row(
               children: [
                 Expanded(
@@ -110,76 +115,73 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 56),
-        child: Column(
-          children: [
-            // Mine | Discover scope switch + sort.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Row(
-                children: [
-                  _ScopePill(
-                    label: 'Mine',
-                    selected: !_discover,
-                    onTap: () => setState(() => _discover = false),
-                  ),
-                  const SizedBox(width: 8),
-                  _ScopePill(
-                    label: 'Discover',
-                    selected: _discover,
-                    onTap: () => setState(() => _discover = true),
-                  ),
-                  const Spacer(),
-                  _SortButton(
-                    sort: _sort,
-                    onChanged: (v) => setState(() => _sort = v),
-                  ),
-                ],
-              ),
+      body: Column(
+        children: [
+          // Mine | Discover scope switch + sort.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                _ScopePill(
+                  label: 'Mine',
+                  selected: !_discover,
+                  onTap: () => setState(() => _discover = false),
+                ),
+                const SizedBox(width: 8),
+                _ScopePill(
+                  label: 'Discover',
+                  selected: _discover,
+                  onTap: () => setState(() => _discover = true),
+                ),
+                const Spacer(),
+                _SortButton(
+                  sort: _sort,
+                  onChanged: (v) => setState(() => _sort = v),
+                ),
+              ],
             ),
-            Expanded(
-              child: playlistsAsync.when(
-                data: (list) => list.isEmpty
-                    ? (_discover
-                          ? const _EmptyDiscover()
-                          : _EmptyPlaylists(
-                              isDark: isDark,
-                              onCreate: _createPlaylist,
-                            ))
-                    : RefreshIndicator(
-                        color: AppColors.accent,
-                        backgroundColor: AppColors.card,
-                        onRefresh: () async => ref.invalidate(
-                          _discover
-                              ? _publicPlaylistsProvider
-                              : _playlistsProvider,
-                        ),
-                        child: _grid
-                            ? _PlaylistGrid(
-                                list: _sorted(list),
-                                showOwner: _discover,
-                                showCreate: !_discover,
-                                onCreate: _createPlaylist,
-                              )
-                            : _PlaylistList(
-                                list: _sorted(list),
-                                showOwner: _discover,
-                                showCreate: !_discover,
-                                onCreate: _createPlaylist,
-                              ),
+          ),
+          Expanded(
+            child: playlistsAsync.when(
+              data: (list) => list.isEmpty
+                  ? (_discover
+                        ? const _EmptyDiscover()
+                        : _EmptyPlaylists(
+                            isDark: isDark,
+                            onCreate: _createPlaylist,
+                          ))
+                  : RefreshIndicator(
+                      color: AppColors.accent,
+                      backgroundColor: AppColors.card,
+                      onRefresh: () async => ref.invalidate(
+                        _discover
+                            ? _publicPlaylistsProvider
+                            : _playlistsProvider,
                       ),
-                loading: () => const LoadingView(),
-                error: (e, _) => ErrorView(
-                  message: e.toString(),
-                  onRetry: () => ref.invalidate(
-                    _discover ? _publicPlaylistsProvider : _playlistsProvider,
-                  ),
+                      child: _grid
+                          ? _PlaylistGrid(
+                              list: _sorted(list),
+                              showOwner: _discover,
+                              showCreate: !_discover,
+                              onCreate: _createPlaylist,
+                            )
+                          : _PlaylistList(
+                              list: _sorted(list),
+                              showOwner: _discover,
+                              showCreate: !_discover,
+                              onCreate: _createPlaylist,
+                            ),
+                    ),
+              loading: () => const LoadingView(),
+              error: (e, _) => ErrorView(
+                message: e.toString(),
+                onRetry: () => ref.invalidate(
+                  _discover ? _publicPlaylistsProvider : _playlistsProvider,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -791,12 +793,12 @@ class _PlaylistGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 168),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 20,
         crossAxisSpacing: 14,
-        childAspectRatio: 0.72,
+        childAspectRatio: 0.78,
       ),
       itemCount: list.length + (showCreate ? 1 : 0),
       itemBuilder: (c, i) {
@@ -958,7 +960,7 @@ class _PlaylistList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 168),
       itemCount: list.length + (showCreate ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (c, i) {

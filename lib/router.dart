@@ -186,23 +186,24 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell>
     with TickerProviderStateMixin {
-  /// Whether the bottom nav bar is currently on screen.
-  bool _navVisible = true;
+  /// Whether the mini player is currently on screen.
+  /// The nav bar stays pinned to the bottom edge at all times.
+  bool _miniVisible = true;
 
-  /// Spring-driven controllers for the nav bar slide & the mini-player
-  /// reposition. Using a [SpringSimulation] gives the dock a physical
+  /// Spring-driven controller for the mini-player slide & fade.
+  /// Using a [SpringSimulation] gives the dock a physical
   /// feel that snaps in and settles rather than easing linearly.
-  late final AnimationController _navController;
+  late final AnimationController _miniController;
 
   bool _connectivityWired = false;
 
   @override
   void initState() {
     super.initState();
-    _navController = AnimationController.unbounded(vsync: this);
+    _miniController = AnimationController.unbounded(vsync: this);
 
     // Drive the spring to its resting position.
-    _springTo(_navController, 0.0);
+    _springTo(_miniController, 0.0);
   }
 
   /// Attach probe + reconnect exactly once (needs ref → post-frame).
@@ -233,7 +234,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   void dispose() {
-    _navController.dispose();
+    _miniController.dispose();
     super.dispose();
   }
 
@@ -247,12 +248,12 @@ class _AppShellState extends ConsumerState<AppShell>
     c.animateWith(sim);
   }
 
-  void _setNavVisible(bool v) {
-    if (_navVisible == v) return;
-    setState(() => _navVisible = v);
-    // 0 = visible, 1 = hidden below the fold. The mini player stays
-    // pinned to the bottom edge; the nav bar slides away beneath it.
-    _springTo(_navController, v ? 0.0 : 1.0);
+  void _setMiniVisible(bool v) {
+    if (_miniVisible == v) return;
+    setState(() => _miniVisible = v);
+    // 0 = visible, 1 = hidden behind the pinned nav bar.
+    // The nav bar never moves; the mini player slides away beneath it.
+    _springTo(_miniController, v ? 0.0 : 1.0);
   }
 
   int _indexForLocation(String loc) {
@@ -263,31 +264,31 @@ class _AppShellState extends ConsumerState<AppShell>
     return 0;
   }
 
-  /// Scroll-direction driven nav visibility:
-  ///  • scrolling down  → nav slides away beneath the pinned mini player
-  ///  • scrolling up    → nav returns above the mini player
+  /// Scroll-direction driven mini-player visibility:
+  ///  • scrolling down  → mini slides away behind the pinned nav bar
+  ///  • scrolling up    → mini returns above the nav bar
   bool _onUserScroll(UserScrollNotification notification) {
     final metrics = notification.metrics;
 
-    // Always reveal the bar once we are back at the very top.
+    // Always reveal the mini player once we are back at the very top.
     if (metrics.pixels <= metrics.minScrollExtent + 1) {
-      if (!_navVisible) _setNavVisible(true);
+      if (!_miniVisible) _setMiniVisible(true);
       return false;
     }
 
-    // Nothing to hand the space over to — keep the nav put.
+    // Nothing to hand the space over to — keep the mini put.
     final hasTrack = ref.read(playerProvider).currentTrack != null;
 
     switch (notification.direction) {
       case ScrollDirection.reverse:
         // Content moving up = user scrolling down the list.
-        if (hasTrack && _navVisible && metrics.pixels > 40) {
-          _setNavVisible(false);
+        if (hasTrack && _miniVisible && metrics.pixels > 40) {
+          _setMiniVisible(false);
         }
         break;
       case ScrollDirection.forward:
         // Content moving down = user scrolling back up.
-        if (!_navVisible) _setNavVisible(true);
+        if (!_miniVisible) _setMiniVisible(true);
         break;
       case ScrollDirection.idle:
         break;
@@ -350,7 +351,7 @@ class _AppShellState extends ConsumerState<AppShell>
             right: 0,
             bottom: 0,
             child: _BottomDock(
-              navController: _navController,
+              miniController: _miniController,
               bottomInset: bottomInset,
               navBar: EnhancedGlassNavBar(
                 selectedIndex: idx,
@@ -365,124 +366,156 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 }
 
-/// Bottom dock — mini player pinned to the bottom edge, nav bar above it.
-/// Both centered (maxWidth 640), hugging the bottom edge. On scroll-down
-/// the nav slides away beneath the mini player, which never moves.
-class _BottomDock extends StatelessWidget {
-  final Animation<double> navController;
+/// Bottom dock — nav bar pinned to the bottom edge, mini player above it.
+///
+/// Standard pattern: `[content] / [mini card] / [nav at system edge]`.
+/// The nav never moves; on scroll-down the mini slides down behind the nav.
+class _BottomDock extends ConsumerWidget {
+  final Animation<double> miniController;
   final double bottomInset;
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  static const double _miniHeight = 70;
-  static const double _gap = 6;
-  static const double _hiddenOffset = 110;
+  static const double _miniHeight = 68;
+  static const double _gap = 8;
+  static const double _navContentHeight = 68;
+  static const double _navTopPad = 8;
+  static const double _hiddenOffset = 96;
 
   const _BottomDock({
-    required this.navController,
+    required this.miniController,
     required this.bottomInset,
     required this.navBar,
     required this.onOpenPlayer,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final navTotal = EnhancedGlassNavBar.totalHeight;
-    // Hug the bottom edge — the system inset already reserves the
-    // home-indicator area, so only a hair of extra float is needed.
-    final double dockBottom = bottomInset <= 0 ? 4 : bottomInset * 0.2;
-    return Padding(
-      padding: EdgeInsets.only(bottom: dockBottom),
-      child: SizedBox(
-        height: _miniHeight + navTotal + _gap,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            AnimatedBuilder(
-              animation: navController,
-              builder: (context, child) {
-                final t = navController.value.clamp(0.0, 1.0);
-                final opacity = t < 0.25
-                    ? 1.0
-                    : (1.0 - (t - 0.25) / 0.75).clamp(0.0, 1.0);
-                return Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: _miniHeight + _gap - _hiddenOffset * t,
-                  child: IgnorePointer(
-                    ignoring: t > 0.05,
-                    child: Opacity(
-                      opacity: opacity,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: child,
-                        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Collapse the reserved space when nothing is playing so lists can
+    // use the full height instead of leaving a transparent hole.
+    final hasTrack = ref.watch(playerProvider.select((s) => s.currentTrack != null));
+    final double navTotal = _navContentHeight + _navTopPad;
+    final double dockHeight =
+        navTotal + bottomInset + (hasTrack ? _miniHeight + _gap : 0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      height: dockHeight,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Mini player — floats above the nav, hides behind it on scroll.
+          AnimatedBuilder(
+            animation: miniController,
+            builder: (context, child) {
+              final t = miniController.value.clamp(0.0, 1.0);
+              final opacity = t < 0.25
+                  ? 1.0
+                  : (1.0 - (t - 0.25) / 0.75).clamp(0.0, 1.0);
+              return Positioned(
+                left: 0,
+                right: 0,
+                bottom: navTotal + bottomInset + _gap - _hiddenOffset * t,
+                child: IgnorePointer(
+                  ignoring: t > 0.05 || !hasTrack,
+                  child: Opacity(
+                    opacity: hasTrack ? opacity : 0.0,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 640),
+                        child: child,
                       ),
                     ),
                   ),
-                );
-              },
-              // iOS frosted-glass ONLY around the nav bar.
-              // Mini player below keeps its own Nexora glass untouched.
-              child: _IosGlassNav(child: navBar),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: MiniPlayer(onTap: onOpenPlayer),
                 ),
-              ),
+              );
+            },
+            child: MiniPlayer(onTap: onOpenPlayer),
+          ),
+          // Nav — pinned to the very bottom, full-bleed frost.
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _IosGlassNav(
+              bottomInset: bottomInset,
+              topPad: _navTopPad,
+              child: navBar,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// iOS-style frosted glass wrapper — nav bar only.
-/// Clip + backdrop blur + translucent tint + hairline border.
-/// On Android the same layer reads as premium glass; on iOS it matches
-/// the system tab-bar frost.
+/// iOS-style frosted glass wrapper — nav bar only, pinned to bottom edge.
+/// Full-bleed blur with rounded top corners; frost extends behind the
+/// home indicator via [bottomInset]. Inner content stays centered
+/// (maxWidth 640) so tablets don't stretch.
 class _IosGlassNav extends StatelessWidget {
   final Widget child;
-  const _IosGlassNav({required this.child});
+  final double bottomInset;
+  final double topPad;
+  const _IosGlassNav({
+    required this.child,
+    required this.bottomInset,
+    this.topPad = 8,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF0C0F16).withValues(alpha: 0.62)
-                  : Colors.white.withValues(alpha: 0.68),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        child: Container(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF0C0F16).withValues(alpha: 0.72)
+                : Colors.white.withValues(alpha: 0.78),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            border: Border(
+              top: BorderSide(
                 color: isDark
                     ? Colors.white.withValues(alpha: 0.14)
                     : const Color(0xFF0F1D3A).withValues(alpha: 0.08),
                 width: 0.8,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+              left: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : const Color(0xFF0F1D3A).withValues(alpha: 0.04),
+                width: 0.8,
+              ),
+              right: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : const Color(0xFF0F1D3A).withValues(alpha: 0.04),
+                width: 0.8,
+              ),
             ),
-            child: child,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                blurRadius: 24,
+                offset: const Offset(0, -8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12, topPad, 12, 0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: child,
+              ),
+            ),
           ),
         ),
       ),

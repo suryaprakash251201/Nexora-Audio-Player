@@ -101,7 +101,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 168),
                       child: NexoraStaggeredColumn(
                         children: [
                           const SizedBox(height: 4),

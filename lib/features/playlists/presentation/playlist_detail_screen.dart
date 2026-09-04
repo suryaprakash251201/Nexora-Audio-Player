@@ -120,8 +120,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               elevation: 0,
               scrolledUnderElevation: 0,
               surfaceTintColor: Colors.transparent,
+              toolbarHeight: 56,
               iconTheme: IconThemeData(color: AppColors.text),
-              flexibleSpace: const NexoraSliverAppBarBackground(),
+              flexibleSpace: const NexoraSliverAppBarBackground(blur: 20),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded),
@@ -276,14 +277,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final count = p.trackCount ?? _tracks.length;
     final total = _totalDuration();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: SizedBox(
-              width: 220,
-              height: 220,
+              width: 200,
+              height: 200,
               child: Hero(
                 tag: 'playlist-cover-${p.id}',
                 child: Container(

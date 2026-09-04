@@ -243,7 +243,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       data: (list) => list.isEmpty
           ? _BrowseEmpty(isDark: isDark)
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 140),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 168),
               children: [
                 _ResultHeader(
                   label: 'Recent searches',
@@ -308,7 +308,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         }
         return ListView(
-          padding: const EdgeInsets.only(bottom: 140),
+          padding: const EdgeInsets.only(bottom: 168),
           children: [
             if (res.songs.isNotEmpty) ...[
               _ResultHeader(

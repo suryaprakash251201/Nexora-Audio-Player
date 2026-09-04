@@ -29,9 +29,10 @@ class NexoraSpacing {
   static const EdgeInsets screenAll = EdgeInsets.all(20);
   static const EdgeInsets screenGutter = EdgeInsets.fromLTRB(20, 12, 20, 20);
 
-  /// Reserve above the floating dock so lists never hide behind it.
-  /// Dock is now floating with larger margins — needs a bit more air.
-  static const double dockBottomReserve = 172;
+  /// Reserve above the bottom dock so lists never hide behind it.
+  /// Dock is now nav-at-bottom + mini-above: 68 mini + 8 gap + 76 nav
+  /// + system inset — needs a bit more air.
+  static const double dockBottomReserve = 188;
 
   /// Section gap between settings groups.
   static const double sectionGap = 24;

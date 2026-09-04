@@ -74,7 +74,7 @@ class DownloadsScreen extends ConsumerWidget {
               ref.invalidate(downloadedTracksProvider);
             },
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 100, 16, 140),
+              padding: const EdgeInsets.fromLTRB(16, 100, 16, 168),
               itemCount: tracks.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (c, i) {

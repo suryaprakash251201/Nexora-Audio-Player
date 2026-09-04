@@ -308,7 +308,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 168),
           children: [
             // Enable toggle
             NexoraGroupedList(

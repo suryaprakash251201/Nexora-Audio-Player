@@ -608,10 +608,11 @@ class _MiniIconButton extends StatelessWidget {
   }
 }
 
-/// Bottom navigation bar — floating aurora pill, pixel-perfect.
-/// Pill tracks Expanded cells exactly (no spaceAround drift),
-/// floats with 14px margins, and slides with easeOutCubic.
-/// 2.0: gradient selected pill, tonal icons, 28px dock radius.
+/// Bottom navigation bar — pinned system bar content, pixel-perfect.
+/// Pill tracks Expanded cells exactly (no spaceAround drift).
+/// Outer [_IosGlassNav] in router.dart provides the full-bleed bottom
+/// frost; this widget is just the 68px content row.
+/// 2.0: gradient selected pill, tonal icons.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -623,8 +624,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
   });
 
   static const double height = 68;
-  static const double bottomMargin = 12;
-  static const double totalHeight = height + bottomMargin;
+  static const double bottomMargin = 0;
+  static const double totalHeight = height;
 
   static const _destinations = [
     (Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -640,8 +641,8 @@ class EnhancedGlassNavBar extends StatelessWidget {
     return Semantics(
       label: 'Main navigation',
       child: NexoraGlassDock(
-        // Outer _IosGlassNav already pads + frosts — keep inner flush
-        // so Home/Search/Library sit right on the bottom edge.
+        // Outer _IosGlassNav provides the bottom-anchored frost —
+        // keep inner flush so the row sits tight in the system bar.
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: SizedBox(

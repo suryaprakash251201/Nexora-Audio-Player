@@ -19,8 +19,10 @@ class NexoraSliverAppBarBackground extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
+            // Strong enough that large titles scrolling underneath
+            // (playlist detail hero) never collide with bar icons.
             color: (isDark ? Colors.black : Colors.white).withValues(
-              alpha: 0.30,
+              alpha: 0.60,
             ),
             border: Border(
               bottom: BorderSide(

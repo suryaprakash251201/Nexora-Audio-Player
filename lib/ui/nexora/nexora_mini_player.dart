@@ -76,8 +76,8 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
         },
         onHorizontalDragCancel: () => setState(() => _dragOffset = 0),
         child: NexoraGlass(
-          borderRadius: BorderRadius.circular(20),
-          margin: const EdgeInsets.symmetric(horizontal: 14),
+          borderRadius: BorderRadius.circular(18),
+          margin: const EdgeInsets.symmetric(horizontal: 12),
           padding: EdgeInsets.zero,
           blur: 28,
           tintAlpha: 0.66,
@@ -86,19 +86,50 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Aurora gradient progress line on TOP edge — the card
+              // floats above the nav, so the fill reads without
+              // touching the bar below.
+              Stack(
+                children: [
+                  Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHigh.withValues(alpha: 0.55),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(18),
+                        topRight: Radius.circular(18),
+                      ),
+                    ),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      height: 3,
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.accentGradientHorizontal,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(18),
+                          topRight: Radius.circular(18),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 46,
-                      height: 46,
+                      width: 44,
+                      height: 44,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           NexoraArtwork(
                             url: track.artUri?.toString(),
-                            size: 46,
+                            size: 44,
                           ),
                           // Offline dot — queue/downloads keep playing.
                           if (ref.watch(
@@ -184,6 +215,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                           ref.read(playerProvider.notifier).togglePlay(),
                     ),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       icon: Icon(
                         Icons.skip_next_rounded,
                         color: AppColors.text,
@@ -194,10 +226,11 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                     ),
                     // Close — stops playback and dismisses the player.
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       icon: Icon(
                         Icons.close_rounded,
                         color: AppColors.textDim,
-                        size: 18,
+                        size: 16,
                       ),
                       onPressed: () {
                         HapticFeedback.selectionClick();
@@ -207,35 +240,6 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                     ),
                   ],
                 ),
-              ),
-              // Aurora gradient progress line.
-              Stack(
-                children: [
-                  Container(
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceHigh.withValues(alpha: 0.55),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: progress,
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      height: 3,
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.accentGradientHorizontal,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -411,8 +415,8 @@ class _MiniPlayButtonState extends State<_MiniPlayButton> {
         duration: NexoraDuration.tap,
         curve: Curves.easeOut,
         child: Container(
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             gradient: AppColors.accentGradient,
@@ -432,7 +436,7 @@ class _MiniPlayButtonState extends State<_MiniPlayButton> {
           child: Icon(
             widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
             color: Colors.white,
-            size: 22,
+            size: 21,
           ),
         ),
       ),
