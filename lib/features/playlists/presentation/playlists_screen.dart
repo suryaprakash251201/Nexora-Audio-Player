@@ -12,6 +12,7 @@ import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/playlist_cover.dart';
+import '../../../ui/widgets/track_menu_box.dart';
 
 /// Playlists — full audiophile redesign.
 ///
@@ -24,9 +25,33 @@ class PlaylistsScreen extends ConsumerStatefulWidget {
   ConsumerState<PlaylistsScreen> createState() => _PlaylistsScreenState();
 }
 
+enum _PlaylistSort { recent, name, tracks }
+
 class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   bool _grid = true;
   bool _discover = false;
+  _PlaylistSort _sort = _PlaylistSort.recent;
+
+  /// Client-side ordering. `recent` keeps server order (already newest
+  /// first); missing counts sort last so nothing ever crashes.
+  List<Playlist> _sorted(List<Playlist> list) {
+    final out = List<Playlist>.of(list);
+    switch (_sort) {
+      case _PlaylistSort.name:
+        out.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+      case _PlaylistSort.tracks:
+        out.sort(
+          (a, b) => (b.trackCount ?? b.tracks?.length ?? 0).compareTo(
+            a.trackCount ?? a.tracks?.length ?? 0,
+          ),
+        );
+      case _PlaylistSort.recent:
+        break;
+    }
+    return out;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,29 +100,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     ],
                   ),
                 ),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => setState(() => _grid = !_grid),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border, width: 0.7),
-                      ),
-                      child: Icon(
-                        _grid
-                            ? Icons.view_list_rounded
-                            : Icons.grid_view_rounded,
-                        color: AppColors.text,
-                        size: 19,
-                      ),
-                    ),
-                  ),
+                _ViewToggle(
+                  grid: _grid,
+                  onChanged: (v) => setState(() => _grid = v),
                 ),
                 const SizedBox(width: 4),
               ],
@@ -105,33 +110,11 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           ),
         ),
       ),
-      floatingActionButton: _discover
-          ? null
-          : Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.35),
-                    blurRadius: 18,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: FloatingActionButton(
-                onPressed: _createPlaylist,
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.onAccent,
-                elevation: 0,
-                child: const Icon(Icons.add_rounded, size: 24),
-              ),
-            ),
       body: Padding(
         padding: const EdgeInsets.only(top: 56),
         child: Column(
           children: [
-            // Mine | Discover scope switch.
+            // Mine | Discover scope switch + sort.
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(
@@ -146,6 +129,11 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     label: 'Discover',
                     selected: _discover,
                     onTap: () => setState(() => _discover = true),
+                  ),
+                  const Spacer(),
+                  _SortButton(
+                    sort: _sort,
+                    onChanged: (v) => setState(() => _sort = v),
                   ),
                 ],
               ),
@@ -168,8 +156,18 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                               : _playlistsProvider,
                         ),
                         child: _grid
-                            ? _PlaylistGrid(list: list, showOwner: _discover)
-                            : _PlaylistList(list: list, showOwner: _discover),
+                            ? _PlaylistGrid(
+                                list: _sorted(list),
+                                showOwner: _discover,
+                                showCreate: !_discover,
+                                onCreate: _createPlaylist,
+                              )
+                            : _PlaylistList(
+                                list: _sorted(list),
+                                showOwner: _discover,
+                                showCreate: !_discover,
+                                onCreate: _createPlaylist,
+                              ),
                       ),
                 loading: () => const LoadingView(),
                 error: (e, _) => ErrorView(
@@ -508,10 +506,287 @@ final _playlistCoversProvider = FutureProvider.family<List<String?>, Playlist>((
   return covers;
 });
 
+/// Segmented grid|list switch (same Nexora pill language as scope).
+class _ViewToggle extends StatelessWidget {
+  final bool grid;
+  final ValueChanged<bool> onChanged;
+  const _ViewToggle({required this.grid, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 0.7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ViewToggleItem(
+            icon: Icons.grid_view_rounded,
+            selected: grid,
+            onTap: () => onChanged(true),
+          ),
+          _ViewToggleItem(
+            icon: Icons.view_list_rounded,
+            selected: !grid,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewToggleItem extends StatelessWidget {
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ViewToggleItem({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        width: 34,
+        height: 30,
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.accentGradientHorizontal : null,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(
+          icon,
+          size: 16,
+          color: selected ? Colors.white : AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+}
+
+/// Sort control reusing the anchored menu-box language.
+class _SortButton extends StatelessWidget {
+  final _PlaylistSort sort;
+  final ValueChanged<_PlaylistSort> onChanged;
+  const _SortButton({required this.sort, required this.onChanged});
+
+  String get _label {
+    switch (sort) {
+      case _PlaylistSort.name:
+        return 'A–Z';
+      case _PlaylistSort.tracks:
+        return 'Tracks';
+      case _PlaylistSort.recent:
+        return 'Recent';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: (btnContext) => GestureDetector(
+        onTap: () {
+          final box = btnContext.findRenderObject() as RenderBox?;
+          if (box == null || !box.hasSize) return;
+          final pos = box.localToGlobal(Offset.zero);
+          showTrackMenuBox(
+            context: context,
+            anchor: Rect.fromLTWH(
+              pos.dx,
+              pos.dy,
+              box.size.width,
+              box.size.height,
+            ),
+            options: [
+              for (final mode in _PlaylistSort.values)
+                TrackMenuOption(
+                  icon: switch (mode) {
+                    _PlaylistSort.name => Icons.sort_by_alpha_rounded,
+                    _PlaylistSort.tracks => Icons.queue_music_rounded,
+                    _PlaylistSort.recent => Icons.schedule_rounded,
+                  },
+                  label: switch (mode) {
+                    _PlaylistSort.name => 'Name A–Z',
+                    _PlaylistSort.tracks => 'Most tracks',
+                    _PlaylistSort.recent => 'Recently created',
+                  },
+                  selected: mode == sort,
+                  onTap: () => onChanged(mode),
+                ),
+            ],
+          );
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border, width: 0.7),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.sort_rounded, size: 15, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              Text(
+                _label,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dashed inline-create tile (grid) / row (list) — replaces the FAB.
+class _CreateTile extends StatelessWidget {
+  final VoidCallback onCreate;
+  const _CreateTile({required this.onCreate});
+
+  @override
+  Widget build(BuildContext context) {
+    return NexoraPressable(
+      onTap: onCreate,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.45),
+                  width: 1.2,
+                ),
+                color: AppColors.accent.withValues(alpha: 0.07),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.accentGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'New',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Create playlist',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreateRow extends StatelessWidget {
+  final VoidCallback onCreate;
+  const _CreateRow({required this.onCreate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onCreate,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.45),
+              width: 1.2,
+            ),
+            color: AppColors.accent.withValues(alpha: 0.07),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: AppColors.accentGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                'Create new playlist',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PlaylistGrid extends StatelessWidget {
   final List<Playlist> list;
   final bool showOwner;
-  const _PlaylistGrid({required this.list, this.showOwner = false});
+  final bool showCreate;
+  final VoidCallback onCreate;
+  const _PlaylistGrid({
+    required this.list,
+    this.showOwner = false,
+    this.showCreate = false,
+    required this.onCreate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -523,12 +798,16 @@ class _PlaylistGrid extends StatelessWidget {
         crossAxisSpacing: 14,
         childAspectRatio: 0.72,
       ),
-      itemCount: list.length,
-      itemBuilder: (c, i) => _PlaylistCard(
-        playlist: list[i],
-        owner: showOwner ? list[i].ownerId : null,
-        onTap: () => context.push('/playlists/${list[i].id}', extra: list[i]),
-      ),
+      itemCount: list.length + (showCreate ? 1 : 0),
+      itemBuilder: (c, i) {
+        if (showCreate && i == 0) return _CreateTile(onCreate: onCreate);
+        final p = list[showCreate ? i - 1 : i];
+        return _PlaylistCard(
+          playlist: p,
+          owner: showOwner ? p.ownerId : null,
+          onTap: () => context.push('/playlists/${p.id}', extra: p),
+        );
+      },
     );
   }
 }
@@ -667,16 +946,24 @@ class _PlaylistCard extends ConsumerWidget {
 class _PlaylistList extends StatelessWidget {
   final List<Playlist> list;
   final bool showOwner;
-  const _PlaylistList({required this.list, this.showOwner = false});
+  final bool showCreate;
+  final VoidCallback onCreate;
+  const _PlaylistList({
+    required this.list,
+    this.showOwner = false,
+    this.showCreate = false,
+    required this.onCreate,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
-      itemCount: list.length,
+      itemCount: list.length + (showCreate ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (c, i) {
-        final p = list[i];
+        if (showCreate && i == 0) return _CreateRow(onCreate: onCreate);
+        final p = list[showCreate ? i - 1 : i];
         return _PlaylistRow(
           playlist: p,
           owner: showOwner ? p.ownerId : null,

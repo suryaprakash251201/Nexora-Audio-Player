@@ -21,12 +21,14 @@ class TrackMenuOption {
   final String label;
   final VoidCallback onTap;
   final bool danger;
+  final bool selected;
 
   const TrackMenuOption({
     required this.icon,
     required this.label,
     required this.onTap,
     this.danger = false,
+    this.selected = false,
   });
 }
 
@@ -461,12 +463,25 @@ Future<void> showTrackMenuBox({
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: entry.danger ? AppColors.error : AppColors.text,
+                        color: entry.danger
+                            ? AppColors.error
+                            : entry.selected
+                            ? AppColors.accent
+                            : AppColors.text,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                  if (entry.selected)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(
+                        Icons.check_rounded,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
+                    ),
                 ],
               ),
             ),
