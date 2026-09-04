@@ -3,6 +3,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../network/connectivity_reporter.dart';
+
 final audioHandlerProvider = Provider<NexoraAudioHandler>((ref) {
   throw UnimplementedError('Initialize provider in main.dart first');
 });
@@ -92,6 +94,92 @@ class NexoraAudioHandler extends BaseAudioHandler
 
   AudioPlayer get player => _player;
 
+  // ── Network loss / reconnect auto-resume ─────────────────────────────────
+  //
+  // When the internet drops: playback pauses, but the queue, track index
+  // and position are remembered. When the internet comes back, the queue
+  // is re-loaded (fresh stream URLs / token) and the song auto-resumes
+  // exactly where it stopped.
+  bool _hasPendingResume = false;
+  bool _resumeWasPlaying = false;
+  Duration _resumePosition = Duration.zero;
+  int _resumeIndex = 0;
+
+  /// True while playback is intentionally paused due to no internet and a
+  /// resume is queued for when the connection returns.
+  bool get hasPendingNetworkResume => _hasPendingResume;
+
+  void _rememberResumeIntent({required bool resumePlaying}) {
+    final idx = _player.currentIndex;
+    if (queue.value.isEmpty) return;
+    _resumeWasPlaying = resumePlaying || _resumeWasPlaying;
+    _resumeIndex = idx ?? _resumeIndex;
+    _resumePosition = _player.position;
+    _hasPendingResume = true;
+  }
+
+  /// Called when a remote audio stream errors out (usually no internet).
+  /// Reports offline so the monitor reacts fast, and remembers the track
+  /// + position so it can auto-resume when the connection returns.
+  void _onPlaybackError() {
+    // Only treat as a network problem when the failing item is remote —
+    // local (downloaded) files failing is not an internet issue.
+    final index = _player.currentIndex;
+    final q = queue.value;
+    if (index == null || index >= q.length) return;
+    final item = q[index];
+    final localPath = item.extras?['localPath'] as String?;
+    final isRemote = localPath == null || localPath.isEmpty;
+    if (!isRemote) return;
+    ConnectivityReporter.instance.reportOffline();
+    if (_player.playing ||
+        _player.processingState == ProcessingState.loading ||
+        _player.processingState == ProcessingState.buffering) {
+      _rememberResumeIntent(resumePlaying: true);
+      _player.pause();
+    }
+  }
+
+  /// Internet just dropped: stop playback immediately but keep the queue,
+  /// current track and position so we can resume automatically later.
+  Future<void> pauseForNetworkLoss() async {
+    if (_player.playing) _rememberResumeIntent(resumePlaying: true);
+    await _player.pause();
+  }
+
+  /// Internet is back: auto-fetch the queue again (fresh stream URLs +
+  /// token) and resume the interrupted song from where it stopped.
+  Future<void> resumeAfterNetworkRestore() async {
+    if (!_hasPendingResume || !_resumeWasPlaying) return;
+    _hasPendingResume = false;
+    final items = List<MediaItem>.of(queue.value);
+    if (items.isEmpty) return;
+    final idx = _resumeIndex.clamp(0, items.length - 1);
+    final position = _resumePosition;
+    _resumeWasPlaying = false;
+
+    // The connection that just came back may not be fully settled for a
+    // fresh audio socket yet — retry a few times before giving up.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        await loadMedia(items, initialIndex: idx, playOnLoad: false);
+        if (position > Duration.zero) {
+          await _player.seek(position, index: idx);
+        }
+        await _player.play();
+        return;
+      } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
+    }
+    // Could not recover yet — arm again so the next online transition
+    // (probe / request success) retries the resume.
+    _hasPendingResume = true;
+    _resumeWasPlaying = true;
+    _resumeIndex = idx;
+    _resumePosition = position;
+  }
+
   void _notifyAudioHandlerAboutPlaybackEvents() {
     _player.playbackEventStream.listen((PlaybackEvent event) {
       final playing = _player.playing;
@@ -136,7 +224,12 @@ class NexoraAudioHandler extends BaseAudioHandler
           queueIndex: event.currentIndex,
         ),
       );
-    });
+    },
+    // A remote stream that dies mid-playback is almost always a network
+    // drop. Feed the connectivity monitor so the app flips offline fast,
+    // and remember the playback position for auto-resume on reconnect.
+    onError: (Object e, StackTrace st) => _onPlaybackError(),
+    );
   }
 
   void _listenForDurationChanges() {

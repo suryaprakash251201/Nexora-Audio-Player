@@ -7,8 +7,7 @@ import '../../../ui/nexora/nexora_seek_bar.dart';
 import '../../../ui/theme.dart';
 import '../providers/player_provider.dart';
 
-/// Top bar — no rounded pill. Centered NEXORA wordmark, plain text.
-/// Top bar — close left, style right, NEXORA dead-center.
+/// Top bar — close left, style right, clean center (no wordmark).
 /// Sleep lives in the bottom dock, so it is not duplicated here. Both
 /// sides are a single 48px IconButton, so the wordmark centers exactly.
 class PlayerTopBar extends StatelessWidget {
@@ -32,18 +31,9 @@ class PlayerTopBar extends StatelessWidget {
             onPressed: onClose,
           ),
           Expanded(
-            child: Center(
-              // Center brand — plain text, no box / no rounded corner.
-              child: Text(
-                'NEXORA',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 4.0,
-                ),
-              ),
-            ),
+            // Brand wordmark removed — keep the row balanced with an
+            // empty center so close/style icons stay in the corners.
+            child: const SizedBox.shrink(),
           ),
           IconButton(
             icon: Icon(Icons.palette_outlined, color: AppColors.text, size: 20),

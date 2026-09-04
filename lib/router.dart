@@ -333,6 +333,10 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return Scaffold(
       extendBody: true,
+      // The dock must stay pinned to the physical bottom edge. If the
+      // Scaffold resized for the keyboard (search input), the nav bar
+      // would float above it leaving a visible gap below.
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           NotificationListener<UserScrollNotification>(

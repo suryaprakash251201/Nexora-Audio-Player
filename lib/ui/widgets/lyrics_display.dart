@@ -160,21 +160,6 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: _buildArtwork(),
                   ),
-                // Tap-a-line hint (themed, sits over the aurora scrim).
-                if (widget.lyrics.isNotEmpty &&
-                    widget.lyrics.any((l) => l.timestamp != null))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      'TAP A LINE TO JUMP  •  DOUBLE-TAP ART TO GO BACK',
-                      style: TextStyle(
-                        color: AppColors.text.withValues(alpha: 0.5),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.6,
-                      ),
-                    ),
-                  ),
                 Expanded(
                   child: widget.lyrics.isEmpty
                       ? _buildEmptyState()

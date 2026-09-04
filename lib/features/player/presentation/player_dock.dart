@@ -350,6 +350,11 @@ class _FavoriteButtonState extends ConsumerState<FavoriteButton> {
   /// Canonical "rootId|path" id. Extras carry it explicitly (new queues);
   /// fall back to rootId+path extras, then the constructor songId, which
   /// may itself be a stream URL that [NexoraFiles.splitId] can parse.
+  ///
+  /// Songs queued from server-DB sources often carry a bare database id
+  /// (no "root|path", no query) — for those, recover the real server
+  /// reference from the stream URL (MediaItem id), which always carries
+  /// ?root=&path= query params.
   String _canonicalId() {
     final ex = widget.track.extras ?? {};
     final sid = (ex['songId'] as String?) ?? widget.songId;
@@ -357,6 +362,16 @@ class _FavoriteButtonState extends ConsumerState<FavoriteButton> {
     final root = (ex['rootId'] as String?) ?? '';
     final path = (ex['path'] as String?) ?? '';
     if (root.isNotEmpty && path.isNotEmpty) return '$root|$path';
+    // Stream-URL fallback: MediaItem.id is the playable URL with
+    // root/path as query params — parse and rebuild the canonical form
+    // so it matches the favorites mirror ("rootId|path").
+    for (final candidate in [sid, widget.songId, widget.track.id]) {
+      if (candidate.isEmpty || candidate.contains('|')) continue;
+      final q = Uri.tryParse(candidate)?.queryParameters ?? const {};
+      final qr = (q['root'] ?? '').trim();
+      final qp = (q['path'] ?? '').trim();
+      if (qr.isNotEmpty && qp.isNotEmpty) return '$qr|$qp';
+    }
     return sid;
   }
 

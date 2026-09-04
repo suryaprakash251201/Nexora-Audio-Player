@@ -129,12 +129,24 @@ class QueueManager {
     // #3 FIX: lyrics + audio-info need rootId + file path. Song.id is
     // canonical "rootId|path" — expose both explicitly so the player can
     // call /audio/lyrics?root=&path= (sibling .lrc) without re-parsing.
-    final canonicalRoot = song.rootId != null && song.rootId!.isNotEmpty
+    // Songs from server-DB sources carry a bare id (no "root|path") —
+    // recover the real reference from the stream URL's query params.
+    String canonicalRoot = song.rootId != null && song.rootId!.isNotEmpty
         ? song.rootId!
         : (song.id.contains('|') ? song.id.split('|').first : '');
-    final canonicalPath = song.id.contains('|')
+    String canonicalPath = song.id.contains('|')
         ? song.id.split('|').skip(1).join('|')
         : song.id;
+    if (!song.id.contains('|')) {
+      final q = Uri.tryParse(song.streamUrl ?? '')?.queryParameters ??
+          const {};
+      final qr = (q['root'] ?? '').trim();
+      final qp = (q['path'] ?? '').trim();
+      if (qr.isNotEmpty && qp.isNotEmpty) {
+        canonicalRoot = qr;
+        canonicalPath = qp;
+      }
+    }
     return MediaItem(
       id: fullStream,
       title: song.title,
