@@ -24,9 +24,7 @@ void main() {
 
     test('offline→online shows back-online pill then hides', () async {
       var reconnects = 0;
-      final m = ConnectivityMonitor(
-        onReconnect: () async => reconnects++,
-      );
+      final m = ConnectivityMonitor(onReconnect: () async => reconnects++);
       m.reportOffline();
       m.reportOffline();
       expect(m.state.isOffline, isTrue);
