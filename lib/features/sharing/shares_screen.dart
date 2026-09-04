@@ -247,7 +247,11 @@ class _ShareRow extends ConsumerWidget {
       ref.invalidate(sharesProvider);
     } catch (e) {
       if (context.mounted) {
-        showNexoraSnack(context, 'Revoke failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Revoke failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }

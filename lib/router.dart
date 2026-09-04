@@ -393,7 +393,9 @@ class _BottomDock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Collapse the reserved space when nothing is playing so lists can
     // use the full height instead of leaving a transparent hole.
-    final hasTrack = ref.watch(playerProvider.select((s) => s.currentTrack != null));
+    final hasTrack = ref.watch(
+      playerProvider.select((s) => s.currentTrack != null),
+    );
     final double navTotal = _navContentHeight + _navTopPad;
     final double dockHeight =
         navTotal + bottomInset + (hasTrack ? _miniHeight + _gap : 0);
@@ -477,9 +479,7 @@ class _IosGlassNav extends StatelessWidget {
             color: isDark
                 ? const Color(0xFF0C0F16).withValues(alpha: 0.72)
                 : Colors.white.withValues(alpha: 0.78),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
               top: BorderSide(
                 color: isDark

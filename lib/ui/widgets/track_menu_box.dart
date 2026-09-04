@@ -59,7 +59,10 @@ Future<void> toggleDownload(
 ) async {
   final manager = ref.read(downloadManagerProvider);
   final ids = ref.read(downloadedIdsProvider.notifier);
-  void say(String message, {NexoraSnackSeverity severity = NexoraSnackSeverity.info}) {
+  void say(
+    String message, {
+    NexoraSnackSeverity severity = NexoraSnackSeverity.info,
+  }) {
     try {
       showNexoraSnack(context, message, severity: severity);
     } catch (_) {}
@@ -77,11 +80,17 @@ Future<void> toggleDownload(
         await ref.read(songsRepositoryProvider).streamUrl(song.id);
     final saved = await manager.downloadTrack(song.id, url);
     if (saved == null) {
-      say('Download failed — check connection and storage', severity: NexoraSnackSeverity.error);
+      say(
+        'Download failed — check connection and storage',
+        severity: NexoraSnackSeverity.error,
+      );
       return;
     }
     ids.markDownloaded(song.id);
-    say('Downloaded for offline playback', severity: NexoraSnackSeverity.success);
+    say(
+      'Downloaded for offline playback',
+      severity: NexoraSnackSeverity.success,
+    );
   } catch (e) {
     say('Download failed: $e', severity: NexoraSnackSeverity.error);
   }
@@ -90,7 +99,10 @@ Future<void> toggleDownload(
 /// Creates a public link for a track and opens the OS share sheet.
 /// Keeps the manage-shares list fresh for the Shares screen.
 Future<void> shareTrack(WidgetRef ref, BuildContext context, Song song) async {
-  void say(String message, {NexoraSnackSeverity severity = NexoraSnackSeverity.info}) {
+  void say(
+    String message, {
+    NexoraSnackSeverity severity = NexoraSnackSeverity.info,
+  }) {
     try {
       showNexoraSnack(context, message, severity: severity);
     } catch (_) {}
@@ -154,11 +166,19 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
       ref.invalidate(tagsProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      showNexoraSnack(context, 'Tagged “${tag.name}”', severity: NexoraSnackSeverity.success);
+      showNexoraSnack(
+        context,
+        'Tagged “${tag.name}”',
+        severity: NexoraSnackSeverity.success,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      showNexoraSnack(context, 'Tag failed: $e', severity: NexoraSnackSeverity.error);
+      showNexoraSnack(
+        context,
+        'Tag failed: $e',
+        severity: NexoraSnackSeverity.error,
+      );
     }
   }
 
@@ -174,7 +194,11 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      showNexoraSnack(context, 'Create failed: $e', severity: NexoraSnackSeverity.error);
+      showNexoraSnack(
+        context,
+        'Create failed: $e',
+        severity: NexoraSnackSeverity.error,
+      );
     }
   }
 
@@ -373,7 +397,11 @@ List<Object> trackMenuOptions({
       label: 'Add to queue',
       onTap: () {
         ref.read(playerProvider.notifier).addToQueue(song);
-        showNexoraSnack(context, 'Added to queue', severity: NexoraSnackSeverity.success);
+        showNexoraSnack(
+          context,
+          'Added to queue',
+          severity: NexoraSnackSeverity.success,
+        );
       },
     ),
     downloadMenuOption(ref, context, song),

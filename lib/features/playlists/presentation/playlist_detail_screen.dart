@@ -430,11 +430,19 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           .removeTrack(widget.playlistId, s.itemRef!);
       await _load();
       if (mounted) {
-        showNexoraSnack(context, 'Removed from playlist', severity: NexoraSnackSeverity.success);
+        showNexoraSnack(
+          context,
+          'Removed from playlist',
+          severity: NexoraSnackSeverity.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        showNexoraSnack(context, 'Remove failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Remove failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }
@@ -469,10 +477,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: Icon(
-                  Icons.delete_outline,
-                  color: AppColors.error,
-                ),
+                leading: Icon(Icons.delete_outline, color: AppColors.error),
                 title: Text(
                   'Delete playlist',
                   style: TextStyle(color: AppColors.error),
@@ -722,7 +727,11 @@ class _CollaboratorsSectionState extends ConsumerState<_CollaboratorsSection> {
       _refresh();
     } catch (e) {
       if (mounted) {
-        showNexoraSnack(context, 'Remove failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Remove failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }
@@ -962,7 +971,11 @@ class _AddCollaboratorSheetState extends ConsumerState<_AddCollaboratorSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      showNexoraSnack(context, 'Add failed: $e', severity: NexoraSnackSeverity.error);
+      showNexoraSnack(
+        context,
+        'Add failed: $e',
+        severity: NexoraSnackSeverity.error,
+      );
     }
   }
 }

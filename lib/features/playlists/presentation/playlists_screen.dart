@@ -310,11 +310,19 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted) {
-        showNexoraSnack(context, 'Created "$name"', severity: NexoraSnackSeverity.success);
+        showNexoraSnack(
+          context,
+          'Created "$name"',
+          severity: NexoraSnackSeverity.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        showNexoraSnack(context, 'Failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }

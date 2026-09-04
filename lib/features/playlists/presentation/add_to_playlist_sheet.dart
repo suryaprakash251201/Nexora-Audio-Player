@@ -64,7 +64,11 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
           .addTrack(playlist.id, widget.song.id);
       if (!mounted) return;
       Navigator.of(context).pop();
-      showNexoraSnack(context, 'Added to “${playlist.name}”', severity: NexoraSnackSeverity.success);
+      showNexoraSnack(
+        context,
+        'Added to “${playlist.name}”',
+        severity: NexoraSnackSeverity.success,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -88,7 +92,11 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
       ref.invalidate(_playlistsProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      showNexoraSnack(context, 'Created “$name” and added the track', severity: NexoraSnackSeverity.success);
+      showNexoraSnack(
+        context,
+        'Created “$name” and added the track',
+        severity: NexoraSnackSeverity.success,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {

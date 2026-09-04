@@ -78,12 +78,20 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      showNexoraSnack(context, 'Enter server URL', severity: NexoraSnackSeverity.warning);
+      showNexoraSnack(
+        context,
+        'Enter server URL',
+        severity: NexoraSnackSeverity.warning,
+      );
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    showNexoraSnack(context, 'Server saved: $url', severity: NexoraSnackSeverity.success);
+    showNexoraSnack(
+      context,
+      'Server saved: $url',
+      severity: NexoraSnackSeverity.success,
+    );
     context.pop();
   }
 

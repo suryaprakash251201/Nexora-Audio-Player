@@ -199,7 +199,11 @@ class TagsScreen extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        showNexoraSnack(context, 'Create failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Create failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }
@@ -314,7 +318,11 @@ class _TagRow extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        showNexoraSnack(context, 'Rename failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Rename failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }
@@ -351,7 +359,11 @@ class _TagRow extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        showNexoraSnack(context, 'Delete failed: $e', severity: NexoraSnackSeverity.error);
+        showNexoraSnack(
+          context,
+          'Delete failed: $e',
+          severity: NexoraSnackSeverity.error,
+        );
       }
     }
   }
