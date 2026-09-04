@@ -17,7 +17,6 @@ import '../../../ui/widgets/track_menu_box.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 import '../../../core/download/download_manager.dart';
-import '../../playlists/presentation/add_to_playlist_sheet.dart';
 
 /// Album detail — audiophile redesign.
 ///
@@ -208,7 +207,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                               builder: (c) {
                                 final s = _tracks[i];
                                 final isCurrent =
-                                    ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
+                                    ref.watch(
+                                      playerProvider.select(
+                                        (s) => s.currentTrack?.id,
+                                      ),
+                                    ) ==
                                     s.id;
                                 return NexoraTrackRow(
                                   artworkUrl: s.coverUrl,
@@ -224,7 +227,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                                   isCurrent: isCurrent,
                                   isPlaying:
                                       isCurrent &&
-                                      ref.watch(playerProvider.select((s) => s.isPlaying)),
+                                      ref.watch(
+                                        playerProvider.select(
+                                          (s) => s.isPlaying,
+                                        ),
+                                      ),
                                   isFavorite: s.isFavorite,
                                   isDownloaded:
                                       s.isDownloaded ||
@@ -361,39 +368,7 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
     showTrackMenuBox(
       context: context,
       anchor: anchor,
-      options: [
-        TrackMenuOption(
-          icon: Icons.play_arrow_rounded,
-          label: 'Play next',
-          onTap: () => ref.read(playerProvider.notifier).playNext(s),
-        ),
-        TrackMenuOption(
-          icon: Icons.queue_music_rounded,
-          label: 'Add to queue',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueue(s);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-          },
-        ),
-        TrackMenuOption(
-          icon: Icons.playlist_add_rounded,
-          label: 'Add to playlist',
-          onTap: () => showAddToPlaylistSheet(context, song: s),
-        ),
-        downloadMenuOption(ref, context, s),
-        TrackMenuOption(
-          icon: Icons.share_outlined,
-          label: 'Share link',
-          onTap: () => shareTrack(ref, context, s),
-        ),
-        TrackMenuOption(
-          icon: Icons.label_outline_rounded,
-          label: 'Add tag…',
-          onTap: () => showTagSheet(context, ref, s),
-        ),
-      ],
+      options: trackMenuOptions(ref: ref, context: context, song: s),
     );
   }
 

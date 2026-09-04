@@ -14,7 +14,6 @@ import '../../../domain/entities/artist.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/widgets/track_menu_box.dart';
-import '../../playlists/presentation/add_to_playlist_sheet.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
@@ -296,7 +295,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             );
           }
           final s = _songs[i];
-          final isCurrent = ref.watch(playerProvider.select((s) => s.currentTrack?.id)) == s.id;
+          final isCurrent =
+              ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
+              s.id;
           return NexoraTrackRow(
             artworkUrl: s.coverUrl,
             title: s.title,
@@ -305,7 +306,9 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             duration: formatDuration(s.durationDuration),
             indexLabel: (i + 1).toString().padLeft(2, '0'),
             isCurrent: isCurrent,
-            isPlaying: isCurrent && ref.watch(playerProvider.select((s) => s.isPlaying)),
+            isPlaying:
+                isCurrent &&
+                ref.watch(playerProvider.select((s) => s.isPlaying)),
             isFavorite: s.isFavorite,
             isDownloaded:
                 s.isDownloaded ||
@@ -324,39 +327,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
     showTrackMenuBox(
       context: context,
       anchor: anchor,
-      options: [
-        TrackMenuOption(
-          icon: Icons.play_arrow_rounded,
-          label: 'Play next',
-          onTap: () => ref.read(playerProvider.notifier).playNext(song),
-        ),
-        TrackMenuOption(
-          icon: Icons.queue_music_rounded,
-          label: 'Add to queue',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueue(song);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-          },
-        ),
-        TrackMenuOption(
-          icon: Icons.playlist_add_rounded,
-          label: 'Add to playlist',
-          onTap: () => showAddToPlaylistSheet(context, song: song),
-        ),
-        downloadMenuOption(ref, context, song),
-        TrackMenuOption(
-          icon: Icons.share_outlined,
-          label: 'Share link',
-          onTap: () => shareTrack(ref, context, song),
-        ),
-        TrackMenuOption(
-          icon: Icons.label_outline_rounded,
-          label: 'Add tag…',
-          onTap: () => showTagSheet(context, ref, song),
-        ),
-      ],
+      options: trackMenuOptions(ref: ref, context: context, song: song),
     );
   }
 }

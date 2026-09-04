@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -10,6 +11,8 @@ import '../../data/api/tags_api.dart';
 import '../../data/dto/file_dto.dart';
 import '../../data/repositories/songs_repository.dart';
 import '../../domain/entities/song.dart';
+import '../../features/player/providers/player_provider.dart';
+import '../../features/playlists/presentation/add_to_playlist_sheet.dart';
 import '../theme.dart';
 
 /// One row inside the track options mini menu.
@@ -352,6 +355,60 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
   }
 }
 
+/// Divider entry for [showTrackMenuBox] option lists (see below).
+class TrackMenuDivider {
+  const TrackMenuDivider();
+}
+
+/// Standard option set for any track, in usage order: playback first,
+/// library actions second. [trailing] appends screen-specific actions
+/// (e.g. Remove from playlist) after a divider.
+List<Object> trackMenuOptions({
+  required WidgetRef ref,
+  required BuildContext context,
+  required Song song,
+  List<TrackMenuOption>? trailing,
+}) {
+  return [
+    TrackMenuOption(
+      icon: Icons.play_arrow_rounded,
+      label: 'Play next',
+      onTap: () => ref.read(playerProvider.notifier).playNext(song),
+    ),
+    TrackMenuOption(
+      icon: Icons.queue_music_rounded,
+      label: 'Add to queue',
+      onTap: () {
+        ref.read(playerProvider.notifier).addToQueue(song);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+      },
+    ),
+    downloadMenuOption(ref, context, song),
+    const TrackMenuDivider(),
+    TrackMenuOption(
+      icon: Icons.share_outlined,
+      label: 'Share link',
+      onTap: () => shareTrack(ref, context, song),
+    ),
+    TrackMenuOption(
+      icon: Icons.playlist_add_rounded,
+      label: 'Add to playlist',
+      onTap: () => showAddToPlaylistSheet(context, song: song),
+    ),
+    TrackMenuOption(
+      icon: Icons.label_outline_rounded,
+      label: 'Add tag…',
+      onTap: () => showTagSheet(context, ref, song),
+    ),
+    if (trailing != null && trailing.isNotEmpty) ...[
+      const TrackMenuDivider(),
+      ...trailing,
+    ],
+  ];
+}
+
 /// Small anchored menu box for a track's ⋯ button.
 ///
 /// Replaces the old full-width bottom sheets: a compact popup pinned near
@@ -359,8 +416,9 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
 Future<void> showTrackMenuBox({
   required BuildContext context,
   required Rect anchor,
-  required List<TrackMenuOption> options,
+  required List<Object> options,
 }) {
+  HapticFeedback.selectionClick();
   final screen = MediaQuery.sizeOf(context);
   const menuWidth = 224.0;
   final left = math.max(12.0, screen.width - menuWidth - 12);
@@ -379,37 +437,40 @@ Future<void> showTrackMenuBox({
       side: BorderSide(color: AppColors.border, width: 0.8),
     ),
     items: [
-      for (final option in options)
-        PopupMenuItem<void>(
-          padding: EdgeInsets.zero,
-          height: 46,
-          onTap: option.onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Icon(
-                  option.icon,
-                  size: 19,
-                  color: option.danger ? AppColors.error : AppColors.accent,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    option.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: option.danger ? AppColors.error : AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+      for (final entry in options)
+        if (entry is TrackMenuDivider)
+          const PopupMenuDivider(height: 8)
+        else if (entry is TrackMenuOption)
+          PopupMenuItem<void>(
+            padding: EdgeInsets.zero,
+            height: 46,
+            onTap: entry.onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  Icon(
+                    entry.icon,
+                    size: 19,
+                    color: entry.danger ? AppColors.error : AppColors.accent,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      entry.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: entry.danger ? AppColors.error : AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
     ],
   );
 }

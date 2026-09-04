@@ -42,10 +42,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
 
     final progress = duration.inMilliseconds == 0
         ? 0.0
-        : (position.inMilliseconds / duration.inMilliseconds).clamp(
-            0.0,
-            1.0,
-          );
+        : (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
 
     return AnimatedScale(
       scale: _dragOffset.abs() > 20 ? 0.98 : 1.0,

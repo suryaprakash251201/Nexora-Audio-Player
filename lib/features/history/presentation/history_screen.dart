@@ -112,7 +112,11 @@ class HistoryScreen extends ConsumerWidget {
                               final h = items[i];
                               final s = h.song;
                               final isCurrent =
-                                  ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
+                                  ref.watch(
+                                    playerProvider.select(
+                                      (s) => s.currentTrack?.id,
+                                    ),
+                                  ) ==
                                   s?.id;
                               return InkWell(
                                 onTap: s != null

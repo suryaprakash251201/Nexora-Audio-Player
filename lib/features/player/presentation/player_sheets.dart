@@ -461,9 +461,7 @@ class SpeedSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final speed = ref.watch(
-      playerProvider.select((s) => s.playbackSpeed),
-    );
+    final speed = ref.watch(playerProvider.select((s) => s.playbackSpeed));
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,

@@ -15,7 +15,6 @@ import '../../player/providers/player_provider.dart';
 import '../../../core/download/download_manager.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/widgets/track_menu_box.dart';
-import '../../playlists/presentation/add_to_playlist_sheet.dart';
 
 /// A folder in the Nexora Music root, with a lazily resolved cover.
 class FolderEntry {
@@ -261,7 +260,11 @@ class FolderBrowserScreen extends ConsumerWidget {
                               index: i + 1,
                               song: content.songs[i],
                               isCurrent:
-                                  ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
+                                  ref.watch(
+                                    playerProvider.select(
+                                      (s) => s.currentTrack?.id,
+                                    ),
+                                  ) ==
                                   content.songs[i].id,
                               isDownloaded:
                                   (content.songs[i] as Song).isDownloaded ||
@@ -309,39 +312,7 @@ class FolderBrowserScreen extends ConsumerWidget {
     showTrackMenuBox(
       context: context,
       anchor: anchor,
-      options: [
-        TrackMenuOption(
-          icon: Icons.play_arrow_rounded,
-          label: 'Play next',
-          onTap: () => ref.read(playerProvider.notifier).playNext(s),
-        ),
-        TrackMenuOption(
-          icon: Icons.queue_music_rounded,
-          label: 'Add to queue',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueue(s);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-          },
-        ),
-        TrackMenuOption(
-          icon: Icons.playlist_add_rounded,
-          label: 'Add to playlist',
-          onTap: () => showAddToPlaylistSheet(context, song: s),
-        ),
-        downloadMenuOption(ref, context, s),
-        TrackMenuOption(
-          icon: Icons.share_outlined,
-          label: 'Share link',
-          onTap: () => shareTrack(ref, context, s),
-        ),
-        TrackMenuOption(
-          icon: Icons.label_outline_rounded,
-          label: 'Add tag…',
-          onTap: () => showTagSheet(context, ref, s),
-        ),
-      ],
+      options: trackMenuOptions(ref: ref, context: context, song: s),
     );
   }
 }

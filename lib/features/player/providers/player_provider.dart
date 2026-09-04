@@ -168,8 +168,7 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       // emission is pure waste. Index is part of the signature so track
       // advances still persist.
       final idx = _handler.player.currentIndex ?? 0;
-      final sig = StringBuffer('$idx|')
-        ..writeAll(q.map((e) => e.id), ',');
+      final sig = StringBuffer('$idx|')..writeAll(q.map((e) => e.id), ',');
       if (sig.toString() != _lastPersistedSig) {
         _lastPersistedSig = sig.toString();
         unawaited(_queueManager.persistQueue(q, idx));

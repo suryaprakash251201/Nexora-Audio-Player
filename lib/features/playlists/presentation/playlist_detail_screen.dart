@@ -12,7 +12,6 @@ import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/widgets/track_menu_box.dart';
-import 'add_to_playlist_sheet.dart';
 import '../../../core/utils/formatters.dart';
 import '../../player/providers/player_provider.dart';
 import '../../../core/download/download_manager.dart';
@@ -204,9 +203,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   delegate: SliverChildBuilderDelegate((c, i) {
                     final s = _tracks[i];
                     final isCurrent =
-                        ref.watch(playerProvider.select((s) => s.currentTrack?.id)) == s.id;
+                        ref.watch(
+                          playerProvider.select((s) => s.currentTrack?.id),
+                        ) ==
+                        s.id;
                     final playing =
-                        isCurrent && ref.watch(playerProvider.select((s) => s.isPlaying));
+                        isCurrent &&
+                        ref.watch(playerProvider.select((s) => s.isPlaying));
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Container(
@@ -401,46 +404,20 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     showTrackMenuBox(
       context: context,
       anchor: anchor,
-      options: [
-        TrackMenuOption(
-          icon: Icons.play_arrow_rounded,
-          label: 'Play next',
-          onTap: () => ref.read(playerProvider.notifier).playNext(s),
-        ),
-        TrackMenuOption(
-          icon: Icons.queue_music_rounded,
-          label: 'Add to queue',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueue(s);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Added to queue')));
-          },
-        ),
-        TrackMenuOption(
-          icon: Icons.playlist_add_rounded,
-          label: 'Add to playlist',
-          onTap: () => showAddToPlaylistSheet(context, song: s),
-        ),
-        downloadMenuOption(ref, context, s),
-        TrackMenuOption(
-          icon: Icons.share_outlined,
-          label: 'Share link',
-          onTap: () => shareTrack(ref, context, s),
-        ),
-        TrackMenuOption(
-          icon: Icons.label_outline_rounded,
-          label: 'Add tag…',
-          onTap: () => showTagSheet(context, ref, s),
-        ),
-        if (canRemove)
-          TrackMenuOption(
-            icon: Icons.delete_outline_rounded,
-            label: 'Remove from playlist',
-            danger: true,
-            onTap: () => _removeFromPlaylist(s),
-          ),
-      ],
+      options: trackMenuOptions(
+        ref: ref,
+        context: context,
+        song: s,
+        trailing: [
+          if (canRemove)
+            TrackMenuOption(
+              icon: Icons.delete_outline_rounded,
+              label: 'Remove from playlist',
+              danger: true,
+              onTap: () => _removeFromPlaylist(s),
+            ),
+        ],
+      ),
     );
   }
 

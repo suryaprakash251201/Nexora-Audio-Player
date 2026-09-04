@@ -492,10 +492,7 @@ class _ContinueListening extends ConsumerWidget {
 
     final progress = duration.inMilliseconds == 0
         ? 0.0
-        : (position.inMilliseconds / duration.inMilliseconds).clamp(
-            0.0,
-            1.0,
-          );
+        : (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
     final lossless = track.extras?['lossless'] as bool? ?? false;
 
     return NexoraGradientCard(

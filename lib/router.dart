@@ -489,4 +489,3 @@ class _IosGlassNav extends StatelessWidget {
     );
   }
 }
-
