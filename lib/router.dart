@@ -193,7 +193,6 @@ class _AppShellState extends ConsumerState<AppShell>
   /// reposition. Using a [SpringSimulation] gives the dock a physical
   /// feel that snaps in and settles rather than easing linearly.
   late final AnimationController _navController;
-  late final AnimationController _miniController;
 
   bool _connectivityWired = false;
 
@@ -201,11 +200,9 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     _navController = AnimationController.unbounded(vsync: this);
-    _miniController = AnimationController.unbounded(vsync: this);
 
-    // Drive both springs to their resting positions.
+    // Drive the spring to its resting position.
     _springTo(_navController, 0.0);
-    _springTo(_miniController, 0.0);
   }
 
   /// Attach probe + reconnect exactly once (needs ref → post-frame).
@@ -237,7 +234,6 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void dispose() {
     _navController.dispose();
-    _miniController.dispose();
     super.dispose();
   }
 
@@ -254,10 +250,9 @@ class _AppShellState extends ConsumerState<AppShell>
   void _setNavVisible(bool v) {
     if (_navVisible == v) return;
     setState(() => _navVisible = v);
-    // 0 = visible, 1 = hidden below the fold.
+    // 0 = visible, 1 = hidden below the fold. The mini player stays
+    // pinned to the bottom edge; the nav bar slides away beneath it.
     _springTo(_navController, v ? 0.0 : 1.0);
-    // Mini player slides up to fill the space the nav bar left behind.
-    _springTo(_miniController, v ? 0.0 : 1.0);
   }
 
   int _indexForLocation(String loc) {
@@ -269,8 +264,8 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   /// Scroll-direction driven nav visibility:
-  ///  • scrolling down  → nav slides away, mini player drops into its place
-  ///  • scrolling up    → nav returns, mini player lifts above it
+  ///  • scrolling down  → nav slides away beneath the pinned mini player
+  ///  • scrolling up    → nav returns above the mini player
   bool _onUserScroll(UserScrollNotification notification) {
     final metrics = notification.metrics;
 
@@ -356,7 +351,6 @@ class _AppShellState extends ConsumerState<AppShell>
             bottom: 0,
             child: _BottomDock(
               navController: _navController,
-              miniController: _miniController,
               bottomInset: bottomInset,
               navBar: EnhancedGlassNavBar(
                 selectedIndex: idx,
@@ -371,25 +365,21 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 }
 
-/// Bottom dock — floating aurora chrome, safe-area aware.
-/// Mini player and nav bar share a single stack so they swap without overlap.
-/// 2.0: 14px side margins, 12px bottom float, 10px inter-gap.
+/// Bottom dock — mini player pinned to the bottom edge, nav bar above it.
+/// Both centered (maxWidth 640), hugging the bottom edge. On scroll-down
+/// the nav slides away beneath the mini player, which never moves.
 class _BottomDock extends StatelessWidget {
   final Animation<double> navController;
-  final Animation<double> miniController;
   final double bottomInset;
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
   static const double _miniHeight = 70;
-  // Mini sits just above the nav with a small breathing gap; both
-  // centered (maxWidth 640) and hugging the bottom edge.
   static const double _gap = 6;
   static const double _hiddenOffset = 110;
 
   const _BottomDock({
     required this.navController,
-    required this.miniController,
     required this.bottomInset,
     required this.navBar,
     required this.onOpenPlayer,
@@ -409,26 +399,6 @@ class _BottomDock extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           children: [
             AnimatedBuilder(
-              animation: miniController,
-              builder: (context, child) {
-                final t = miniController.value.clamp(0.0, 1.0);
-                // When nav hidden, mini drops to 0; otherwise sits above nav.
-                final bottom = lerpDouble(navTotal + _gap, 0, t);
-                return Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: bottom,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 640),
-                      child: child,
-                    ),
-                  ),
-                );
-              },
-              child: MiniPlayer(onTap: onOpenPlayer),
-            ),
-            AnimatedBuilder(
               animation: navController,
               builder: (context, child) {
                 final t = navController.value.clamp(0.0, 1.0);
@@ -438,7 +408,7 @@ class _BottomDock extends StatelessWidget {
                 return Positioned(
                   left: 0,
                   right: 0,
-                  bottom: -_hiddenOffset * t,
+                  bottom: _miniHeight + _gap - _hiddenOffset * t,
                   child: IgnorePointer(
                     ignoring: t > 0.05,
                     child: Opacity(
@@ -453,9 +423,20 @@ class _BottomDock extends StatelessWidget {
                   ),
                 );
               },
-              // #4: iOS frosted-glass ONLY around the nav bar.
-              // Mini player above keeps its own Nexora glass untouched.
+              // iOS frosted-glass ONLY around the nav bar.
+              // Mini player below keeps its own Nexora glass untouched.
               child: _IosGlassNav(child: navBar),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: MiniPlayer(onTap: onOpenPlayer),
+                ),
+              ),
             ),
           ],
         ),
@@ -509,5 +490,3 @@ class _IosGlassNav extends StatelessWidget {
   }
 }
 
-/// Linear interpolation helper kept private to this file.
-double lerpDouble(double a, double b, double t) => a + (b - a) * t;
