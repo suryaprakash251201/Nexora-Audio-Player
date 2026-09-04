@@ -2,7 +2,7 @@ class AppConstants {
   const AppConstants._();
 
   static const appName = 'Nexora';
-  static const artworkPlaceholder = 'assets/icon.png';
+  static const artworkPlaceholder = 'assets/logo.png';
   static const defaultPaginationLimit = 20;
   static const maxPaginationLimit = 100;
   static const debounceMs = 300;

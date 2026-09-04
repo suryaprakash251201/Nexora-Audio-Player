@@ -191,7 +191,7 @@ class _BrandLockup extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.asset(
-            'assets/icon.png',
+            'assets/logo.png',
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => NexoraGlyph(
               kind: NexoraGlyphKind.waveform,
