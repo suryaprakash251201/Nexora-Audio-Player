@@ -44,6 +44,9 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
+    - name: Generate launcher icons from assets/logo.png
+      run: dart run flutter_launcher_icons
+
     - name: Accept Android licenses
       # ubuntu-latest usually ships pre-accepted; this is a safe no-op fallback.
       run: yes | sdkmanager --licenses || true
@@ -75,6 +78,9 @@ jobs:
 
     - name: Install dependencies
       run: flutter pub get
+
+    - name: Generate launcher icons from assets/logo.png
+      run: dart run flutter_launcher_icons
 
     - name: Build iOS (No Codesign)
       run: flutter build ios --release --no-codesign
