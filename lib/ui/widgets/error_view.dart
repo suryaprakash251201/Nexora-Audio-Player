@@ -26,7 +26,7 @@ class ErrorView extends StatelessWidget {
                   width: 0.6,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.error_outline_rounded,
                 size: 24,
                 color: AppColors.error,
@@ -169,9 +169,9 @@ class OfflineBanner extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
-        children: const [
+        children: [
           Icon(Icons.wifi_off_rounded, size: 14, color: AppColors.warning),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Text(
             'Offline — showing cached content',
             style: TextStyle(

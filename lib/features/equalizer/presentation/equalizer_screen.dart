@@ -10,6 +10,7 @@ import '../../../core/audio/audio_handler.dart';
 import '../../../core/audio/equalizer_bridge.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_settings_row.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
@@ -212,12 +213,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               _sessionId() != null &&
               defaultTargetPlatform == TargetPlatform.android) {
             _bridgeWarned = true;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'System EQ rejected the curve on this device — curve kept locally.',
-                ),
-              ),
+            showNexoraSnack(
+              context,
+              'System EQ rejected the curve on this device — curve kept locally.',
+              severity: NexoraSnackSeverity.warning,
             );
           }
         })
@@ -508,10 +507,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                       primary: true,
                       onTap: () {
                         _persist();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('EQ curve saved on this device'),
-                          ),
+                        showNexoraSnack(
+                          context,
+                          'EQ curve saved on this device',
+                          severity: NexoraSnackSeverity.success,
                         );
                       },
                     ),

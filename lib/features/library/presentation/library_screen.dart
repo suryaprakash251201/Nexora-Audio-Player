@@ -542,7 +542,7 @@ class _PlaylistsTab extends ConsumerWidget {
                       height: 76,
                       decoration: BoxDecoration(
                         color: AppColors.accent.withValues(alpha: 0.11),
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: AppColors.accent.withValues(alpha: 0.22),
                           width: 0.7,

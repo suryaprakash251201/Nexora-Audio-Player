@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/api/tags_api.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -198,9 +199,7 @@ class TagsScreen extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Create failed: $e')));
+        showNexoraSnack(context, 'Create failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }
@@ -315,9 +314,7 @@ class _TagRow extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Rename failed: $e')));
+        showNexoraSnack(context, 'Rename failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }
@@ -354,9 +351,7 @@ class _TagRow extends ConsumerWidget {
       ref.invalidate(tagsProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+        showNexoraSnack(context, 'Delete failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }

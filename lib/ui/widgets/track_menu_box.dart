@@ -13,6 +13,7 @@ import '../../data/repositories/songs_repository.dart';
 import '../../domain/entities/song.dart';
 import '../../features/player/providers/player_provider.dart';
 import '../../features/playlists/presentation/add_to_playlist_sheet.dart';
+import '../nexora/nexora_snack.dart';
 import '../theme.dart';
 
 /// One row inside the track options mini menu.
@@ -58,11 +59,9 @@ Future<void> toggleDownload(
 ) async {
   final manager = ref.read(downloadManagerProvider);
   final ids = ref.read(downloadedIdsProvider.notifier);
-  void say(String message) {
+  void say(String message, {NexoraSnackSeverity severity = NexoraSnackSeverity.info}) {
     try {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      showNexoraSnack(context, message, severity: severity);
     } catch (_) {}
   }
 
@@ -70,7 +69,7 @@ Future<void> toggleDownload(
     if (currentlyDownloaded) {
       await manager.removeTrackDownload(song.id);
       ids.markRemoved(song.id);
-      say('Download removed');
+      say('Download removed', severity: NexoraSnackSeverity.success);
       return;
     }
     final url =
@@ -78,24 +77,22 @@ Future<void> toggleDownload(
         await ref.read(songsRepositoryProvider).streamUrl(song.id);
     final saved = await manager.downloadTrack(song.id, url);
     if (saved == null) {
-      say('Download failed — check connection and storage');
+      say('Download failed — check connection and storage', severity: NexoraSnackSeverity.error);
       return;
     }
     ids.markDownloaded(song.id);
-    say('Downloaded for offline playback');
+    say('Downloaded for offline playback', severity: NexoraSnackSeverity.success);
   } catch (e) {
-    say('Download failed: $e');
+    say('Download failed: $e', severity: NexoraSnackSeverity.error);
   }
 }
 
 /// Creates a public link for a track and opens the OS share sheet.
 /// Keeps the manage-shares list fresh for the Shares screen.
 Future<void> shareTrack(WidgetRef ref, BuildContext context, Song song) async {
-  void say(String message) {
+  void say(String message, {NexoraSnackSeverity severity = NexoraSnackSeverity.info}) {
     try {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      showNexoraSnack(context, message, severity: severity);
     } catch (_) {}
   }
 
@@ -112,7 +109,7 @@ Future<void> shareTrack(WidgetRef ref, BuildContext context, Song song) async {
       ),
     );
   } catch (e) {
-    say('Share failed: $e');
+    say('Share failed: $e', severity: NexoraSnackSeverity.error);
   }
 }
 
@@ -157,15 +154,11 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
       ref.invalidate(tagsProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Tagged “${tag.name}”')));
+      showNexoraSnack(context, 'Tagged “${tag.name}”', severity: NexoraSnackSeverity.success);
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Tag failed: $e')));
+      showNexoraSnack(context, 'Tag failed: $e', severity: NexoraSnackSeverity.error);
     }
   }
 
@@ -181,9 +174,7 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Create failed: $e')));
+      showNexoraSnack(context, 'Create failed: $e', severity: NexoraSnackSeverity.error);
     }
   }
 
@@ -382,9 +373,7 @@ List<Object> trackMenuOptions({
       label: 'Add to queue',
       onTap: () {
         ref.read(playerProvider.notifier).addToQueue(song);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Added to queue')));
+        showNexoraSnack(context, 'Added to queue', severity: NexoraSnackSeverity.success);
       },
     ),
     downloadMenuOption(ref, context, song),

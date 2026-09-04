@@ -132,16 +132,16 @@ class _EmptyDownloads extends StatelessWidget {
               width: 84,
               height: 84,
               decoration: BoxDecoration(
-                color: const Color(0xFF2EC4B6).withValues(alpha: 0.11),
-                borderRadius: BorderRadius.circular(22),
+                color: AppColors.hueTeal.withValues(alpha: 0.11),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFF2EC4B6).withValues(alpha: 0.22),
+                  color: AppColors.hueTeal.withValues(alpha: 0.22),
                   width: 0.7,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.download_rounded,
-                color: Color(0xFF2EC4B6),
+                color: AppColors.hueTeal,
                 size: 36,
               ),
             ),

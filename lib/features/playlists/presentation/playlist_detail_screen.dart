@@ -7,6 +7,7 @@ import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -429,15 +430,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           .removeTrack(widget.playlistId, s.itemRef!);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Removed from playlist')));
+        showNexoraSnack(context, 'Removed from playlist', severity: NexoraSnackSeverity.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Remove failed: $e')));
+        showNexoraSnack(context, 'Remove failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }
@@ -472,11 +469,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.delete_outline,
                   color: AppColors.error,
                 ),
-                title: const Text(
+                title: Text(
                   'Delete playlist',
                   style: TextStyle(color: AppColors.error),
                 ),
@@ -517,8 +514,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       if (mounted) Navigator.pop(context);
                     } catch (e) {
                       if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Delete failed: $e')),
+                        showNexoraSnack(
+                          context,
+                          'Delete failed: $e',
+                          severity: NexoraSnackSeverity.error,
                         );
                     }
                   }
@@ -723,9 +722,7 @@ class _CollaboratorsSectionState extends ConsumerState<_CollaboratorsSection> {
       _refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Remove failed: $e')));
+        showNexoraSnack(context, 'Remove failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }
@@ -965,9 +962,7 @@ class _AddCollaboratorSheetState extends ConsumerState<_AddCollaboratorSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Add failed: $e')));
+      showNexoraSnack(context, 'Add failed: $e', severity: NexoraSnackSeverity.error);
     }
   }
 }

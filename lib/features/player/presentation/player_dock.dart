@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/api/lyrics_api.dart';
+import '../../../data/dto/file_dto.dart';
 import '../../../data/repositories/favorites_repository.dart';
+import '../../../core/errors/exceptions.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 import '../providers/sleep_timer_provider.dart';
 
@@ -229,12 +232,10 @@ class PlayerBottomDock extends ConsumerWidget {
             dimmed: !hasLyrics,
             onTap:
                 onLyricsEdit ??
-                () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Lyrics editing needs a server track (root+path).',
-                    ),
-                  ),
+                () => showNexoraSnack(
+                  context,
+                  'Lyrics editing needs a server track (root+path).',
+                  severity: NexoraSnackSeverity.warning,
                 ),
           ),
         ],
@@ -333,23 +334,37 @@ class _FavoriteButtonState extends ConsumerState<FavoriteButton> {
   @override
   void initState() {
     super.initState();
-    _loadLiked(widget.songId);
+    _loadLiked(_canonicalId());
   }
 
   @override
   void didUpdateWidget(covariant FavoriteButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.songId != widget.songId) {
+    if (oldWidget.songId != widget.songId ||
+        oldWidget.track.id != widget.track.id) {
       setState(() => _liked = false);
-      _loadLiked(widget.songId);
+      _loadLiked(_canonicalId());
     }
+  }
+
+  /// Canonical "rootId|path" id. Extras carry it explicitly (new queues);
+  /// fall back to rootId+path extras, then the constructor songId, which
+  /// may itself be a stream URL that [NexoraFiles.splitId] can parse.
+  String _canonicalId() {
+    final ex = widget.track.extras ?? {};
+    final sid = (ex['songId'] as String?) ?? widget.songId;
+    if (sid.contains('|')) return sid;
+    final root = (ex['rootId'] as String?) ?? '';
+    final path = (ex['path'] as String?) ?? '';
+    if (root.isNotEmpty && path.isNotEmpty) return '$root|$path';
+    return sid;
   }
 
   /// Real initial state from the local favorites mirror (never assume).
   Future<void> _loadLiked(String songId) async {
     try {
       final v = await ref.read(favoritesRepositoryProvider).isFavorite(songId);
-      if (mounted && songId == widget.songId) {
+      if (mounted && _canonicalId() == songId) {
         setState(() => _liked = v);
       }
     } catch (_) {}
@@ -368,18 +383,52 @@ class _FavoriteButtonState extends ConsumerState<FavoriteButton> {
                 _busy = true;
               });
               try {
+                final id = _canonicalId();
+                // Validate before hitting the network: an unparseable id
+                // (no root|path, no URL query) would 400 on the server.
+                final parts = NexoraFiles.splitId(id);
+                // splitId falls back to (root: id, path: id) when the id
+                // carries no root|path or URL query — that would 400.
+                final badRef =
+                    parts.root.isEmpty ||
+                    parts.path.isEmpty ||
+                    (parts.root == id && parts.path == id);
+                if (badRef) {
+                  if (mounted) {
+                    setState(() => _liked = !next);
+                    showNexoraSnack(
+                      context,
+                      'Cannot favorite this track (missing server reference).',
+                      severity: NexoraSnackSeverity.warning,
+                    );
+                  }
+                  return;
+                }
                 await ref
                     .read(favoritesRepositoryProvider)
-                    .toggleFavorite(widget.songId, !next);
+                    .toggleFavorite(id, !next);
               } catch (e) {
                 if (mounted) {
-                  setState(() => _liked = !next);
-                  // Honest message: offline failures are queued silently
-                  // by the repository, so anything reaching here is real.
-                  final msg = e.toString().replaceFirst('Exception: ', '');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Favorite failed: $msg')),
-                  );
+                  // Benign races: liking an already-favorited track (409,
+                  // or 400 duplicate) and unliking a non-favorited one
+                  // (404) keep the optimistic state instead of failing.
+                  final code = e is ApiException ? e.statusCode : null;
+                  final benign =
+                      (next && (code == 409 || code == 400)) ||
+                      (!next && code == 404);
+                  if (!benign) {
+                    setState(() => _liked = !next);
+                    // Honest message: offline failures are queued silently
+                    // by the repository, so anything reaching here is real.
+                    final msg = e is ApiException
+                        ? e.message
+                        : e.toString().replaceFirst('Exception: ', '');
+                    showNexoraSnack(
+                      context,
+                      'Favorite failed: $msg',
+                      severity: NexoraSnackSeverity.error,
+                    );
+                  }
                 }
               } finally {
                 if (mounted) setState(() => _busy = false);

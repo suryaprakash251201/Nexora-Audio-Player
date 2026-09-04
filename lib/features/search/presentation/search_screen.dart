@@ -30,12 +30,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
-  static const _filters = <_FilterChipData>[
-    _FilterChipData('All', Icons.apps_rounded, Color(0xFF3A7BFF)),
-    _FilterChipData('Songs', Icons.music_note_rounded, Color(0xFF6B5BFF)),
-    _FilterChipData('Albums', Icons.album_rounded, Color(0xFF2EC4B6)),
-    _FilterChipData('Artists', Icons.person_rounded, Color(0xFFFFB020)),
-    _FilterChipData('Playlists', Icons.queue_music_rounded, Color(0xFFFF4D6D)),
+  static final _filters = <_FilterChipData>[
+    _FilterChipData('All', Icons.apps_rounded, AppColors.accent),
+    _FilterChipData('Songs', Icons.music_note_rounded, AppColors.hueViolet),
+    _FilterChipData('Albums', Icons.album_rounded, AppColors.hueTeal),
+    _FilterChipData('Artists', Icons.person_rounded, AppColors.warning),
+    _FilterChipData(
+      'Playlists',
+      Icons.queue_music_rounded,
+      AppColors.accentPink,
+    ),
   ];
 
   int _selectedFilter = 0;
@@ -484,13 +488,13 @@ class _BrowseGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = <_BrowseEntry>[
-      _BrowseEntry('Songs', Icons.music_note_rounded, const Color(0xFF6B5BFF)),
-      _BrowseEntry('Albums', Icons.album_rounded, const Color(0xFF2EC4B6)),
-      _BrowseEntry('Artists', Icons.person_rounded, const Color(0xFFFFB020)),
+      _BrowseEntry('Songs', Icons.music_note_rounded, AppColors.hueViolet),
+      _BrowseEntry('Albums', Icons.album_rounded, AppColors.hueTeal),
+      _BrowseEntry('Artists', Icons.person_rounded, AppColors.warning),
       _BrowseEntry(
         'Playlists',
         Icons.queue_music_rounded,
-        const Color(0xFFFF4D6D),
+        AppColors.accentPink,
       ),
     ];
     return GridView.count(

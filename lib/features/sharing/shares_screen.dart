@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/api/shares_api.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/enhanced_glass.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -172,8 +173,10 @@ class _ShareRow extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: share.url));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Link copied')),
+                    showNexoraSnack(
+                      context,
+                      'Link copied',
+                      severity: NexoraSnackSeverity.success,
                     );
                   },
                   icon: const Icon(Icons.copy_rounded, size: 16),
@@ -244,9 +247,7 @@ class _ShareRow extends ConsumerWidget {
       ref.invalidate(sharesProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Revoke failed: $e')));
+        showNexoraSnack(context, 'Revoke failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }

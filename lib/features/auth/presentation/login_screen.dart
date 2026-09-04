@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/config/app_config.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -42,8 +43,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final user = _userController.text.trim();
     final pass = _passController.text;
     if (user.isEmpty || pass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username and password required')),
+      showNexoraSnack(
+        context,
+        'Username and password required',
+        severity: NexoraSnackSeverity.warning,
       );
       return;
     }
@@ -66,29 +69,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final status = failure.statusCode != null
           ? ' (${failure.statusCode})'
           : '';
-      const detail = 'Server: configured above';
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${failure.message}$code$status',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  detail,
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
+        showNexoraSnack(
+          context,
+          '${failure.message}$code$status — Check the server address configured above',
+          severity: NexoraSnackSeverity.error,
+          duration: const Duration(seconds: 5),
         );
       }
     }
@@ -179,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(19),
+                                borderRadius: BorderRadius.circular(18),
                                 color: isDark
                                     ? const Color(0xFF0C0F16)
                                     : Colors.white,
@@ -229,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     width: 0.7,
                                   ),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _Dot(),
@@ -319,7 +305,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.check_circle_rounded,
                                     size: 13,
                                     color: AppColors.success,
@@ -328,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Expanded(
                                     child: Text(
                                       'Saved: $_savedServerUrl',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.success,
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w600,
@@ -459,7 +445,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.error_outline_rounded,
                                       size: 18,
                                       color: AppColors.error,
@@ -470,7 +456,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         Failure.fromException(
                                           auth.error!,
                                         ).message,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.error,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w600,
@@ -502,24 +488,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         _savedServerUrl = null;
                                         _serverController.clear();
                                       });
-                                      ScaffoldMessenger.of(
+                                      showNexoraSnack(
                                         context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Stored session & server cleared.',
-                                          ),
-                                        ),
+                                        'Stored session & server cleared.',
+                                        severity: NexoraSnackSeverity.success,
                                       );
                                     }
                                   } catch (e) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(
+                                      showNexoraSnack(
                                         context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Clear failed: $e'),
-                                        ),
+                                        'Clear failed: $e',
+                                        severity: NexoraSnackSeverity.error,
                                       );
                                     }
                                   }
@@ -553,7 +533,7 @@ class _Dot extends StatelessWidget {
     return Container(
       width: 6,
       height: 6,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.success,
         shape: BoxShape.circle,
       ),

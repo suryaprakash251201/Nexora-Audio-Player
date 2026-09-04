@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 
 class ServerConfigScreen extends ConsumerStatefulWidget {
@@ -77,16 +78,12 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final storage = ref.read(secureStorageProvider);
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter server URL')));
+      showNexoraSnack(context, 'Enter server URL', severity: NexoraSnackSeverity.warning);
       return;
     }
     await storage.saveServerUrl(url);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Server saved: $url')));
+    showNexoraSnack(context, 'Server saved: $url', severity: NexoraSnackSeverity.success);
     context.pop();
   }
 

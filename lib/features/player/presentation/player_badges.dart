@@ -114,9 +114,9 @@ class LosslessBadge extends StatelessWidget {
                 : 'assets/lossless-wave.png',
             height: 22,
             fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => const Icon(
+            errorBuilder: (_, _, _) => Icon(
               Icons.high_quality_rounded,
-              color: Color(0xFFFFB020),
+              color: AppColors.warning,
               size: 22,
             ),
           ),

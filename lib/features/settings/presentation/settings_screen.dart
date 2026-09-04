@@ -67,10 +67,10 @@ class SettingsScreen extends ConsumerWidget {
                         final timer = ref.watch(sleepTimerProvider);
                         return _SettingTile(
                           icon: Icons.bedtime_rounded,
-                          iconBg: const Color(
-                            0xFF6B5BFF,
-                          ).withValues(alpha: isDark ? 0.14 : 0.10),
-                          iconColor: const Color(0xFF6B5BFF),
+                          iconBg: AppColors.hueViolet.withValues(
+                            alpha: isDark ? 0.14 : 0.10,
+                          ),
+                          iconColor: AppColors.hueViolet,
                           title: 'Sleep timer',
                           subtitle: timer.isActive ? timer.label : 'Off',
                           trailing: Switch.adaptive(
@@ -97,10 +97,10 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _SettingTile(
                       icon: Icons.speed_rounded,
-                      iconBg: const Color(
-                        0xFFFF8A3D,
-                      ).withValues(alpha: isDark ? 0.13 : 0.09),
-                      iconColor: const Color(0xFFFF8A3D),
+                      iconBg: AppColors.hueOrange.withValues(
+                        alpha: isDark ? 0.13 : 0.09,
+                      ),
+                      iconColor: AppColors.hueOrange,
                       title: 'Playback speed',
                       subtitle: '1.0× • Standard',
                     ),
@@ -109,14 +109,14 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 _SectionGroup(
                   title: 'LIBRARY',
-                  accent: const Color(0xFFB24CFF),
+                  accent: AppColors.hueMagenta,
                   children: [
                     _SettingTile(
                       icon: Icons.download_rounded,
-                      iconBg: const Color(
-                        0xFF2EC4B6,
-                      ).withValues(alpha: isDark ? 0.13 : 0.10),
-                      iconColor: const Color(0xFF2EC4B6),
+                      iconBg: AppColors.hueTeal.withValues(
+                        alpha: isDark ? 0.13 : 0.10,
+                      ),
+                      iconColor: AppColors.hueTeal,
                       title: 'Downloads',
                       subtitle: 'Manage offline tracks',
                       showChevron: true,
@@ -131,10 +131,10 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _SettingTile(
                       glyph: NexoraGlyphKind.stats,
-                      iconBg: const Color(
-                        0xFFFFB020,
-                      ).withValues(alpha: isDark ? 0.13 : 0.10),
-                      iconColor: const Color(0xFFFFB020),
+                      iconBg: AppColors.warning.withValues(
+                        alpha: isDark ? 0.13 : 0.10,
+                      ),
+                      iconColor: AppColors.warning,
                       title: 'Your stats',
                       subtitle: 'Listening time & top artists',
                       showChevron: true,
@@ -153,10 +153,10 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _SettingTile(
                       icon: Icons.label_outline_rounded,
-                      iconBg: const Color(
-                        0xFFB24CFF,
-                      ).withValues(alpha: isDark ? 0.13 : 0.10),
-                      iconColor: const Color(0xFFB24CFF),
+                      iconBg: AppColors.hueMagenta.withValues(
+                        alpha: isDark ? 0.13 : 0.10,
+                      ),
+                      iconColor: AppColors.hueMagenta,
                       title: 'Tags',
                       subtitle: 'Organize files beyond playlists',
                       showChevron: true,
@@ -167,7 +167,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 _SectionGroup(
                   title: 'APPEARANCE',
-                  accent: const Color(0xFF4ECDC4),
+                  accent: AppColors.hueAqua,
                   children: [
                     _SettingTile(
                       icon:
@@ -178,10 +178,10 @@ class SettingsScreen extends ConsumerWidget {
                                 AppThemePreference.light
                           ? Icons.light_mode_rounded
                           : Icons.brightness_auto_rounded,
-                      iconBg: const Color(
-                        0xFF6B7AFF,
-                      ).withValues(alpha: isDark ? 0.14 : 0.10),
-                      iconColor: const Color(0xFF6B7AFF),
+                      iconBg: AppColors.hueViolet.withValues(
+                        alpha: isDark ? 0.14 : 0.10,
+                      ),
+                      iconColor: AppColors.hueViolet,
                       title: 'Theme',
                       subtitle: _themeLabel(ref.watch(themeModeProvider)),
                       showChevron: true,
@@ -192,10 +192,10 @@ class SettingsScreen extends ConsumerWidget {
                         final mode = ref.watch(playerVisualModeProvider);
                         return _SettingTile(
                           icon: _playerStyleIcon(mode),
-                          iconBg: const Color(
-                            0xFFFF6B9D,
-                          ).withValues(alpha: isDark ? 0.13 : 0.09),
-                          iconColor: const Color(0xFFFF6B9D),
+                          iconBg: AppColors.hueCoral.withValues(
+                            alpha: isDark ? 0.13 : 0.09,
+                          ),
+                          iconColor: AppColors.hueCoral,
                           title: 'Player style',
                           subtitle: mode.label,
                           showChevron: true,
@@ -815,13 +815,13 @@ class _SleepTimerSheet extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6B5BFF).withValues(alpha: 0.12),
+                      color: AppColors.hueViolet.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       Icons.bedtime_rounded,
                       size: 18,
-                      color: const Color(0xFF6B5BFF),
+                      color: AppColors.hueViolet,
                     ),
                   ),
                   const SizedBox(width: 12),

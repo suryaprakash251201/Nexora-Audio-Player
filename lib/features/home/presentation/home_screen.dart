@@ -7,6 +7,7 @@ import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_motion.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_surfaces.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
@@ -220,7 +221,7 @@ class _BrandLockup extends StatelessWidget {
                 Container(
                   width: 5,
                   height: 5,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.success,
                     shape: BoxShape.circle,
                   ),
@@ -346,10 +347,10 @@ class _QuickActions extends ConsumerWidget {
     void shuffleAll() {
       final songs = songsAsync.value;
       if (songs == null || songs.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Library is still loading — try again shortly.'),
-          ),
+        showNexoraSnack(
+          context,
+          'Library is still loading — try again shortly.',
+          severity: NexoraSnackSeverity.warning,
         );
         return;
       }
@@ -368,19 +369,19 @@ class _QuickActions extends ConsumerWidget {
       _QuickActionData(
         icon: Icons.favorite_rounded,
         label: 'Favorites',
-        color: const Color(0xFFFF4D6D),
+        color: AppColors.error,
         onTap: () => context.push('/favorites'),
       ),
       _QuickActionData(
         icon: Icons.download_rounded,
         label: 'Downloads',
-        color: const Color(0xFF2EC4B6),
+        color: AppColors.hueTeal,
         onTap: () => context.push('/downloads'),
       ),
       _QuickActionData(
         icon: Icons.equalizer_rounded,
         label: 'Equalizer',
-        color: const Color(0xFFFFB020),
+        color: AppColors.warning,
         onTap: () => context.push('/equalizer'),
       ),
     ];
@@ -1353,7 +1354,7 @@ class _HomeFolderCard extends ConsumerWidget {
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(7),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(
                           Icons.folder_rounded,

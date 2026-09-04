@@ -9,6 +9,7 @@ import '../../../data/api/audio_api.dart';
 import '../../../data/api/lyrics_api.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/player_visual_mode_provider.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/connectivity_banner.dart';
 import '../../../ui/widgets/lyrics_display.dart';
@@ -226,19 +227,6 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                     onClose: () => Navigator.pop(context),
                     onMode: () => _showVisualModeSheet(context, ref),
                   ),
-                  // Swipe hint (subtle, first-run discoverability)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2, bottom: 2),
-                    child: Text(
-                      '‹  SWIPE TO CHANGE  ›',
-                      style: TextStyle(
-                        color: AppColors.textFaint.withValues(alpha: 0.85),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.2,
-                      ),
-                    ),
-                  ),
                   // FIXED STAGE — no scroll on any mode. Artwork scales to
                   // fit width AND height; sections share space evenly so
                   // controls stay aligned on every screen size.
@@ -268,14 +256,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                     if ((lyrics?.value?.hasLyrics ?? false)) {
                                       setState(() => _showLyrics = true);
                                     } else {
-                                      ScaffoldMessenger.of(
+                                      showNexoraSnack(
                                         context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'No lyrics for this track',
-                                          ),
-                                        ),
+                                        'No lyrics for this track',
+                                        severity: NexoraSnackSeverity.warning,
                                       );
                                     }
                                   },
@@ -395,12 +379,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                                   if ((lyrics?.value?.hasLyrics ?? false)) {
                                     setState(() => _showLyrics = true);
                                   } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'No lyrics for this track',
-                                        ),
-                                      ),
+                                    showNexoraSnack(
+                                      context,
+                                      'No lyrics for this track',
+                                      severity: NexoraSnackSeverity.warning,
                                     );
                                   }
                                 },

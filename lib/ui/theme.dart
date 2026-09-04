@@ -145,9 +145,34 @@ class AppColors {
   static Color get accentTintSubtle => accent.withValues(alpha: 0.07);
 
   // ── Status ─────────────────────────────────────────────────
-  static const Color success = Color(0xFF2DD4BF);
-  static const Color warning = Color(0xFFFFB020);
-  static const Color error = Color(0xFFFF4D6A);
+  // Mode-aware: saturated pastels read well on deep space darks, but wash
+  // out on paper whites — light mode gets deepened variants for contrast.
+  static Color get success => mode == AppThemeMode.dark
+      ? const Color(0xFF2DD4BF)
+      : const Color(0xFF0D9488);
+  static Color get warning => mode == AppThemeMode.dark
+      ? const Color(0xFFFFB020)
+      : const Color(0xFFB45309);
+  static Color get error => mode == AppThemeMode.dark
+      ? const Color(0xFFFF4D6A)
+      : const Color(0xFFD9264A);
+
+  /// Solid, mode-independent fallbacks (for gradients / skins that never
+  /// want to adapt). Prefer the getters above in UI code.
+  static const Color successDark = Color(0xFF2DD4BF);
+  static const Color warningDark = Color(0xFFFFB020);
+  static const Color errorDark = Color(0xFFFF4D6A);
+
+  // ── Category hues ──────────────────────────────────────────
+  // Distinct hues for semantic grouping (filter chips, settings sections,
+  // quick actions, download states). Never used for selection — selection
+  // is always the blue accent system above.
+  static const Color hueTeal = Color(0xFF2EC4B6);
+  static const Color hueViolet = Color(0xFF6B5BFF);
+  static const Color hueOrange = Color(0xFFFF8A3D);
+  static const Color hueMagenta = Color(0xFFB24CFF);
+  static const Color hueAqua = Color(0xFF4ECDC4);
+  static const Color hueCoral = Color(0xFFFF6B9D);
 
   // ── Convenience ────────────────────────────────────────────
   static Color get accentOnDark => accent;
@@ -416,6 +441,30 @@ class AppTheme {
             onSurfaceVariant: AppColors.textMuted,
           );
 
+    // Complete the Material 3 container roles so any widget that reaches
+    // for scheme containers (chips, menus, FABs, system dialogs) lands on
+    // the Nexora palette instead of default Material tones.
+    final colorSchemeCompleted = colorScheme.copyWith(
+      surfaceDim: AppColors.background,
+      surfaceBright: AppColors.surface,
+      surfaceContainerLowest: AppColors.background,
+      surfaceContainerLow: AppColors.surfaceRaised,
+      surfaceContainerHigh: AppColors.surfaceHigh,
+      outlineVariant: AppColors.hairline,
+      primaryContainer: AppColors.accentTint,
+      onPrimaryContainer: isDark ? AppColors.accentSoft : AppColors.accentDim,
+      secondaryContainer: AppColors.accentCyan.withValues(alpha: 0.12),
+      onSecondaryContainer: isDark
+          ? AppColors.accentCyan
+          : const Color(0xFF0E7490),
+      tertiaryContainer: AppColors.accentPink.withValues(alpha: 0.12),
+      onTertiaryContainer: isDark
+          ? AppColors.accentPink
+          : const Color(0xFFC81E5A),
+      errorContainer: AppColors.error.withValues(alpha: 0.12),
+      onErrorContainer: AppColors.error,
+    );
+
     final textTheme = AppTypography.build(isDark: isDark);
 
     return ThemeData(
@@ -423,7 +472,7 @@ class AppTheme {
       brightness: isDark ? Brightness.dark : Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
-      colorScheme: colorScheme,
+      colorScheme: colorSchemeCompleted,
       textTheme: textTheme,
       iconTheme: IconThemeData(color: AppColors.text, size: 22),
       primaryIconTheme: IconThemeData(color: AppColors.accent, size: 22),
@@ -472,6 +521,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shadowColor: AppColors.shadowColor,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: AppColors.border, width: 0.8),
@@ -479,11 +529,34 @@ class AppTheme {
         margin: EdgeInsets.zero,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.95),
+        backgroundColor: AppColors.surfaceHigh.withValues(alpha: 0.96),
         contentTextStyle: TextStyle(color: AppColors.text, fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actionTextColor: AppColors.accentSoft,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 0.7),
+        ),
         behavior: SnackBarBehavior.floating,
         elevation: 12,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: AppColors.surfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        elevation: 16,
+        shadowColor: AppColors.shadowColorStrong,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 0.7),
+        ),
+        textStyle: TextStyle(color: AppColors.text, fontSize: 14),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHigh.withValues(alpha: 0.97),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border, width: 0.7),
+        ),
+        textStyle: TextStyle(color: AppColors.text, fontSize: 12),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -565,7 +638,7 @@ class AppTheme {
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.accent,
         inactiveTrackColor: AppColors.surfaceHigh,
-        thumbColor: Colors.white,
+        thumbColor: AppColors.text,
         overlayColor: AppColors.accent.withValues(alpha: 0.16),
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),

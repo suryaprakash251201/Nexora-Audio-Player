@@ -8,6 +8,7 @@ import '../../../data/api/files_api.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/error_view.dart';
@@ -210,7 +211,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     height: 32,
                     decoration: BoxDecoration(
                       color: AppColors.accent.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: AppColors.accent.withValues(alpha: 0.20),
                         width: 0.6,
@@ -309,15 +310,11 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       await ref.read(playlistsRepositoryProvider).createPlaylist(name);
       ref.invalidate(_playlistsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Created "$name"')));
+        showNexoraSnack(context, 'Created "$name"', severity: NexoraSnackSeverity.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        showNexoraSnack(context, 'Failed: $e', severity: NexoraSnackSeverity.error);
       }
     }
   }
@@ -341,7 +338,7 @@ class _EmptyPlaylists extends StatelessWidget {
               height: 84,
               decoration: BoxDecoration(
                 color: AppColors.accent.withValues(alpha: 0.11),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: AppColors.accent.withValues(alpha: 0.22),
                   width: 0.7,

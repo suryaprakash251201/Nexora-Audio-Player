@@ -6,6 +6,7 @@ import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 
@@ -63,9 +64,7 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
           .addTrack(playlist.id, widget.song.id);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Added to “${playlist.name}”')));
+      showNexoraSnack(context, 'Added to “${playlist.name}”', severity: NexoraSnackSeverity.success);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -89,9 +88,7 @@ class _AddToPlaylistSheetState extends ConsumerState<_AddToPlaylistSheet> {
       ref.invalidate(_playlistsProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Created “$name” and added the track')),
-      );
+      showNexoraSnack(context, 'Created “$name” and added the track', severity: NexoraSnackSeverity.success);
     } catch (e) {
       if (!mounted) return;
       setState(() {

@@ -104,9 +104,7 @@ class _PillState extends State<_Pill> with SingleTickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF0C0F16).withValues(alpha: 0.88)
-              : Colors.white.withValues(alpha: 0.92),
+          color: AppColors.surface.withValues(alpha: isDark ? 0.88 : 0.92),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: widget.color.withValues(alpha: 0.45),

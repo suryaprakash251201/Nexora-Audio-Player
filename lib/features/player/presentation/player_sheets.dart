@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/nexora/player_visual_mode_provider.dart';
@@ -593,8 +594,10 @@ class _LyricsEditorSheetState extends ConsumerState<LyricsEditorSheet> {
       );
       if (mounted) Navigator.pop(context);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Lyrics synced to server (.lrc)')),
+        showNexoraSnack(
+          context,
+          'Lyrics synced to server (.lrc)',
+          severity: NexoraSnackSeverity.success,
         );
       }
     } catch (e) {
