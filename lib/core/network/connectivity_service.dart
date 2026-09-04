@@ -76,7 +76,7 @@ class ConnectivityState {
 ///  1. [ConnectivityReporter] — instant reports from ApiClient
 ///     successes/failures (first failed call ⇒ fast offline signal).
 ///  2. Periodic light ping (`onProbe`, wired by the app shell to
-///     `ApiClient.ping`) every [probeInterval] as a backstop when the
+///     `ApiClient.ping`) every 20s online / 5s offline as a backstop when the
 ///     app is idle (no requests flowing).
 ///
 /// Debounce: 2 consecutive offline reports ⇒ offline; a single online
@@ -84,7 +84,10 @@ class ConnectivityState {
 /// [ConnectivityState.showBackOnline] and fires [onReconnect] (sync +
 /// refresh); the pill auto-hides after [backOnlineVisibleFor].
 class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
-  static const probeInterval = Duration(seconds: 20);
+  static const probeIntervalOnline = Duration(seconds: 20);
+  // While offline, poll much faster so "internet is back" is detected
+  // (and playback auto-resumed) within seconds, not up to 20s.
+  static const probeIntervalOffline = Duration(seconds: 5);
   static const backOnlineVisibleFor = Duration(seconds: 4);
   static const failuresToGoOffline = 2;
 
@@ -94,16 +97,19 @@ class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
   /// Fired once per offline→online transition (sync queue + refresh).
   Future<void> Function()? onReconnect;
 
+  /// Fired once per online→offline transition (e.g. pause playback).
+  Future<void> Function()? onOffline;
+
   StreamSubscription<bool>? _sub;
   Timer? _probeTimer;
   Timer? _hideTimer;
   int _failures = 0;
   bool _disposed = false;
 
-  ConnectivityMonitor({this.onProbe, this.onReconnect})
+  ConnectivityMonitor({this.onProbe, this.onReconnect, this.onOffline})
     : super(const ConnectivityState()) {
     _sub = ConnectivityReporter.instance.stream.listen(_onReport);
-    _probeTimer = Timer.periodic(probeInterval, (_) => _probe());
+    _startProbeTimer(probeIntervalOnline);
     // First probe soon after start so `unknown` resolves fast.
     Future.microtask(_probe);
   }
@@ -117,6 +123,11 @@ class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
       _failures++;
       if (_failures >= failuresToGoOffline) _setOffline();
     }
+  }
+
+  void _startProbeTimer(Duration interval) {
+    _probeTimer?.cancel();
+    _probeTimer = Timer.periodic(interval, (_) => _probe());
   }
 
   Future<void> _probe() async {
@@ -137,9 +148,11 @@ class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
   void attach({
     Future<bool> Function()? onProbe,
     Future<void> Function()? onReconnect,
+    Future<void> Function()? onOffline,
   }) {
     if (onProbe != null) this.onProbe = onProbe;
     if (onReconnect != null) this.onReconnect = onReconnect;
+    if (onOffline != null) this.onOffline = onOffline;
   }
 
   void _setOnline() {
@@ -155,8 +168,10 @@ class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
       showBackOnline: wasOffline, // pill only when recovering
       lastChangedAt: DateTime.now(),
     );
+    _startProbeTimer(probeIntervalOnline);
     if (wasOffline) {
-      // Fire-and-forget: sync queued mutations + refresh caches.
+      // Fire-and-forget: sync queued mutations + refresh caches +
+      // auto-resume playback that was interrupted by the network loss.
       Future(() async {
         try {
           await onReconnect?.call();
@@ -176,6 +191,15 @@ class ConnectivityMonitor extends StateNotifier<ConnectivityState> {
       showBackOnline: false,
       lastChangedAt: DateTime.now(),
     );
+    // Probe aggressively while offline so the moment the internet is
+    // back, the app reconnects (and playback auto-resumes) fast.
+    _startProbeTimer(probeIntervalOffline);
+    // Fire-and-forget: e.g. pause playback when the connection drops.
+    Future(() async {
+      try {
+        await onOffline?.call();
+      } catch (_) {}
+    });
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,9 +8,12 @@ import 'package:flutter/services.dart';
 import '../theme.dart';
 import 'artwork_image.dart' show nexoraArtworkCache;
 
-/// Full-screen synced lyrics — glass over blurred artwork, bold live line
-/// with glow pill + smooth auto-scroll. Tap a synced line to jump the
-/// song there; double-tap header/artwork to go back to the player.
+/// Full-screen synced lyrics — glass over blurred artwork, left-aligned
+/// Apple-Music-style lines with a signature karaoke sweep: the active
+/// line fills with a moving aurora gradient timed to its timestamps.
+/// Tap a synced line to jump the song there; auto-centering pauses while
+/// you scrub manually and resumes after 3s; double-tap header/artwork
+/// to go back to the player.
 class LyricsDisplay extends StatefulWidget {
   final List<LyricLine> lyrics;
   final Duration currentPosition;
@@ -42,6 +46,18 @@ class LyricsDisplay extends StatefulWidget {
 class _LyricsDisplayState extends State<LyricsDisplay> {
   final ScrollController _scrollController = ScrollController();
   int _currentLine = -1;
+
+  /// Width available to a lyric line inside the list (set by LayoutBuilder).
+  double _listWidth = 0;
+
+  /// Measured line-box heights, keyed by text+width. Enables pixel-exact
+  /// auto-scroll (the old hardcoded 56px row height drifted on wraps).
+  final Map<String, double> _boxHeights = {};
+
+  /// Auto-scroll pauses while the user scrubs around manually, then
+  /// quietly resumes so it never fights the reader.
+  bool _autoScroll = true;
+  Timer? _resumeTimer;
 
   @override
   void didUpdateWidget(covariant LyricsDisplay oldWidget) {
@@ -85,24 +101,123 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCurrentLine());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {}); // first frame measured — width now known
+      _updateCurrentLine();
+    });
+  }
+
+  // ── Karaoke timing ──────────────────────────────────────────
+
+  /// Line start: synced timestamp, or an equal slice of the track for
+  /// plain-text lyrics.
+  Duration _lineStart(int index) {
+    if (_hasTiming) {
+      return widget.lyrics[index].timestamp ?? Duration.zero;
+    }
+    final totalMs = widget.duration.inMilliseconds;
+    if (totalMs <= 0) return Duration.zero;
+    final seg = totalMs / widget.lyrics.length;
+    return Duration(milliseconds: (seg * index).round());
+  }
+
+  /// Line end: next synced stamp / next equal slice / track end.
+  Duration _lineEnd(int index) {
+    final t0 = _lineStart(index);
+    if (_hasTiming) {
+      for (var j = index + 1; j < widget.lyrics.length; j++) {
+        final t = widget.lyrics[j].timestamp;
+        if (t != null && t > t0) return t;
+      }
+    } else {
+      final totalMs = widget.duration.inMilliseconds;
+      if (totalMs > 0) {
+        final seg = totalMs / widget.lyrics.length;
+        return Duration(milliseconds: (seg * (index + 1)).round());
+      }
+    }
+    final d = widget.duration;
+    return d > t0 ? d : t0 + const Duration(seconds: 8);
+  }
+
+  /// 0..1 karaoke sweep of the given line — drives the moving fill.
+  double _lineProgress(int index) {
+    final t0 = _lineStart(index);
+    final t1 = _lineEnd(index);
+    final span = t1.inMilliseconds - t0.inMilliseconds;
+    if (span <= 0) return 1;
+    return ((widget.currentPosition.inMilliseconds - t0.inMilliseconds) / span)
+        .clamp(0.0, 1.0);
+  }
+
+  // ── Measured heights → exact scroll offsets ────────────────
+
+  /// Box height for one line. Reserves the LARGER of the resting and the
+  /// active type sizes, so a box never changes height when its line
+  /// becomes current — scroll offsets stay perfectly stable.
+  double _boxHeightFor(String text, double width) {
+    final key = '$text|$width';
+    final cached = _boxHeights[key];
+    if (cached != null) return cached;
+
+    double measure(TextStyle style) {
+      final tp = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 4,
+      )..layout(maxWidth: width);
+      final h = tp.height;
+      tp.dispose();
+      return h;
+    }
+
+    final resting = measure(_LyricsStyles.resting);
+    final active = measure(_LyricsStyles.active);
+    final h = (resting > active ? resting : active) + 24;
+    _boxHeights[key] = h;
+    return h;
+  }
+
+  /// Top edge of [index]'s box in list coordinates.
+  double _offsetOf(int index) {
+    var offset = 0.0;
+    for (var i = 0; i < index; i++) {
+      offset += _boxHeightFor(widget.lyrics[i].text, _listWidth);
+    }
+    return offset;
   }
 
   void _scrollToLine(int index) {
+    if (!_autoScroll || _listWidth <= 0) return;
     if (!_scrollController.hasClients) return;
-    final itemHeight = 56.0;
-    final viewportHeight = _scrollController.position.viewportDimension;
-    final targetOffset =
-        (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+    final box = _boxHeightFor(widget.lyrics[index].text, _listWidth);
+    final viewport = _scrollController.position.viewportDimension;
+    final target = _offsetOf(index) + box / 2 - viewport / 2;
     _scrollController.animateTo(
-      targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
+      target.clamp(0.0, _scrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 480),
+      curve: Curves.easeInOutCubic,
     );
+  }
+
+  void _pauseAutoScroll() {
+    _resumeTimer?.cancel();
+    if (_autoScroll) setState(() => _autoScroll = false);
+  }
+
+  void _scheduleAutoScrollResume() {
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _autoScroll = true);
+      if (_currentLine >= 0) _scrollToLine(_currentLine);
+    });
   }
 
   @override
   void dispose() {
+    _resumeTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -248,9 +363,9 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
                   Text(
                     'LYRICS',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withValues(alpha: 0.55),
                       fontSize: 10,
-                      letterSpacing: 2.4,
+                      letterSpacing: 3.0,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -268,6 +383,20 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
                         letterSpacing: -0.2,
                       ),
                     ),
+                    if (widget.artist != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.artist!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -322,79 +451,156 @@ class _LyricsDisplayState extends State<LyricsDisplay> {
           Colors.black,
           Colors.transparent,
         ],
-        stops: [0.0, 0.08, 0.92, 1.0],
+        stops: [0.0, 0.09, 0.9, 1.0],
       ).createShader(bounds),
       blendMode: BlendMode.dstIn,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-        itemCount: widget.lyrics.length,
-        itemBuilder: (context, index) {
-          final line = widget.lyrics[index];
-          final isCurrent = index == _currentLine;
-          final isPast = _currentLine >= 0 && index < _currentLine;
-          final tappable = line.timestamp != null && widget.onLineTap != null;
-
-          // Plain text lines — no cards. The live line pops in the
-          // signature blue gradient + spring scale; others fade by
-          // position. Works for synced AND plain-text lyrics.
-          final text = AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
-            style: TextStyle(
-              color: isCurrent
-                  ? Colors.white
-                  : isPast
-                  ? Colors.white.withValues(alpha: 0.38)
-                  : Colors.white.withValues(alpha: 0.72),
-              fontSize: isCurrent ? 23 : 16.5,
-              fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-              height: 1.45,
-              letterSpacing: isCurrent ? -0.3 : 0,
-              shadows: isCurrent
-                  ? [
-                      Shadow(
-                        color: AppColors.accent.withValues(alpha: 0.8),
-                        blurRadius: 18,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(line.text, textAlign: TextAlign.center),
-          );
-
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: tappable
-                ? () {
-                    HapticFeedback.selectionClick();
-                    widget.onLineTap!(line.timestamp!);
-                  }
-                : null,
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.symmetric(vertical: isCurrent ? 14 : 8),
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutBack,
-                scale: isCurrent ? 1.0 : 0.94,
-                child: isCurrent
-                    ? ShaderMask(
-                        shaderCallback: (bounds) => AppColors
-                            .accentGradientHorizontal
-                            .createShader(bounds),
-                        blendMode: BlendMode.srcIn,
-                        child: text,
-                      )
-                    : text,
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _listWidth = constraints.maxWidth - 48; // 24pt gutters
+          return NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              // Manual scrubbing pauses the auto-centering; it resumes
+              // after 3s of idle via _scheduleAutoScrollResume.
+              if (n is ScrollStartNotification && n.dragDetails != null) {
+                _pauseAutoScroll();
+              } else if (n is ScrollEndNotification) {
+                _scheduleAutoScrollResume();
+              }
+              return false;
+            },
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              itemCount: widget.lyrics.length,
+              itemBuilder: _buildLineItem,
             ),
           );
         },
       ),
     );
   }
+
+  Widget _buildLineItem(BuildContext context, int index) {
+    final line = widget.lyrics[index];
+    final isCurrent = index == _currentLine;
+    final isPast = _currentLine >= 0 && index < _currentLine;
+    final canSeek =
+        widget.onLineTap != null &&
+        (_hasTiming
+            ? line.timestamp != null
+            : widget.duration > Duration.zero);
+
+    final content = isCurrent
+        ? _buildKaraokeLine(line, index)
+        : Text(
+            line.text,
+            style: _LyricsStyles.resting,
+          );
+
+    return RepaintBoundary(
+      key: ValueKey('lyric-$index'),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: canSeek
+            ? () {
+                HapticFeedback.selectionClick();
+                widget.onLineTap!(_hasTiming ? line.timestamp! : _lineStart(index));
+              }
+            : null,
+        child: SizedBox(
+          height: _boxHeightFor(line.text, _listWidth),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 340),
+              curve: Curves.easeOutBack,
+              alignment: Alignment.centerLeft,
+              scale: isCurrent ? 1.0 : 0.96,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 340),
+                curve: Curves.easeOutCubic,
+                opacity: isCurrent ? 1.0 : (isPast ? 0.34 : 0.62),
+                child: content,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The active line — signature karaoke: a gradient fill sweeps across
+  /// the text in time with the song (interpolated smoothly between
+  /// position ticks). Base layer is dimmed white with a soft glow; the
+  /// sweep reveals the bright aurora gradient on top.
+  Widget _buildKaraokeLine(LyricLine line, int index) {
+    final progress = _lineProgress(index);
+    final base = _LyricsStyles.active.copyWith(
+      color: Colors.white.withValues(alpha: 0.40),
+      shadows: [
+        Shadow(
+          color: AppColors.accent.withValues(alpha: 0.55),
+          blurRadius: 26,
+        ),
+      ],
+    );
+    return Stack(
+      children: [
+        Text(line.text, style: base),
+        TweenAnimationBuilder<double>(
+          // Keyed so a new line restarts the sweep from zero instead of
+          // animating backwards from the previous line's progress.
+          key: ValueKey('karaoke-${line.text}-${line.timestamp}'),
+          tween: Tween<double>(begin: 0.0, end: progress),
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.linear,
+          builder: (context, v, child) => ClipRect(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              widthFactor: v,
+              child: child,
+            ),
+          ),
+          child: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Colors.white, AppColors.accentCyan],
+            ).createShader(bounds),
+            blendMode: BlendMode.srcIn,
+            child: Text(
+              line.text,
+              style: _LyricsStyles.active.copyWith(color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Type scale for the lyric lines. Shared by the TextPainter measurement
+/// and the rendered widgets so measured heights always match on screen.
+class _LyricsStyles {
+  _LyricsStyles._();
+
+  /// Resting lines — medium, slightly dimmed (opacity handled per state).
+  static const TextStyle resting = TextStyle(
+    fontSize: 16.5,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+    letterSpacing: -0.3,
+    color: Colors.white,
+  );
+
+  /// Active line — bold, larger, tight tracking.
+  static const TextStyle active = TextStyle(
+    fontSize: 23,
+    fontWeight: FontWeight.w800,
+    height: 1.35,
+    letterSpacing: -0.3,
+    color: Colors.white,
+  );
 }
 
 /// Represents a single line of lyrics with optional timestamp.

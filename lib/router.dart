@@ -28,6 +28,8 @@ import 'features/albums/presentation/album_detail_screen.dart';
 import 'features/artists/presentation/artist_detail_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/player/providers/player_provider.dart';
+import 'features/home/providers/home_provider.dart';
+import 'core/audio/audio_handler.dart';
 import 'core/network/api_client.dart';
 import 'core/network/connectivity_service.dart';
 import 'core/sync/sync_manager.dart';
@@ -217,11 +219,26 @@ class _AppShellState extends ConsumerState<AppShell>
         // null = no server configured → don't touch state.
         return r ?? true;
       },
+      onOffline: () async {
+        // No internet: stop playback right away (keeps queue, track and
+        // position so the song can auto-resume when the internet returns).
+        try {
+          await ref.read(audioHandlerProvider).pauseForNetworkLoss();
+        } catch (_) {}
+      },
       onReconnect: () async {
         // Flush offline mutations, then refresh caches so lists,
         // playlists, favorites and lyrics pick up server truth.
         try {
           await ref.read(syncManagerProvider).processSyncQueue();
+        } catch (_) {}
+        // Auto-fetch fresh server data everywhere.
+        _refreshAfterReconnect();
+        // Internet is back: auto-resume the song that was interrupted
+        // (re-fetches the queue / stream URLs and plays from the saved
+        // position).
+        try {
+          await ref.read(audioHandlerProvider).resumeAfterNetworkRestore();
         } catch (_) {}
         // Keep legacy compat provider in sync.
         try {
@@ -230,6 +247,18 @@ class _AppShellState extends ConsumerState<AppShell>
         } catch (_) {}
       },
     );
+  }
+
+  /// Re-fetch all home-screen server data after the connection returns.
+  void _refreshAfterReconnect() {
+    try {
+      ref.invalidate(recentSongsProvider);
+      ref.invalidate(homePlaylistsProvider);
+      ref.invalidate(recentlyPlayedProvider);
+      ref.invalidate(favoritesProvider);
+      ref.invalidate(featuredAlbumsProvider);
+      ref.invalidate(featuredArtistsProvider);
+    } catch (_) {}
   }
 
   @override
