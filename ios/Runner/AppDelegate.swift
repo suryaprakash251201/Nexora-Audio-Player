@@ -1,4 +1,3 @@
-import AVFoundation
 import Flutter
 import UIKit
 
@@ -42,41 +41,22 @@ import UIKit
   }
 }
 
+/// iOS EQ endpoint. Deliberately side-effect free: just_audio owns the
+/// AVPlayer graph and the shared AVAudioSession, which also drives the
+/// lock-screen / Control Center card (MPNowPlayingInfoCenter) and remote
+/// commands. Touching the session here (category/activation) used to stall
+/// lock-screen updates every time the EQ screen applied its curve, while
+/// the standalone AVAudioEngine graph below was never connected to the
+/// player output — pure harm, zero audible effect. So this validates the
+/// payload, persists nothing, touches nothing, and reports unavailable so
+/// Dart keeps the curve stored locally and stays honest in the UI.
 private final class IOSAudioEqualizerBridge {
-  private let audioEngine = AVAudioEngine()
-  private var equalizer: AVAudioUnitEQ?
-
   @discardableResult
   func apply(enabled: Bool, preamp: Float, frequencies: [Float], gains: [Float]) -> Bool {
     guard !frequencies.isEmpty, frequencies.count == gains.count else { return false }
-    let session = AVAudioSession.sharedInstance()
-    try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-    try? session.setActive(true)
-
-    if equalizer?.bands.count != frequencies.count {
-      if let oldEqualizer = equalizer {
-        audioEngine.detach(oldEqualizer)
-      }
-      let newEqualizer = AVAudioUnitEQ(numberOfBands: frequencies.count)
-      audioEngine.attach(newEqualizer)
-      equalizer = newEqualizer
-    }
-    guard let equalizer else { return false }
-
-    for (index, frequency) in frequencies.enumerated() {
-      let band = equalizer.bands[index]
-      band.filterType = .parametric
-      band.frequency = frequency
-      band.gain = gains[index]
-      band.bandwidth = 1.0
-      band.bypass = !enabled
-    }
-    equalizer.globalGain = preamp
-    equalizer.bypass = !enabled
-
-    // just_audio owns its playback graph. This standalone engine graph is
-    // configured safely, but is not connected to just_audio's output, so this
-    // cannot claim to DSP just_audio audio without an engine integration point.
+    // Real per-band DSP would require an MTAudioProcessingTap inside
+    // just_audio's player pipeline — not something an app-side engine can
+    // inject. Until such an integration point exists, report unavailable.
     return false
   }
 }

@@ -9,10 +9,27 @@
 - `UIBackgroundModes` includes `audio`
 - `NSAppTransportSecurity` → `NSAllowsLocalNetworking: true` (LAN http allowed), `NSAllowsArbitraryLoads: false` (HTTPS in prod)
 
-## Remote Controls
-- Lock screen `MPNowPlayingInfoCenter` updated by `audio_service` from `MediaItem` (title, artist, album, artwork, duration)
-- Remote commands: play/pause/next/prev/seek handled in `NexoraAudioHandler`
+## Remote Controls (lock-screen card + Control Center)
+- Lock-screen / Control Center / StandBy card is `MPNowPlayingInfoCenter`,
+  fed automatically by `audio_service` from `MediaItem` (title, artist,
+  album, artwork, duration) + `playbackState` (playing, position, speed).
+- Artwork: `MediaItem.artUri` thumbnails carry `?token=` auth, so the
+  system can download them without app headers (512px downscale).
+- Remote commands handled in `NexoraAudioHandler`: play, pause, stop,
+  seek (lock-screen scrubber), skip next/previous/queue-item, ±10s
+  rewind/fast-forward, headset click-to-toggle.
 - Control Center, headset, Bluetooth, Siri.
+
+## Session ownership (do not break this)
+- `just_audio` owns the AVPlayer graph; `audio_service` owns the shared
+  `AVAudioSession` (playback category) that powers the lock-screen card.
+- App/native code must NEVER call `setCategory`/`setActive` outside those
+  plugins. A past `IOSAudioEqualizerBridge` build did exactly that on
+  every EQ apply and stalled lock-screen updates — it is now a pure,
+  side-effect-free validator (real per-band DSP needs an
+  `MTAudioProcessingTap` inside just_audio's pipeline, which an app-side
+  engine cannot inject). EQ curves stay stored locally; iOS honestly
+  reports them unavailable instead of faking it.
 
 ## Interruptions & Route Changes
 - `audio_session` handles interruption (call, Siri) → pause/resume
