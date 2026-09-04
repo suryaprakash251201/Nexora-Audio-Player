@@ -484,13 +484,15 @@ class _ContinueListening extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(playerProvider);
-    final track = state.currentTrack;
+    final track = ref.watch(playerProvider.select((s) => s.currentTrack));
     if (track == null) return const SizedBox.shrink();
+    final position = ref.watch(playerProvider.select((s) => s.position));
+    final duration = ref.watch(playerProvider.select((s) => s.duration));
+    final isPlaying = ref.watch(playerProvider.select((s) => s.isPlaying));
 
-    final progress = state.duration.inMilliseconds == 0
+    final progress = duration.inMilliseconds == 0
         ? 0.0
-        : (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(
+        : (position.inMilliseconds / duration.inMilliseconds).clamp(
             0.0,
             1.0,
           );
@@ -520,14 +522,14 @@ class _ContinueListening extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         NexoraEqualizerBars(
-                          playing: state.isPlaying,
+                          playing: isPlaying,
                           barWidth: 2.5,
                           minHeight: 3,
                           maxHeight: 13,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          state.isPlaying ? 'NOW PLAYING' : 'PAUSED',
+                          isPlaying ? 'NOW PLAYING' : 'PAUSED',
                           style: TextStyle(
                             color: AppColors.accent,
                             fontSize: 9.5,
@@ -574,7 +576,7 @@ class _ContinueListening extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _HeroPlayButton(isPlaying: state.isPlaying),
+              _HeroPlayButton(isPlaying: isPlaying),
             ],
           ),
           const SizedBox(height: 14),

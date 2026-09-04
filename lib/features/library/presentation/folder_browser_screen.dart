@@ -261,7 +261,7 @@ class FolderBrowserScreen extends ConsumerWidget {
                               index: i + 1,
                               song: content.songs[i],
                               isCurrent:
-                                  ref.watch(playerProvider).currentTrack?.id ==
+                                  ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
                                   content.songs[i].id,
                               isDownloaded:
                                   (content.songs[i] as Song).isDownloaded ||

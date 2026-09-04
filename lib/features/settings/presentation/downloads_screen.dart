@@ -80,7 +80,7 @@ class DownloadsScreen extends ConsumerWidget {
               itemBuilder: (c, i) {
                 final s = tracks[i];
                 final isCurrent =
-                    ref.watch(playerProvider).currentTrack?.id == s.id;
+                    ref.watch(playerProvider.select((s) => s.currentTrack?.id)) == s.id;
                 return NexoraTrackRow(
                   artworkUrl: s.coverUrl,
                   title: s.title,
@@ -88,7 +88,7 @@ class DownloadsScreen extends ConsumerWidget {
                       '${s.artist ?? 'Unknown'} • ${formatDuration(Duration(seconds: s.duration ?? 0))}',
                   indexLabel: (i + 1).toString().padLeft(2, '0'),
                   isCurrent: isCurrent,
-                  isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
+                  isPlaying: isCurrent && ref.watch(playerProvider.select((s) => s.isPlaying)),
                   isDownloaded: true,
                   onTap: () => ref
                       .read(playerProvider.notifier)

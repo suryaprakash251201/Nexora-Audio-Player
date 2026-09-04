@@ -32,13 +32,17 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(playerProvider);
-    final track = state.currentTrack;
+    // Selective watches: position ticks must not rebuild on
+    // unrelated playback-state churn (volume/speed/shuffle).
+    final track = ref.watch(playerProvider.select((s) => s.currentTrack));
     if (track == null) return const SizedBox.shrink();
+    final position = ref.watch(playerProvider.select((s) => s.position));
+    final duration = ref.watch(playerProvider.select((s) => s.duration));
+    final isPlaying = ref.watch(playerProvider.select((s) => s.isPlaying));
 
-    final progress = state.duration.inMilliseconds == 0
+    final progress = duration.inMilliseconds == 0
         ? 0.0
-        : (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(
+        : (position.inMilliseconds / duration.inMilliseconds).clamp(
             0.0,
             1.0,
           );
@@ -126,7 +130,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                                 ),
                               ),
                             ),
-                          if (state.isPlaying)
+                          if (isPlaying)
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.45),
@@ -178,7 +182,7 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                       ),
                     ),
                     _MiniPlayButton(
-                      isPlaying: state.isPlaying,
+                      isPlaying: isPlaying,
                       onPressed: () =>
                           ref.read(playerProvider.notifier).togglePlay(),
                     ),

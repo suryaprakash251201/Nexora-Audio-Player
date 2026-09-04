@@ -180,10 +180,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                               builder: (c) {
                                 final s = _songs[i];
                                 final isCurrent =
-                                    ref
-                                        .watch(playerProvider)
-                                        .currentTrack
-                                        ?.id ==
+                                    ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
                                     s.id;
                                 return NexoraTrackRow(
                                   artworkUrl: s.coverUrl,
@@ -199,7 +196,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                                   isCurrent: isCurrent,
                                   isPlaying:
                                       isCurrent &&
-                                      ref.watch(playerProvider).isPlaying,
+                                      ref.watch(playerProvider.select((s) => s.isPlaying)),
                                   isFavorite: s.isFavorite,
                                   isDownloaded: s.isDownloaded,
                                   onTap: () => ref

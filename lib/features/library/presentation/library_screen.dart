@@ -296,7 +296,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             );
           }
           final s = _songs[i];
-          final isCurrent = ref.watch(playerProvider).currentTrack?.id == s.id;
+          final isCurrent = ref.watch(playerProvider.select((s) => s.currentTrack?.id)) == s.id;
           return NexoraTrackRow(
             artworkUrl: s.coverUrl,
             title: s.title,
@@ -305,7 +305,7 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
             duration: formatDuration(s.durationDuration),
             indexLabel: (i + 1).toString().padLeft(2, '0'),
             isCurrent: isCurrent,
-            isPlaying: isCurrent && ref.watch(playerProvider).isPlaying,
+            isPlaying: isCurrent && ref.watch(playerProvider.select((s) => s.isPlaying)),
             isFavorite: s.isFavorite,
             isDownloaded:
                 s.isDownloaded ||

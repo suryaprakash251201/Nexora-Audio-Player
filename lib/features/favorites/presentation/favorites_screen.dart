@@ -120,7 +120,7 @@ class FavoritesScreen extends ConsumerWidget {
                             itemBuilder: (c, i) {
                               final s = songs[i];
                               final isCurrent =
-                                  ref.watch(playerProvider).currentTrack?.id ==
+                                  ref.watch(playerProvider.select((s) => s.currentTrack?.id)) ==
                                   s.id;
                               return InkWell(
                                 onTap: () => ref

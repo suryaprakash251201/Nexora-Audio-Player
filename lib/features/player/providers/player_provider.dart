@@ -97,6 +97,7 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   StreamSubscription? _queueSub;
   StreamSubscription? _mediaItemSub;
   Timer? _historyTimer;
+  String? _lastPersistedSig;
 
   PlayerNotifier(
     this._ref,
@@ -131,9 +132,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
       }
       if (ps.playing) {
         _historyTimer?.cancel();
+        // Local mirror only — no recently-played invalidation here, or
+        // every tick would refetch server recents (network churn) and
+        // rebuild every history/stats listener mid-playback.
         _historyTimer = Timer.periodic(
           const Duration(seconds: 10),
-          (_) => unawaited(_recordHistory()),
+          (_) => unawaited(_recordHistory(notify: false)),
         );
       } else {
         _historyTimer?.cancel();
@@ -159,9 +163,17 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
 
     _queueSub = _handler.queue.listen((q) {
       state = state.copyWith(queue: q);
-      // Persist queue
+      // Persist only on real change: duration updates re-emit the queue
+      // with identical ids, and a full JSON encode + SQLite write per
+      // emission is pure waste. Index is part of the signature so track
+      // advances still persist.
       final idx = _handler.player.currentIndex ?? 0;
-      _queueManager.persistQueue(q, idx);
+      final sig = StringBuffer('$idx|')
+        ..writeAll(q.map((e) => e.id), ',');
+      if (sig.toString() != _lastPersistedSig) {
+        _lastPersistedSig = sig.toString();
+        unawaited(_queueManager.persistQueue(q, idx));
+      }
     });
 
     // Restore queue if needed
@@ -181,7 +193,12 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
     } catch (_) {}
   }
 
-  Future<void> _recordHistory({bool completed = false}) async {
+  /// [notify] refreshes recently-played UI (server refetch). True only on
+  /// track change / completion — never on the 10s mirror tick.
+  Future<void> _recordHistory({
+    bool completed = false,
+    bool notify = true,
+  }) async {
     final item = state.currentTrack;
     if (item == null) return;
     final songId = (item.extras?['songId'] as String?) ?? item.id;
@@ -207,7 +224,7 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
         completed: completed,
       );
     } finally {
-      _ref.invalidate(recentlyPlayedProvider);
+      if (notify) _ref.invalidate(recentlyPlayedProvider);
     }
   }
 

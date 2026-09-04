@@ -204,9 +204,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   delegate: SliverChildBuilderDelegate((c, i) {
                     final s = _tracks[i];
                     final isCurrent =
-                        ref.watch(playerProvider).currentTrack?.id == s.id;
+                        ref.watch(playerProvider.select((s) => s.currentTrack?.id)) == s.id;
                     final playing =
-                        isCurrent && ref.watch(playerProvider).isPlaying;
+                        isCurrent && ref.watch(playerProvider.select((s) => s.isPlaying));
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Container(
