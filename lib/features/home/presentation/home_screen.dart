@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/connectivity_service.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_motion.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
@@ -173,29 +175,58 @@ class HomeScreen extends ConsumerWidget {
 }
 
 /// App identity: mark + wordmark.
-class _BrandLockup extends StatelessWidget {
+///
+/// The mark renders the bundled logo crisply (decoded at near-display size,
+/// high-quality filter) on a gradient tile with an accent ring, and falls
+/// back to the waveform glyph when the asset is missing. The status line
+/// is live: offline shows amber, otherwise the lossless-ready pulse.
+class _BrandLockup extends ConsumerWidget {
   const _BrandLockup();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final offline = ref.watch(
+      connectivityMonitorProvider.select((s) => s.isOffline),
+    );
+    final statusColor = offline ? AppColors.warning : AppColors.success;
+    final statusLabel = offline ? 'OFFLINE' : 'LOSSLESS READY';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: AppColors.card,
-            border: Border.all(color: AppColors.border, width: 0.7),
+            borderRadius: BorderRadius.circular(11),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.accent.withValues(alpha: 0.22),
+                AppColors.accentCyan.withValues(alpha: 0.08),
+              ],
+            ),
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.30),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.asset(
             'assets/logo.png',
             fit: BoxFit.cover,
+            cacheWidth: 96,
+            filterQuality: FilterQuality.high,
             errorBuilder: (_, _, _) => NexoraGlyph(
               kind: NexoraGlyphKind.waveform,
-              size: 18,
+              size: 19,
               color: AppColors.accent,
             ),
           ),
@@ -214,7 +245,7 @@ class _BrandLockup extends StatelessWidget {
                 color: AppColors.text,
               ),
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 2),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -222,13 +253,19 @@ class _BrandLockup extends StatelessWidget {
                   width: 5,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: statusColor,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withValues(alpha: 0.8),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'LOSSLESS READY',
+                  statusLabel,
                   style: TextStyle(
                     color: AppColors.textFaint,
                     fontSize: 8.5,
@@ -268,6 +305,34 @@ class _Greeting extends StatelessWidget {
     return Icons.bedtime_rounded;
   }
 
+  String get _dateLine {
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final now = DateTime.now();
+    return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -276,7 +341,6 @@ class _Greeting extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -305,6 +369,21 @@ class _Greeting extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _dateLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: AppColors.textFaint,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -312,9 +391,9 @@ class _Greeting extends StatelessWidget {
             'Your library',
             style: TextStyle(
               color: AppColors.text,
-              fontSize: 36,
+              fontSize: 34,
               fontWeight: FontWeight.w800,
-              letterSpacing: -1.2,
+              letterSpacing: -1.1,
               height: 1.05,
             ),
           ),
@@ -420,7 +499,6 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = data.color.withValues(alpha: isDark ? 0.13 : 0.10);
     return NexoraPressable(
       onTap: data.onTap,
       child: Container(
@@ -442,10 +520,17 @@ class _QuickActionTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    data.color.withValues(alpha: isDark ? 0.22 : 0.16),
+                    data.color.withValues(alpha: isDark ? 0.08 : 0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(11),
                 border: Border.all(
-                  color: data.color.withValues(alpha: 0.18),
+                  color: data.color.withValues(alpha: 0.22),
                   width: 0.6,
                 ),
               ),
@@ -578,14 +663,53 @@ class _ContinueListening extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2.5),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 2.5,
-              backgroundColor: AppColors.surfaceHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
-            ),
+          Stack(
+            children: [
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceHigh,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: progress,
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.accentGradientHorizontal,
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                formatDuration(position),
+                style: TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                duration.inMilliseconds == 0
+                    ? 'LIVE'
+                    : formatDuration(duration),
+                style: TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -654,6 +778,15 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              gradient: AppColors.accentGradient,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(
               label,
@@ -669,23 +802,37 @@ class _SectionHeader extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onSeeAll,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'See all',
-                    style: TextStyle(
-                      color: AppColors.accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.22),
+                    width: 0.6,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'See all',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 15,
-                    color: AppColors.accent,
-                  ),
-                ],
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 14,
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -777,11 +924,18 @@ class _HomePlaylistCard extends ConsumerWidget {
               width: 140,
               height: 140,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.border, width: 0.6),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.shadowColor.withValues(alpha: 0.5),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: coversAsync.when(
                   data: (urls) => PlaylistCover(
                     artworkUrls: urls,
@@ -945,7 +1099,7 @@ class _AlbumsGrid extends ConsumerWidget {
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.shimmerBase,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
@@ -987,12 +1141,29 @@ class _ArtistsRow extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ClipOval(
-                        child: ArtworkImage(
-                          url: a.artworkUrl,
-                          size: 96,
-                          borderRadius: 0,
-                          showShadow: true,
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.accent.withValues(alpha: 0.28),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: ArtworkImage(
+                            url: a.artworkUrl,
+                            size: 96,
+                            borderRadius: 0,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -1039,7 +1210,7 @@ class _SongCard extends StatelessWidget {
             ArtworkImage(
               url: song.effectiveArtwork,
               size: 140,
-              borderRadius: 10,
+              borderRadius: 14,
               showShadow: true,
             ),
             const SizedBox(height: 10),
@@ -1086,7 +1257,7 @@ class _SmallSongCard extends StatelessWidget {
             ArtworkImage(
               url: song.effectiveArtwork,
               size: 120,
-              borderRadius: 10,
+              borderRadius: 14,
               showShadow: true,
             ),
             const SizedBox(height: 8),
@@ -1130,7 +1301,7 @@ class _AlbumCard extends StatelessWidget {
             aspectRatio: 1,
             child: ArtworkImage(
               url: album.coverUrl,
-              borderRadius: 10,
+              borderRadius: 14,
               showShadow: true,
             ),
           ),
@@ -1284,11 +1455,18 @@ class _HomeFolderCard extends ConsumerWidget {
               width: 128,
               height: 128,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.border, width: 0.6),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.shadowColor.withValues(alpha: 0.5),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -1436,7 +1614,7 @@ class _SkeletonRow extends StatelessWidget {
             width: width,
             decoration: BoxDecoration(
               color: AppColors.shimmerBase,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
