@@ -6,6 +6,7 @@ import '../../core/network/api_client.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../domain/entities/song.dart';
 import '../dto/file_dto.dart';
+import 'audio_api.dart';
 
 final songsApiProvider = Provider<SongsApi>((ref) {
   final c = ref.watch(apiClientProvider);
@@ -110,7 +111,7 @@ class SongsApi {
       );
     }
     return PaginatedSongs(
-      songs: songs,
+      songs: await enrichWithTags(songs),
       offset: offset,
       limit: limit,
       hasMore: hasMore,
@@ -157,7 +158,7 @@ class SongsApi {
         );
       }
     }
-    return (songs, dirs);
+    return (await enrichWithTags(songs), dirs);
   }
 
   /// Resolve the best "music" root id (icon/name heuristic, else first root).
@@ -202,6 +203,100 @@ class SongsApi {
       if (data is Map<String, dynamic>) return data;
     } catch (_) {}
     return null;
+  }
+
+  /// Batch-enrich one page of songs with server tag metadata.
+  ///
+  /// Exactly one POST /audio/info/batch per 50 songs (never N+1 single
+  /// GETs). Failures (offline / old server without the endpoint) return
+  /// the input untouched so filename/path fallbacks keep working.
+  Future<List<Song>> enrichWithTags(List<Song> songs) async {
+    if (songs.isEmpty) return songs;
+    try {
+      final base = await _resolvedBaseUrl();
+      final byId = <String, AudioInfo>{};
+      for (var i = 0; i < songs.length; i += 50) {
+        final chunk = songs.sublist(
+          i,
+          (i + 50) > songs.length ? songs.length : i + 50,
+        );
+        final res = await _client.post(
+          '$base${ApiConstants.audioInfoBatch}',
+          data: {
+            'items': [
+              for (final s in chunk)
+                (() {
+                  final split = NexoraFiles.splitId(s.id);
+                  return {'root': split.root, 'path': split.path};
+                })(),
+            ],
+          },
+        );
+        final data = res.data;
+        final list =
+            (data is Map<String, dynamic> ? data['items'] as List? : null) ??
+            (data is List ? data : const []);
+        for (final raw in list) {
+          if (raw is! Map<String, dynamic>) continue;
+          if (raw['ok'] != true) continue;
+          final rawInfo = raw['info'];
+          if (rawInfo is! Map<String, dynamic>) continue;
+          try {
+            final info = AudioInfo.fromJson(rawInfo);
+            final root = (raw['root'] ?? '').toString();
+            final path = (raw['path'] ?? '').toString();
+            byId['$root|$path'] = info;
+          } catch (_) {}
+        }
+      }
+      if (byId.isEmpty) return songs;
+      return [for (final s in songs) _mergeTagInfo(s, byId[s.id])];
+    } catch (_) {
+      return songs;
+    }
+  }
+
+  /// Merge one [AudioInfo] into its [Song]; filename/path values win only
+  /// when the tag is missing or blank.
+  Song _mergeTagInfo(Song song, AudioInfo? info) {
+    if (info == null) return song;
+    final artist = info.effectiveArtist;
+    final genre = info.effectiveGenre;
+    final year = info.effectiveYear;
+    return song.copyWith(
+      title: (info.title != null && info.title!.trim().isNotEmpty)
+          ? info.title!.trim()
+          : song.title,
+      artist: (artist != null && artist.isNotEmpty) ? artist : song.artist,
+      album: (info.album != null && info.album!.trim().isNotEmpty)
+          ? info.album!.trim()
+          : song.album,
+      genre: (genre != null && genre.isNotEmpty) ? genre : song.genre,
+      year: (year != null && year > 0) ? year : song.year,
+      trackNumber: (info.trackNo != null && info.trackNo! > 0)
+          ? info.trackNo
+          : song.trackNumber,
+      discNumber: (info.discNo != null && info.discNo! > 0)
+          ? info.discNo
+          : song.discNumber,
+      duration:
+          (song.duration == null || song.duration == 0) && info.duration > 0
+          ? info.duration.round()
+          : song.duration,
+      codec:
+          (song.codec == null || song.codec!.isEmpty) && info.codec.isNotEmpty
+          ? info.codec
+          : song.codec,
+      bitrate: (song.bitrate == null || song.bitrate == 0) && info.bitRate > 0
+          ? info.bitRate
+          : song.bitrate,
+      sampleRate:
+          (song.sampleRate == null || song.sampleRate == 0) &&
+              info.sampleRate > 0
+          ? info.sampleRate
+          : song.sampleRate,
+      lossless: song.lossless ?? info.lossless,
+    );
   }
 }
 

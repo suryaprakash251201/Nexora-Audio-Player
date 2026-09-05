@@ -19,6 +19,8 @@ class ApiConstants {
   static const filesThumbnail = '/files/thumbnail';
   static const filesDownload = '/files/download';
   static const audioInfo = '/audio/info';
+  static const audioInfoBatch = '/audio/info/batch';
+  static const audioFormats = '/audio/formats';
   static const audioLyrics = '/audio/lyrics';
 
   // Search
