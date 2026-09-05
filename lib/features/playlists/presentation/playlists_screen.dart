@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/dto/file_dto.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/api/files_api.dart';
+import '../../player/providers/player_provider.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../domain/entities/song.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
@@ -829,124 +830,190 @@ class _PlaylistCard extends ConsumerWidget {
     required this.onTap,
   });
 
+  Future<void> _play(BuildContext context, WidgetRef ref) async {
+    await playPlaylistTracks(context, ref, playlist);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coversAsync = ref.watch(_playlistCoversProvider(playlist));
     final trackCount = playlist.trackCount ?? playlist.tracks?.length ?? 0;
     final isDark = AppColors.mode == AppThemeMode.dark;
-    return NexoraPressable(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: Hero(
-              tag: 'playlist-cover-${playlist.id}',
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.black.withValues(alpha: 0.45)
-                          : const Color(0xFF0F1D3A).withValues(alpha: 0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      coversAsync.when(
-                        data: (urls) => PlaylistCover(
-                          artworkUrls: urls,
-                          borderRadius: 0,
-                          title: playlist.name,
-                        ),
-                        loading: () =>
-                            Container(color: AppColors.surfaceRaised),
-                        error: (_, __) => PlaylistCover(
-                          artworkUrls: const [],
-                          borderRadius: 0,
-                          title: playlist.name,
-                        ),
-                      ),
-                      // Bottom scrim + floating play button.
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.38),
-                            ],
-                            stops: const [0.62, 1.0],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            children: [
+              // Cover navigates to detail.
+              Positioned.fill(
+                child: NexoraPressable(
+                  onTap: onTap,
+                  child: Hero(
+                    tag: 'playlist-cover-${playlist.id}',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.45)
+                                : const Color(
+                                    0xFF0F1D3A,
+                                  ).withValues(alpha: 0.10),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
-                        ),
+                        ],
                       ),
-                      Positioned(
-                        right: 10,
-                        bottom: 10,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.accentGradient,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.5),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            coversAsync.when(
+                              data: (urls) => PlaylistCover(
+                                artworkUrls: urls,
+                                borderRadius: 0,
+                                title: playlist.name,
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                              loading: () => Container(
+                                color: AppColors.surfaceRaised,
+                              ),
+                              error: (_, __) => PlaylistCover(
+                                artworkUrls: const [],
+                                borderRadius: 0,
+                                title: playlist.name,
+                              ),
+                            ),
+                            // Bottom scrim (non-interactive).
+                            IgnorePointer(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.38),
+                                    ],
+                                    stops: const [0.62, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              // Corner play button — plays, does NOT navigate.
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: NexoraPressable(
+                  scale: 0.88,
+                  onTap: () => _play(context, ref),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradient,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.5),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            playlist.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-              letterSpacing: -0.2,
-            ),
+        ),
+        const SizedBox(height: 10),
+        NexoraPressable(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                playlist.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                owner != null && owner!.isNotEmpty
+                    ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
+                    : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            owner != null && owner!.isNotEmpty
-                ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
-                : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+}
+
+/// Shared helper: fetch playlist tracks on demand and start playback.
+/// Used by the corner/row play buttons so tapping play never navigates.
+Future<void> playPlaylistTracks(
+  BuildContext context,
+  WidgetRef ref,
+  Playlist playlist,
+) async {
+  try {
+    List<Song> tracks = playlist.tracks ?? const [];
+    if (tracks.isEmpty) {
+      tracks = await ref
+          .read(playlistsRepositoryProvider)
+          .getPlaylistTracks(playlist.id);
+    }
+    if (tracks.isEmpty) {
+      if (context.mounted) {
+        showNexoraSnack(
+          context,
+          '“${playlist.name}” is empty — add songs first.',
+          severity: NexoraSnackSeverity.warning,
+        );
+      }
+      return;
+    }
+    await ref.read(playerProvider.notifier).playSongs(tracks);
+  } catch (e) {
+    if (context.mounted) {
+      showNexoraSnack(
+        context,
+        'Could not play playlist: $e',
+        severity: NexoraSnackSeverity.error,
+      );
+    }
   }
 }
 
@@ -992,131 +1059,141 @@ class _PlaylistRow extends ConsumerWidget {
     final coversAsync = ref.watch(_playlistCoversProvider(playlist));
     final trackCount = playlist.trackCount ?? playlist.tracks?.length ?? 0;
     final isDark = AppColors.mode == AppThemeMode.dark;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border, width: 0.7),
-            boxShadow: isDark ? null : NexoraShadow.card(false),
-          ),
-          child: Row(
-            children: [
-              Hero(
-                tag: 'playlist-cover-${playlist.id}',
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.4 : 0.12,
-                        ),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: coversAsync.when(
-                      data: (urls) => PlaylistCover(
-                        artworkUrls: urls,
-                        borderRadius: 0,
-                        title: playlist.name,
-                        emptyIconSize: 24,
-                      ),
-                      loading: () => Container(color: AppColors.surfaceRaised),
-                      error: (_, __) => PlaylistCover(
-                        artworkUrls: const [],
-                        borderRadius: 0,
-                        title: playlist.name,
-                        emptyIconSize: 24,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      playlist.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.music_note_rounded,
-                          size: 11,
-                          color: AppColors.textFaint,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            owner != null && owner!.isNotEmpty
-                                ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
-                                : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
+        border: Border.all(color: AppColors.border, width: 0.7),
+        boxShadow: isDark ? null : NexoraShadow.card(false),
+      ),
+      child: Row(
+        children: [
+          // Cover + text navigate to detail.
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Row(
+                children: [
+                  Hero(
+                    tag: 'playlist-cover-${playlist.id}',
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.4 : 0.12,
                             ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: coversAsync.when(
+                          data: (urls) => PlaylistCover(
+                            artworkUrls: urls,
+                            borderRadius: 0,
+                            title: playlist.name,
+                            emptyIconSize: 24,
+                          ),
+                          loading: () =>
+                              Container(color: AppColors.surfaceRaised),
+                          error: (_, __) => PlaylistCover(
+                            artworkUrls: const [],
+                            borderRadius: 0,
+                            title: playlist.name,
+                            emptyIconSize: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          playlist.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.music_note_rounded,
+                              size: 11,
+                              color: AppColors.textFaint,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                owner != null && owner!.isNotEmpty
+                                    ? 'by $owner • $trackCount ${trackCount == 1 ? 'song' : 'songs'}'
+                                    : '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          // Round play button — plays, does NOT navigate.
+          NexoraPressable(
+            scale: 0.88,
+            onTap: () => playPlaylistTracks(context, ref, playlist),
+            child: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: AppColors.accentGradient,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

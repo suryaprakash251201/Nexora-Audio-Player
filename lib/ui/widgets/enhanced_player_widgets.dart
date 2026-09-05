@@ -608,10 +608,10 @@ class _MiniIconButton extends StatelessWidget {
   }
 }
 
-/// Bottom navigation bar — pinned system bar content, pixel-perfect.
+/// Bottom navigation bar — floating rounded glass pill, pixel-perfect.
 /// Pill tracks Expanded cells exactly (no spaceAround drift).
-/// Outer [_IosGlassNav] in router.dart provides the full-bleed bottom
-/// frost; this widget is just the 68px content row.
+/// This widget IS the full nav background (28px rounded glass);
+/// router.dart only adds floating side/bottom margins — no full-bleed frost.
 /// 2.0: gradient selected pill, tonal icons.
 class EnhancedGlassNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -641,8 +641,9 @@ class EnhancedGlassNavBar extends StatelessWidget {
     return Semantics(
       label: 'Main navigation',
       child: NexoraGlassDock(
-        // Outer _IosGlassNav provides the bottom-anchored frost —
-        // keep inner flush so the row sits tight in the system bar.
+        // Floating rounded pill — router adds outer side/bottom margins.
+        // No full-bleed background anywhere.
+        borderRadius: const BorderRadius.all(Radius.circular(28)),
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: SizedBox(
