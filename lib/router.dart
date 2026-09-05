@@ -301,6 +301,11 @@ class _AppShellState extends ConsumerState<AppShell>
   bool _onUserScroll(UserScrollNotification notification) {
     final metrics = notification.metrics;
 
+    // Horizontal rails (playlist/song carousels) and Library tab swipes
+    // also dispatch UserScrollNotifications — they must never drive the
+    // vertical dock, or the nav/mini flicker without any list scrolling.
+    if (metrics.axis != Axis.vertical) return false;
+
     // Always reveal the dock once we are back at the very top.
     if (metrics.pixels <= metrics.minScrollExtent + 1) {
       if (!_dockVisible) _setDockVisible(true);
