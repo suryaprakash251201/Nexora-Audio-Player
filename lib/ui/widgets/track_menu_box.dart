@@ -78,7 +78,7 @@ Future<void> toggleDownload(
     final url =
         song.streamUrl ??
         await ref.read(songsRepositoryProvider).streamUrl(song.id);
-    final saved = await manager.downloadTrack(song.id, url);
+    final saved = await manager.downloadTrack(song, url);
     if (saved == null) {
       say(
         'Download failed — check connection and storage',

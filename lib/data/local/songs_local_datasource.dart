@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -17,7 +19,7 @@ class SongsLocalDataSource {
     final db = await _dbService.database;
     final batch = db.batch();
     for (final s in songs) {
-      final values = {
+      final metadata = {
         'id': s.id,
         'title': s.title,
         'artist': s.artist,
@@ -28,26 +30,75 @@ class SongsLocalDataSource {
         'codec': s.codec,
         'bitrate': s.bitrate,
         'sampleRate': s.sampleRate,
-        'isDownloaded': s.isDownloaded ? 1 : 0,
-        'localPath': s.localPath,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       };
       // Use INSERT OR IGNORE + UPDATE instead of REPLACE to avoid
       // triggering ON DELETE CASCADE which would silently remove
       // playlist_items referencing this track.
-      batch.insert(
-        'tracks',
-        values,
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
-      batch.update(
-        'tracks',
-        values..remove('id'),
-        where: 'id = ?',
-        whereArgs: [s.id],
-      );
+      batch.insert('tracks', {
+        ...metadata,
+        'isDownloaded': s.isDownloaded ? 1 : 0,
+        'localPath': s.localPath,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      // Metadata refresh must never wipe an existing download: only carry
+      // the flags when the incoming song actually carries download state.
+      final update = Map.of(metadata)..remove('id');
+      if (s.isDownloaded || s.localPath != null) {
+        update['isDownloaded'] = s.isDownloaded ? 1 : 0;
+        update['localPath'] = s.localPath;
+      }
+      batch.update('tracks', update, where: 'id = ?', whereArgs: [s.id]);
     }
     await batch.commit(noResult: true);
+  }
+
+  /// Download state for [ids]: true only when the flag is set AND the file
+  /// still exists on disk. Used to attach offline playback info to fresh
+  /// network songs so the player streams local files when available.
+  Future<Map<String, ({bool isDownloaded, String? localPath})>>
+  getDownloadStates(List<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final db = await _dbService.database;
+    final out = <String, ({bool isDownloaded, String? localPath})>{};
+    // Chunk the IN clause (SQLite variable limit).
+    for (var i = 0; i < ids.length; i += 200) {
+      final chunk = ids.sublist(
+        i,
+        (i + 200) > ids.length ? ids.length : i + 200,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final rows = await db.query(
+        'tracks',
+        columns: ['id', 'isDownloaded', 'localPath'],
+        where: 'id IN ($placeholders)',
+        whereArgs: chunk,
+      );
+      for (final r in rows) {
+        final path = r['localPath'] as String?;
+        final ok =
+            (r['isDownloaded'] as int? ?? 0) == 1 &&
+            path != null &&
+            File(path).existsSync();
+        if (ok) {
+          out[r['id'] as String] = (isDownloaded: true, localPath: path);
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Attach verified offline state to network songs (player + row badges).
+  List<Song> withOfflineState(
+    List<Song> songs,
+    Map<String, ({bool isDownloaded, String? localPath})> states,
+  ) {
+    if (states.isEmpty) return songs;
+    return [
+      for (final s in songs)
+        states.containsKey(s.id)
+            ? s.copyWith(isDownloaded: true, localPath: states[s.id]!.localPath)
+            : s,
+    ];
   }
 
   Future<List<Song>> getCachedSongs({int limit = 100, int offset = 0}) async {

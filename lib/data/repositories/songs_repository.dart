@@ -64,10 +64,17 @@ class SongsRepository {
         query: query ?? '',
         cancelToken: cancelToken,
       );
-      final songs = deduplicateById(result.songs);
+      var songs = deduplicateById(result.songs);
       if (songs.isNotEmpty) {
         try {
           await _local.cacheSongs(songs);
+        } catch (_) {}
+        // Attach verified offline state so rows/player use local files.
+        try {
+          final states = await _local.getDownloadStates(
+            songs.map((s) => s.id).toList(),
+          );
+          songs = _local.withOfflineState(songs, states);
         } catch (_) {}
       }
       return Paginated(
@@ -117,5 +124,19 @@ class SongsRepository {
   Future<(List<Song>, List<({String id, String name})>)> browseDirectory({
     required String rootId,
     String path = '',
-  }) => _api.browseDirectory(rootId: rootId, path: path);
+  }) async {
+    final (songs, dirs) = await _api.browseDirectory(
+      rootId: rootId,
+      path: path,
+    );
+    if (songs.isEmpty) return (songs, dirs);
+    try {
+      final states = await _local.getDownloadStates(
+        songs.map((s) => s.id).toList(),
+      );
+      return (_local.withOfflineState(songs, states), dirs);
+    } catch (_) {
+      return (songs, dirs);
+    }
+  }
 }

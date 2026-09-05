@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 
+import '../../../core/download/download_manager.dart';
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../data/api/server_api.dart';
+import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
@@ -11,8 +15,10 @@ import '../../../ui/nexora/player_visual_mode_provider.dart';
 import '../../../ui/nexora/nexora_dialog.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/theme_provider.dart';
+import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
 import '../../auth/providers/auth_provider.dart';
 import '../../player/providers/sleep_timer_provider.dart';
+import 'downloads_screen.dart' show downloadedTracksProvider;
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -161,6 +167,55 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: 'Organize files beyond playlists',
                       showChevron: true,
                       onTap: () => context.push('/tags'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _SectionGroup(
+                  title: 'STORAGE',
+                  accent: AppColors.hueTeal,
+                  children: [
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final info = ref.watch(_storageInfoProvider);
+                        return _SettingTile(
+                          icon: Icons.offline_pin_rounded,
+                          iconBg: AppColors.hueTeal.withValues(
+                            alpha: isDark ? 0.13 : 0.10,
+                          ),
+                          iconColor: AppColors.hueTeal,
+                          title: 'Offline songs',
+                          subtitle: info.when(
+                            data: (v) => v.count == 0
+                                ? 'No downloads yet'
+                                : '${v.count} tracks • ${formatFileSize(v.bytes)}',
+                            loading: () => 'Measuring…',
+                            error: (_, __) => 'Manage offline tracks',
+                          ),
+                          showChevron: true,
+                          onTap: () => context.push('/downloads'),
+                        );
+                      },
+                    ),
+                    _SettingTile(
+                      icon: Icons.cached_rounded,
+                      iconBg: AppColors.warning.withValues(
+                        alpha: isDark ? 0.13 : 0.10,
+                      ),
+                      iconColor: AppColors.warning,
+                      title: 'Clear cache',
+                      subtitle: 'Artwork & temporary files',
+                      showChevron: true,
+                      onTap: () => _clearCache(context, ref),
+                    ),
+                    _SettingTile(
+                      icon: Icons.delete_sweep_outlined,
+                      iconBg: AppColors.error.withValues(alpha: 0.11),
+                      iconColor: AppColors.error,
+                      title: 'Delete downloads',
+                      subtitle: 'Remove all offline songs',
+                      showChevron: true,
+                      onTap: () => _confirmDeleteDownloads(context, ref),
                     ),
                   ],
                 ),
@@ -402,10 +457,13 @@ class SettingsScreen extends ConsumerWidget {
               description: _themeDescription(AppThemePreference.values[i]),
               selected: AppThemePreference.values[i] == current,
               onTap: () {
+                // Pop the dialog BEFORE applying the theme: applying first
+                // remounts the whole app (keyed MaterialApp) and the pop
+                // would then run on a dead context, leaving a blank screen.
+                Navigator.pop(context);
                 ref
                     .read(themeModeProvider.notifier)
                     .set(AppThemePreference.values[i]);
-                Navigator.pop(context);
               },
             ),
         ],
@@ -433,10 +491,10 @@ class SettingsScreen extends ConsumerWidget {
               description: _playerStyleDescription(PlayerVisualMode.values[i]),
               selected: PlayerVisualMode.values[i] == current,
               onTap: () {
+                Navigator.pop(context);
                 ref
                     .read(playerVisualModeProvider.notifier)
                     .set(PlayerVisualMode.values[i]);
-                Navigator.pop(context);
               },
             ),
         ],
@@ -449,6 +507,109 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (c) => _SleepTimerSheet(),
+    );
+  }
+
+  /// Clear artwork disk cache, in-memory images and temp files.
+  /// Library metadata, downloads, playlists and favorites are untouched.
+  Future<void> _clearCache(BuildContext context, WidgetRef ref) async {
+    var clearedArtwork = false;
+    try {
+      await nexoraArtworkCache.emptyCache();
+      clearedArtwork = true;
+    } catch (_) {}
+    try {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (_) {}
+    var tempFiles = 0;
+    try {
+      final dir = await getTemporaryDirectory();
+      if (await dir.exists()) {
+        await for (final e in dir.list()) {
+          try {
+            await e.delete(recursive: true);
+            tempFiles++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    if (!context.mounted) return;
+    showNexoraSnack(
+      context,
+      clearedArtwork
+          ? 'Cache cleared ($tempFiles temp entries removed)'
+          : 'Image cache cleared',
+      severity: NexoraSnackSeverity.success,
+    );
+  }
+
+  /// Confirm-then-delete every downloaded song file + its flags.
+  Future<void> _confirmDeleteDownloads(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final info = await ref.read(_storageInfoProvider.future).catchError((_) {
+      return (count: 0, bytes: 0);
+    });
+    if (!context.mounted) return;
+    if (info.count == 0) {
+      showNexoraSnack(
+        context,
+        'No downloads to delete',
+        severity: NexoraSnackSeverity.info,
+      );
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: NexoraRadius.dialog,
+          side: BorderSide(color: AppColors.border, width: 0.7),
+        ),
+        title: Text(
+          'Delete downloads?',
+          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'This removes ${info.count} offline songs '
+          '(${formatFileSize(info.bytes)}). Streaming still works online.',
+          style: TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await ref.read(downloadManagerProvider).deleteAllDownloads();
+      await ref.read(downloadedIdsProvider.notifier).refresh();
+      ref.invalidate(downloadedTracksProvider);
+      ref.invalidate(_storageInfoProvider);
+    } catch (_) {}
+    if (!context.mounted) return;
+    showNexoraSnack(
+      context,
+      'Downloads deleted',
+      severity: NexoraSnackSeverity.success,
     );
   }
 
@@ -944,3 +1105,14 @@ class _PresetChip extends StatelessWidget {
 final _serverInfoProvider = FutureProvider(
   (ref) async => ref.watch(serverApiProvider).getServerInfo(),
 );
+
+/// Offline storage summary for the STORAGE section.
+final _storageInfoProvider = FutureProvider<({int count, int bytes})>((
+  ref,
+) async {
+  ref.watch(downloadedIdsProvider);
+  final manager = ref.watch(downloadManagerProvider);
+  final tracks = await manager.downloadedTracks();
+  final bytes = await manager.downloadsSizeBytes();
+  return (count: tracks.length, bytes: bytes);
+});

@@ -230,9 +230,21 @@ class PlayerNotifier extends StateNotifier<PlaybackStateData> {
   // Public actions
   Future<void> playSongs(List<Song> songs, {int initialIndex = 0}) async {
     if (songs.isEmpty) return;
+    // Prefer verified local files so downloaded tracks keep playing
+    // offline no matter which screen queued them (library, playlist,
+    // search, history). States are checked against the filesystem.
+    var resolved = songs;
+    try {
+      final states = await _songsLocal.getDownloadStates(
+        songs.map((s) => s.id).toList(),
+      );
+      if (states.isNotEmpty) {
+        resolved = _songsLocal.withOfflineState(songs, states);
+      }
+    } catch (_) {}
     final baseUrl = await _storage.getServerUrl();
     final token = await _storage.getToken();
-    final items = songs
+    final items = resolved
         .map(
           (s) =>
               _queueManager.songToMediaItem(s, baseUrl: baseUrl, token: token),

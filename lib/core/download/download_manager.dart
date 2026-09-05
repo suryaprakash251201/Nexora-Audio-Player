@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../../domain/entities/song.dart';
 import '../network/api_client.dart';
@@ -59,10 +60,11 @@ class DownloadManager {
   }
 
   Future<String?> downloadTrack(
-    String trackId,
+    Song song,
     String streamUrl, {
     void Function(double)? onProgress,
   }) async {
+    final trackId = song.id;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final saveDir = Directory('${dir.path}/tracks');
@@ -84,10 +86,32 @@ class DownloadManager {
         },
       );
 
+      // Upsert (never bare UPDATE): library songs usually have no local row
+      // yet, and REPLACE would cascade-delete playlist_items for this id.
       final db = await _dbService.database;
+      final values = {
+        'id': trackId,
+        'title': song.title,
+        'artist': song.artist,
+        'album': song.album,
+        'duration': song.duration,
+        'coverUrl': song.coverUrl ?? song.artworkUrl,
+        'streamUrl': song.streamUrl ?? streamUrl,
+        'codec': song.codec,
+        'bitrate': song.bitrate,
+        'sampleRate': song.sampleRate,
+        'isDownloaded': 1,
+        'localPath': savePath,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+      await db.insert(
+        'tracks',
+        values,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
       await db.update(
         'tracks',
-        {'isDownloaded': 1, 'localPath': savePath},
+        Map.of(values)..remove('id'),
         where: 'id = ?',
         whereArgs: [trackId],
       );
@@ -132,7 +156,17 @@ class DownloadManager {
         whereArgs: [trackId],
       );
       AppLogger.download('Removed download $trackId');
+      return;
     }
+    // Orphaned file (row missing but bytes on disk) — still delete it.
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final orphan = File('${dir.path}/tracks/${fileNameFor(trackId)}');
+      if (await orphan.exists()) {
+        await orphan.delete();
+        AppLogger.download('Removed orphaned download $trackId');
+      }
+    } catch (_) {}
   }
 
   Future<bool> isDownloaded(String trackId) async {
@@ -155,14 +189,23 @@ class DownloadManager {
     final db = await _dbService.database;
     final rows = await db.query(
       'tracks',
-      columns: ['id'],
+      columns: ['id', 'localPath'],
       where: 'isDownloaded = ?',
       whereArgs: [1],
     );
-    return rows.map((r) => r['id'] as String).toList();
+    // Drop ghosts: flag set but bytes gone (OS cleanup / manual delete).
+    final ids = <String>[];
+    for (final r in rows) {
+      final path = r['localPath'] as String?;
+      if (path != null && File(path).existsSync()) {
+        ids.add(r['id'] as String);
+      }
+    }
+    return ids;
   }
 
   /// Downloaded tracks with full metadata for the Downloads screen.
+  /// Rows whose file is missing are skipped (never show unplayable ghosts).
   Future<List<Song>> downloadedTracks() async {
     final db = await _dbService.database;
     final rows = await db.query(
@@ -171,23 +214,73 @@ class DownloadManager {
       whereArgs: [1],
       orderBy: 'updatedAt DESC',
     );
-    return rows
-        .map(
-          (r) => Song(
-            id: r['id'] as String,
-            title: (r['title'] as String?) ?? 'Unknown',
-            artist: r['artist'] as String?,
-            album: r['album'] as String?,
-            duration: r['duration'] as int?,
-            coverUrl: r['coverUrl'] as String?,
-            streamUrl: r['streamUrl'] as String?,
-            codec: r['codec'] as String?,
-            bitrate: r['bitrate'] as int?,
-            sampleRate: r['sampleRate'] as int?,
-            isDownloaded: true,
-            localPath: r['localPath'] as String?,
-          ),
-        )
-        .toList();
+    final out = <Song>[];
+    for (final r in rows) {
+      final path = r['localPath'] as String?;
+      if (path == null || !File(path).existsSync()) continue;
+      out.add(
+        Song(
+          id: r['id'] as String,
+          title: (r['title'] as String?) ?? 'Unknown',
+          artist: r['artist'] as String?,
+          album: r['album'] as String?,
+          duration: r['duration'] as int?,
+          coverUrl: r['coverUrl'] as String?,
+          streamUrl: r['streamUrl'] as String?,
+          codec: r['codec'] as String?,
+          bitrate: r['bitrate'] as int?,
+          sampleRate: r['sampleRate'] as int?,
+          isDownloaded: true,
+          localPath: path,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Total bytes of downloaded audio on disk.
+  Future<int> downloadsSizeBytes() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final saveDir = Directory('${dir.path}/tracks');
+      if (!await saveDir.exists()) return 0;
+      var total = 0;
+      await for (final e in saveDir.list()) {
+        if (e is File) {
+          try {
+            total += await e.length();
+          } catch (_) {}
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Delete every downloaded audio file and reset all download flags.
+  /// Library metadata, playlists, favorites and history are untouched.
+  Future<void> deleteAllDownloads() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final saveDir = Directory('${dir.path}/tracks');
+      if (await saveDir.exists()) {
+        await for (final e in saveDir.list()) {
+          try {
+            if (e is File) await e.delete();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    try {
+      final db = await _dbService.database;
+      await db.update(
+        'tracks',
+        {'isDownloaded': 0, 'localPath': null},
+        where: 'isDownloaded = ?',
+        whereArgs: [1],
+      );
+    } catch (_) {}
+    AppLogger.download('Deleted all downloads');
   }
 }
