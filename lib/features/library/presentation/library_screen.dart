@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/local/device_music.dart';
 import '../../../data/repositories/songs_repository.dart';
 import '../../../data/repositories/playlists_repository.dart';
 import '../../../data/api/albums_api.dart';
@@ -26,7 +27,8 @@ import '../../player/providers/player_provider.dart';
 import '../../../core/download/download_manager.dart';
 import 'folder_browser_screen.dart';
 
-/// Library — five editorial lanes behind a confident header.
+/// Library — six editorial lanes behind a confident header (the sixth
+/// is the on-device system music library).
 ///
 /// Audiophile redesign: large page title, tonal segmented tab bar
 /// (adaptive, with custom layout), and a content area that swaps in
@@ -40,7 +42,14 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
-  static const _tabs = ['Songs', 'Albums', 'Artists', 'Playlists', 'Folders'];
+  static const _tabs = [
+    'Songs',
+    'Albums',
+    'Artists',
+    'Playlists',
+    'Folders',
+    'Device',
+  ];
 
   @override
   void initState() {
@@ -86,6 +95,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   _ArtistsTab(),
                   _PlaylistsTab(),
                   _FoldersTab(),
+                  _DeviceTab(),
                 ],
               ),
             ),
@@ -898,6 +908,193 @@ class _FolderFallback extends StatelessWidget {
       color: AppColors.surfaceRaised,
       child: Center(
         child: Icon(Icons.folder_rounded, color: AppColors.textDim, size: 40),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEVICE TAB — on-device system music (Android MediaStore / iOS MediaLibrary)
+// ═══════════════════════════════════════════════════════════════
+
+/// System music files living on this phone/tablet, playable offline with
+/// no server involved. Permission-gated: denied → grant card, granted →
+/// sortable song list with tap-to-play through the shared player queue.
+class _DeviceTab extends ConsumerWidget {
+  const _DeviceTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final permission = ref.watch(deviceMusicPermissionProvider);
+    return permission.when(
+      loading: () => const LoadingView(),
+      error: (e, _) => ErrorView(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(deviceMusicPermissionProvider),
+      ),
+      data: (granted) {
+        if (!granted) return const _DeviceGrantView();
+        final songs = ref.watch(deviceSongsProvider);
+        return songs.when(
+          loading: () => const LoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(deviceSongsProvider),
+          ),
+          data: (list) {
+            if (list.isEmpty) {
+              return EmptyView(
+                title: 'No music on this device',
+                subtitle: 'Audio files saved on this phone will appear here',
+                icon: Icons.smartphone_outlined,
+                action: NexoraTextButton(
+                  label: 'Refresh',
+                  icon: Icons.refresh_rounded,
+                  onTap: () => ref.invalidate(deviceSongsProvider),
+                ),
+              );
+            }
+            return RefreshIndicator(
+              color: AppColors.accent,
+              backgroundColor: AppColors.card,
+              onRefresh: () async {
+                ref.invalidate(deviceMusicPermissionProvider);
+                ref.invalidate(deviceSongsProvider);
+              },
+              child: ListView.separated(
+                padding: const EdgeInsets.only(
+                  top: 8,
+                  bottom: NexoraSpacing.dockBottomReserve,
+                ),
+                itemCount: list.length + 1,
+                separatorBuilder: (_, i) => i == 0
+                    ? const SizedBox.shrink()
+                    : const NexoraDivider(indent: 64, endIndent: 0),
+                itemBuilder: (c, i) {
+                  if (i == 0) return _DeviceHeader(count: list.length);
+                  final s = list[i - 1];
+                  final isCurrent =
+                      ref.watch(
+                        playerProvider.select((p) => p.currentTrack?.id),
+                      ) ==
+                      _deviceTrackId(s);
+                  return NexoraTrackRow(
+                    artworkUrl: s.coverUrl,
+                    title: s.title,
+                    subtitle:
+                        '${s.artist ?? 'Unknown'} • ${s.album ?? 'On this device'}',
+                    duration: formatDuration(s.durationDuration),
+                    indexLabel: i.toString().padLeft(2, '0'),
+                    isCurrent: isCurrent,
+                    isPlaying:
+                        isCurrent &&
+                        ref.watch(playerProvider.select((p) => p.isPlaying)),
+                    onTap: () => ref
+                        .read(playerProvider.notifier)
+                        .playSongs(list, initialIndex: i - 1),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// MediaItem id for a device song (mirrors queue_manager mapping).
+  String _deviceTrackId(Song s) =>
+      (s.streamUrl != null && s.streamUrl!.isNotEmpty)
+      ? s.streamUrl!
+      : (s.localPath ?? s.id);
+}
+
+/// Permission grant card shown until the OS allows library access.
+class _DeviceGrantView extends ConsumerWidget {
+  const _DeviceGrantView();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            EmptyView(
+              title: 'On-device music',
+              subtitle:
+                  'Allow access to play the audio files stored on this phone — '
+                  'no server needed, works fully offline.\n\n'
+                  'If you skipped the system prompt, enable it in the system Settings app.',
+              icon: Icons.smartphone_outlined,
+              action: NexoraTextButton(
+                label: 'Grant access',
+                icon: Icons.lock_open_rounded,
+                primary: true,
+                onTap: () async {
+                  final svc = ref.read(deviceMusicProvider);
+                  await svc.requestPermission();
+                  ref.invalidate(deviceMusicPermissionProvider);
+                  ref.invalidate(deviceSongsProvider);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Count + play-all / shuffle-all header above the device list.
+class _DeviceHeader extends ConsumerWidget {
+  final int count;
+  const _DeviceHeader({required this.count});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '$count ${count == 1 ? 'song' : 'songs'} on this device',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          NexoraIconButton(
+            icon: Icons.shuffle_rounded,
+            size: 42,
+            iconSize: 19,
+            tooltip: 'Shuffle all',
+            onTap: () {
+              final songs = ref.read(deviceSongsProvider).value;
+              if (songs == null || songs.isEmpty) return;
+              final shuffled = List<Song>.of(songs)..shuffle();
+              final notifier = ref.read(playerProvider.notifier);
+              notifier.playSongs(shuffled);
+              notifier.toggleShuffle();
+            },
+          ),
+          const SizedBox(width: 8),
+          NexoraIconButton(
+            icon: Icons.play_arrow_rounded,
+            size: 42,
+            iconSize: 22,
+            tooltip: 'Play all',
+            onTap: () {
+              final songs = ref.read(deviceSongsProvider).value;
+              if (songs == null || songs.isEmpty) return;
+              ref.read(playerProvider.notifier).playSongs(songs);
+            },
+          ),
+        ],
       ),
     );
   }

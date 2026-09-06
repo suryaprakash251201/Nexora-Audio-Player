@@ -31,6 +31,8 @@
 		<string>audio</string>
 		<string>fetch</string>
 	</array>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Nexora plays the songs already on this iPhone in the Library → Device tab.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

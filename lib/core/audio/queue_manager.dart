@@ -98,7 +98,16 @@ class QueueManager {
     // from the canonical song.id (rootId|path) for cached/legacy songs whose
     // streamUrl is missing or relative.
     String fullStream = song.streamUrl ?? song.id;
-    if (!fullStream.startsWith('http')) {
+    // Direct-playable device URIs (on-device library, file:// tracks):
+    // never rebuild these into server /files/raw URLs. just_audio plays
+    // file://, content:// and ipod-library:// natively.
+    final directUri = Uri.tryParse(fullStream);
+    final isDirect =
+        directUri != null &&
+        (directUri.scheme == 'file' ||
+            directUri.scheme == 'content' ||
+            directUri.scheme == 'ipod-library');
+    if (!isDirect && !fullStream.startsWith('http')) {
       // Rebuild from the canonical id rather than the (possibly mangled)
       // relative streamUrl string.
       final rawId = song.id.isNotEmpty ? song.id : fullStream;
@@ -122,7 +131,9 @@ class QueueManager {
       fullArt = artwork.startsWith('/') ? '$base$artwork' : '$base/$artwork';
     }
 
-    final headers = token != null && token.isNotEmpty
+    // No auth headers on direct device URIs (AVPlayer rejects extras on
+    // ipod-library assets; file playback ignores them).
+    final headers = token != null && token.isNotEmpty && !isDirect
         ? {'Authorization': 'Bearer $token'}
         : null;
 
@@ -138,8 +149,7 @@ class QueueManager {
         ? song.id.split('|').skip(1).join('|')
         : song.id;
     if (!song.id.contains('|')) {
-      final q = Uri.tryParse(song.streamUrl ?? '')?.queryParameters ??
-          const {};
+      final q = Uri.tryParse(song.streamUrl ?? '')?.queryParameters ?? const {};
       final qr = (q['root'] ?? '').trim();
       final qp = (q['path'] ?? '').trim();
       if (qr.isNotEmpty && qp.isNotEmpty) {
