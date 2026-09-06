@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../nexora/nexora_glass.dart';
+import '../nexora/nexora_rows.dart';
 import '../theme.dart';
 
 /// Hi-Fi primary play/pause button. Single accent fill, calm press scale.
@@ -848,6 +849,12 @@ class SpringSimulationConfig {
 }
 
 /// Editorial track row used across lists. Subtle separators, no glass.
+///
+/// Canonical implementation is [NexoraTrackRow] — this widget is a
+/// deprecated thin forwarder kept for API compatibility so there is a
+/// single row implementation (cached [NexoraArtwork], index/EQ badge,
+/// favorite/download dots, anchored overflow menu).
+@Deprecated('Use NexoraTrackRow instead (single canonical row)')
 class GlassSongTile extends StatelessWidget {
   final String? artworkUrl;
   final String title;
@@ -872,143 +879,15 @@ class GlassSongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.mode == AppThemeMode.dark;
-    final textColor = isCurrent ? AppColors.onSelection : AppColors.text;
-    final subColor = isCurrent
-        ? AppColors.onSelection.withValues(alpha: 0.82)
-        : AppColors.textMuted;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        decoration: BoxDecoration(
-          gradient: isCurrent ? AppColors.selectionGradient : null,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isCurrent
-                ? Colors.white.withValues(alpha: 0.22)
-                : Colors.transparent,
-            width: 0.8,
-          ),
-          boxShadow: isCurrent
-              ? [
-                  BoxShadow(
-                    color: AppColors.accent.withValues(
-                      alpha: isDark ? 0.35 : 0.24,
-                    ),
-                    blurRadius: 18,
-                    offset: const Offset(0, 7),
-                  ),
-                ]
-              : null,
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 44,
-                height: 44,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: artworkUrl != null
-                            ? DecorationImage(
-                                image: NetworkImage(artworkUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        color: isCurrent
-                            ? Colors.white.withValues(alpha: 0.22)
-                            : AppColors.surfaceRaised,
-                      ),
-                      child: artworkUrl == null
-                          ? Icon(
-                              Icons.music_note_rounded,
-                              color: isCurrent
-                                  ? AppColors.onSelection
-                                  : AppColors.textDim,
-                              size: 20,
-                            )
-                          : null,
-                    ),
-                    if (isPlaying)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isCurrent
-                              ? Colors.black.withValues(alpha: 0.35)
-                              : Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: _MiniBars(
-                            color: isCurrent
-                                ? AppColors.onSelection
-                                : AppColors.accent,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 15,
-                        fontWeight: isCurrent
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: subColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailing != null)
-                trailing!
-              else if (onMore != null)
-                IconButton(
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    color: isCurrent
-                        ? AppColors.onSelection.withValues(alpha: 0.90)
-                        : AppColors.textDim,
-                    size: 20,
-                  ),
-                  onPressed: onMore,
-                ),
-            ],
-          ),
-        ),
-      ),
+    return NexoraTrackRow(
+      artworkUrl: artworkUrl,
+      title: title,
+      subtitle: subtitle,
+      isCurrent: isCurrent,
+      isPlaying: isPlaying,
+      onTap: onTap,
+      onMore: onMore,
+      trailing: trailing,
     );
   }
 }
@@ -1298,64 +1177,6 @@ class _PremiumFeatureCardState extends State<PremiumFeatureCard>
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Compact animated equalizer bars used as a compact "now playing" indicator.
-class _MiniBars extends StatefulWidget {
-  final Color color;
-  const _MiniBars({required this.color});
-
-  @override
-  State<_MiniBars> createState() => _MiniBarsState();
-}
-
-class _MiniBarsState extends State<_MiniBars>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, _) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: List.generate(3, (i) {
-            final h =
-                4 +
-                8 *
-                    ((math.sin(_controller.value * math.pi * 2 + i * 1.5) + 1) /
-                        2);
-            return Container(
-              width: 3,
-              height: h,
-              margin: const EdgeInsets.symmetric(horizontal: 1),
-              decoration: BoxDecoration(
-                color: widget.color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }

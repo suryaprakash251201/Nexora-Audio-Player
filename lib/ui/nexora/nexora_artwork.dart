@@ -10,18 +10,20 @@ import 'nexora_tokens.dart';
 /// Used everywhere in the 2.0 redesign.
 class NexoraArtwork extends StatelessWidget {
   final String? url;
-  final double size;
+  final double? size;
   final BorderRadius radius;
   final IconData placeholderIcon;
   final BoxFit fit;
+  final bool showShadow;
 
   const NexoraArtwork({
     super.key,
     required this.url,
-    required this.size,
+    this.size,
     this.radius = NexoraRadius.artwork,
     this.placeholderIcon = Icons.music_note_rounded,
     this.fit = BoxFit.cover,
+    this.showShadow = true,
   });
 
   @override
@@ -32,13 +34,15 @@ class NexoraArtwork extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: showShadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
         borderRadius: radius,
@@ -64,7 +68,7 @@ class NexoraArtwork extends StatelessWidget {
 }
 
 class _Placeholder extends StatelessWidget {
-  final double size;
+  final double? size;
   final IconData icon;
   final bool loading;
   const _Placeholder({
@@ -92,11 +96,15 @@ class _Placeholder extends StatelessWidget {
       alignment: Alignment.center,
       child: loading
           ? SizedBox(
-              width: size * 0.18,
-              height: size * 0.18,
+              width: (size ?? 48) * 0.18,
+              height: (size ?? 48) * 0.18,
               child: const CircularProgressIndicator(strokeWidth: 1.6),
             )
-          : Icon(icon, size: size * 0.32, color: AppColorTokens.textDim),
+          : Icon(
+              icon,
+              size: (size ?? 48) * 0.32,
+              color: AppColorTokens.textDim,
+            ),
     );
   }
 }

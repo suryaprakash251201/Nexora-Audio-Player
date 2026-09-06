@@ -214,29 +214,45 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                       onPressed: () =>
                           ref.read(playerProvider.notifier).togglePlay(),
                     ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(
-                        Icons.skip_next_rounded,
-                        color: AppColors.text,
-                        size: 24,
+                    // 44px targets (was compact ~36px) + semantics.
+                    Semantics(
+                      button: true,
+                      label: 'Next track',
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.skip_next_rounded,
+                            color: AppColors.text,
+                            size: 24,
+                          ),
+                          onPressed: () =>
+                              ref.read(playerProvider.notifier).next(),
+                          tooltip: 'Next track',
+                        ),
                       ),
-                      onPressed: () => ref.read(playerProvider.notifier).next(),
-                      tooltip: 'Next',
                     ),
                     // Close — stops playback and dismisses the player.
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: AppColors.textDim,
-                        size: 16,
+                    Semantics(
+                      button: true,
+                      label: 'Close player',
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: AppColors.textDim,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            ref.read(playerProvider.notifier).clearQueue();
+                          },
+                          tooltip: 'Close player',
+                        ),
                       ),
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        ref.read(playerProvider.notifier).clearQueue();
-                      },
-                      tooltip: 'Close player',
                     ),
                   ],
                 ),
@@ -340,9 +356,8 @@ class _NexoraMiniPlayerState extends ConsumerState<NexoraMiniPlayer> {
                               scrollController: scrollController,
                               padding: const EdgeInsets.only(bottom: 24),
                               itemCount: state.queue.length,
-                              onReorder: (o, n) => ref
-                                  .read(playerProvider.notifier)
-                                  .move(o, n > o ? n - 1 : n),
+                              onReorderItem: (o, n) =>
+                                  ref.read(playerProvider.notifier).move(o, n),
                               itemBuilder: (cx, i) {
                                 final item = state.queue[i];
                                 final isCurrent =

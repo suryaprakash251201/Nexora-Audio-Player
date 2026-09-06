@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/connectivity_service.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../ui/nexora/nexora_artwork.dart';
 import '../../../ui/nexora/nexora_icons.dart';
 import '../../../ui/nexora/nexora_motion.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
@@ -12,8 +12,6 @@ import '../../../ui/nexora/nexora_surfaces.dart';
 import '../../../ui/nexora/nexora_snack.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
-import '../../../ui/widgets/artwork_image.dart' show nexoraArtworkCache;
-import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/error_view.dart';
 import '../../../ui/widgets/shimmer_loading.dart';
 import '../providers/home_provider.dart';
@@ -104,7 +102,12 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 168),
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        4,
+                        16,
+                        NexoraSpacing.dockBottomReserve,
+                      ),
                       child: NexoraStaggeredColumn(
                         children: [
                           const SizedBox(height: 4),
@@ -589,11 +592,10 @@ class _ContinueListening extends ConsumerWidget {
         children: [
           Row(
             children: [
-              ArtworkImage(
+              NexoraArtwork(
                 url: track.artUri?.toString(),
                 size: 64,
-                borderRadius: 10,
-                showShadow: true,
+                radius: const BorderRadius.all(Radius.circular(10)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -879,19 +881,23 @@ class _PlaylistsRow extends ConsumerWidget {
     return asyncPlaylists.when(
       data: (list) {
         if (list.isEmpty) {
-          return const _EmptyHint(
+          return const EmptyView(
             icon: Icons.queue_music_outlined,
-            text: 'No playlists yet — create one from the Playlists tab',
+            title: 'No playlists yet — create one from the Playlists tab',
+            compact: true,
           );
         }
+        final items = list.take(15).toList();
         return SizedBox(
           height: 188,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            itemCount: list.length,
+            itemCount: items.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => _HomePlaylistCard(playlist: list[i]),
+            itemBuilder: (context, i) => _HomePlaylistCard(playlist: items[i]),
           ),
         );
       },
@@ -987,23 +993,27 @@ class _HomeSongsRow extends ConsumerWidget {
     return asyncSongs.when(
       data: (songs) {
         if (songs.isEmpty) {
-          return const _EmptyHint(
+          return const EmptyView(
             icon: Icons.music_note_outlined,
-            text: 'No songs yet — check your server connection',
+            title: 'No songs yet — check your server connection',
+            compact: true,
           );
         }
+        final items = songs.take(15).toList();
         return SizedBox(
           height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            itemCount: songs.length,
+            itemCount: items.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, i) => _SongCard(
-              song: songs[i],
+              song: items[i],
               onTap: () => ref
                   .read(playerProvider.notifier)
-                  .playSongs(songs, initialIndex: i),
+                  .playSongs(items, initialIndex: i),
             ),
           ),
         );
@@ -1031,22 +1041,26 @@ class _RecentlyPlayedRow extends ConsumerWidget {
             if (h.song != null) h.song,
         ];
         if (songs.isEmpty) {
-          return const _EmptyHint(
+          return const EmptyView(
             icon: Icons.history_rounded,
-            text: 'Tracks you play will appear here',
+            title: 'Tracks you play will appear here',
+            compact: true,
           );
         }
+        final capped = songs.take(15).toList();
         return SizedBox(
           height: 172,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            itemCount: songs.length,
+            itemCount: capped.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => _SmallSongCard(
-              song: songs[i] as Song,
+              song: capped[i] as Song,
               onTap: () => ref.read(playerProvider.notifier).playSongs([
-                songs[i] as Song,
+                capped[i] as Song,
               ]),
             ),
           ),
@@ -1078,9 +1092,10 @@ class _AlbumsGrid extends ConsumerWidget {
     return asyncAlbums.when(
       data: (list) {
         if (list.isEmpty)
-          return const _EmptyHint(
+          return const EmptyView(
             icon: Icons.album_outlined,
-            text: 'No albums yet',
+            title: 'No albums yet',
+            compact: true,
           );
         return GridView.builder(
           shrinkWrap: true,
@@ -1122,15 +1137,18 @@ class _ArtistsRow extends ConsumerWidget {
     return asyncArtists.when(
       data: (artists) {
         if (artists.isEmpty) return const SizedBox.shrink();
+        final items = artists.take(15).toList();
         return SizedBox(
           height: 122,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            itemCount: artists.length,
+            itemCount: items.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, i) {
-              final a = artists[i];
+              final a = items[i];
               return NexoraPressable(
                 onTap: () => context.push(
                   '/artist/${Uri.encodeComponent(a.id)}',
@@ -1159,10 +1177,12 @@ class _ArtistsRow extends ConsumerWidget {
                           ],
                         ),
                         child: ClipOval(
-                          child: ArtworkImage(
+                          child: NexoraArtwork(
                             url: a.artworkUrl,
                             size: 96,
-                            borderRadius: 0,
+                            radius: BorderRadius.zero,
+                            showShadow: false,
+                            placeholderIcon: Icons.person_rounded,
                           ),
                         ),
                       ),
@@ -1207,11 +1227,10 @@ class _SongCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ArtworkImage(
+            NexoraArtwork(
               url: song.effectiveArtwork,
               size: 140,
-              borderRadius: 14,
-              showShadow: true,
+              radius: const BorderRadius.all(Radius.circular(14)),
             ),
             const SizedBox(height: 10),
             Text(
@@ -1254,11 +1273,10 @@ class _SmallSongCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ArtworkImage(
+            NexoraArtwork(
               url: song.effectiveArtwork,
               size: 120,
-              borderRadius: 14,
-              showShadow: true,
+              radius: const BorderRadius.all(Radius.circular(14)),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1299,10 +1317,9 @@ class _AlbumCard extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: ArtworkImage(
+            child: NexoraArtwork(
               url: album.coverUrl,
-              borderRadius: 14,
-              showShadow: true,
+              radius: const BorderRadius.all(Radius.circular(14)),
             ),
           ),
           const SizedBox(height: 10),
@@ -1405,18 +1422,22 @@ class _FoldersRow extends ConsumerWidget {
     return asyncFolders.when(
       data: (folders) {
         if (folders.isEmpty) {
-          return const _EmptyHint(
+          return const EmptyView(
             icon: Icons.folder_outlined,
-            text: 'No folders yet',
+            title: 'No folders yet',
+            compact: true,
           );
         }
+        final items = folders.take(15).toList();
         return SizedBox(
           height: 172,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: folders.length,
+            itemCount: items.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => _HomeFolderCard(entry: folders[i]),
+            itemBuilder: (context, i) => _HomeFolderCard(entry: items[i]),
           ),
         );
       },
@@ -1470,29 +1491,15 @@ class _HomeFolderCard extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // Single artwork pipeline: shared disk cache, aurora
+                    // fallback with folder glyph (no per-card provider).
                     coverAsync.when(
-                      data: (url) => url != null && url.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: url,
-                              fit: BoxFit.cover,
-                              cacheManager: nexoraArtworkCache,
-                              errorWidget: (_, _, _) => Container(
-                                color: AppColors.surfaceRaised,
-                                child: Icon(
-                                  Icons.folder_rounded,
-                                  color: AppColors.textDim,
-                                  size: 36,
-                                ),
-                              ),
-                            )
-                          : Container(
-                              color: AppColors.surfaceRaised,
-                              child: Icon(
-                                Icons.folder_rounded,
-                                color: AppColors.textDim,
-                                size: 36,
-                              ),
-                            ),
+                      data: (url) => NexoraArtwork(
+                        url: url,
+                        radius: BorderRadius.zero,
+                        showShadow: false,
+                        placeholderIcon: Icons.folder_rounded,
+                      ),
                       loading: () => Container(
                         color: AppColors.surfaceRaised,
                         child: const Center(
@@ -1503,13 +1510,11 @@ class _HomeFolderCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      error: (_, __) => Container(
-                        color: AppColors.surfaceRaised,
-                        child: Icon(
-                          Icons.folder_rounded,
-                          color: AppColors.textDim,
-                          size: 36,
-                        ),
+                      error: (_, __) => const NexoraArtwork(
+                        url: null,
+                        radius: BorderRadius.zero,
+                        showShadow: false,
+                        placeholderIcon: Icons.folder_rounded,
                       ),
                     ),
                     Container(
@@ -1563,37 +1568,6 @@ class _HomeFolderCard extends ConsumerWidget {
   }
 }
 
-class _EmptyHint extends StatelessWidget {
-  const _EmptyHint({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.7),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textDim, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SkeletonRow extends StatelessWidget {
   const _SkeletonRow({required this.height, required this.width});
 
@@ -1608,6 +1582,7 @@ class _SkeletonRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         itemCount: 4,
+        addAutomaticKeepAlives: false,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (_, _) => ShimmerLoading(
           child: Container(

@@ -287,13 +287,18 @@ class NexoraIconButton extends StatelessWidget {
   }
 }
 
-/// Calm empty-state used by every list.
+/// Calm empty-state used by every list — the single canonical empty
+/// component ([EmptyView] forwards here, so both names share one
+/// implementation).
 /// 2.0: frosted icon tile with aurora tint + bolder title.
+/// Set [compact] for the inline rail hint (horizontal icon + text row
+/// used inside carousels) instead of the centered full-page layout.
 class NexoraEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
   final Widget? action;
+  final bool compact;
 
   const NexoraEmptyState({
     super.key,
@@ -301,10 +306,33 @@ class NexoraEmptyState extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.action,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.7),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.textDim, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                subtitle ?? title,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),

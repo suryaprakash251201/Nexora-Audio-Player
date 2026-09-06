@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../nexora/nexora_primitives.dart';
 import '../theme.dart';
 
 class ErrorView extends StatelessWidget {
@@ -16,30 +17,39 @@ class ErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.error.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.error.withValues(alpha: 0.18),
+                    AppColors.error.withValues(alpha: 0.07),
+                  ],
+                ),
                 border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.35),
-                  width: 0.6,
+                  color: AppColors.error.withValues(alpha: 0.30),
+                  width: 0.8,
                 ),
               ),
               child: Icon(
                 Icons.error_outline_rounded,
-                size: 24,
+                size: 26,
                 color: AppColors.error,
+                semanticLabel: 'Error',
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.text,
                 fontSize: 17,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 6),
@@ -54,10 +64,24 @@ class ErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Try again'),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text(
+                    'Try again',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                  ),
+                ),
               ),
             ],
           ],
@@ -67,60 +91,32 @@ class ErrorView extends StatelessWidget {
   }
 }
 
+/// Centered empty placeholder — thin forwarder around [NexoraEmptyState]
+/// so `EmptyView` and `NexoraEmptyState` share one implementation.
+/// [compact] renders the inline rail hint (icon + text row).
 class EmptyView extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
+  final Widget? action;
+  final bool compact;
   const EmptyView({
     super.key,
     required this.title,
     this.subtitle,
     this.icon = Icons.inbox_outlined,
+    this.action,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.surfaceRaised,
-                border: Border.all(color: AppColors.border, width: 0.6),
-              ),
-              child: Icon(icon, size: 28, color: AppColors.textDim),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                subtitle!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    return NexoraEmptyState(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      action: action,
+      compact: compact,
     );
   }
 }

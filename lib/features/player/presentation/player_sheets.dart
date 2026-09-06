@@ -114,10 +114,9 @@ class QueueSheet extends ConsumerWidget {
                       itemCount: queue.length,
                       proxyDecorator: (child, _, __) =>
                           Material(color: Colors.transparent, child: child),
-                      onReorder: (oldIndex, newIndex) {
-                        // List semantics: dropping below the removed slot
-                        // shifts the target up by one.
-                        if (newIndex > oldIndex) newIndex -= 1;
+                      onReorderItem: (oldIndex, newIndex) {
+                        // onReorderItem already adjusts newIndex for the
+                        // removed item — no manual shift needed.
                         if (oldIndex != newIndex) {
                           notifier.move(oldIndex, newIndex);
                         }

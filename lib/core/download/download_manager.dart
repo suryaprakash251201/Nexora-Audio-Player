@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/errors/exceptions.dart';
 import '../../domain/entities/song.dart';
 import '../network/api_client.dart';
 import '../database/database_service.dart';
@@ -59,26 +60,39 @@ class DownloadManager {
     return '${stem}_$hash.mp3';
   }
 
-  Future<String?> downloadTrack(
+  /// Downloads the given song to local storage.
+  ///
+  /// Throws [ApiException]-style errors with a human-readable message so
+  /// callers can surface the real reason — a bare `null` return hid every
+  /// cause behind "check connection and storage".
+  Future<String> downloadTrack(
     Song song,
     String streamUrl, {
     void Function(double)? onProgress,
   }) async {
     final trackId = song.id;
+    String? savePath;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final saveDir = Directory('${dir.path}/tracks');
       if (!await saveDir.exists()) await saveDir.create(recursive: true);
-      final savePath = '${saveDir.path}/${fileNameFor(trackId)}';
+      savePath = '${saveDir.path}/${fileNameFor(trackId)}';
 
       AppLogger.download('Downloading $trackId from $streamUrl');
 
       await _dio.download(
         streamUrl,
         savePath,
-        options: Options(headers: _dio.options.headers),
+        // The shared client treats <500 as success; a 401/404 would be
+        // written to disk as a JSON error "song". Enforce 2xx/3xx here so
+        // server failures surface as errors instead of corrupt files.
+        options: Options(
+          headers: _dio.options.headers,
+          responseType: ResponseType.bytes,
+          validateStatus: (s) => s != null && s >= 200 && s < 400,
+        ),
         onReceiveProgress: (received, total) {
-          if (total != -1) {
+          if (total > 0) {
             final p = received / total;
             _progress[trackId] = p;
             onProgress?.call(p);
@@ -118,20 +132,59 @@ class DownloadManager {
       _progress.remove(trackId);
       AppLogger.download('✓ Downloaded $trackId');
       return savePath;
+    } on DioException catch (e) {
+      _cleanupPartial(trackId, savePath);
+      AppLogger.download(
+        '✗ Download failed $trackId: ${e.type} ${e.response?.statusCode}',
+      );
+      throw _mapDio(e);
     } catch (e) {
+      _cleanupPartial(trackId, savePath);
       AppLogger.download('✗ Download failed $trackId: $e');
-      _progress.remove(trackId);
-      // Clean up partially downloaded file to prevent storage leaks
-      try {
-        final dir = await getApplicationDocumentsDirectory();
-        final partialFile = File('${dir.path}/tracks/${fileNameFor(trackId)}');
-        if (await partialFile.exists()) {
-          await partialFile.delete();
-          AppLogger.download('Cleaned up partial file for $trackId');
-        }
-      } catch (_) {}
-      return null;
+      rethrow;
     }
+  }
+
+  void _cleanupPartial(String trackId, String? savePath) {
+    _progress.remove(trackId);
+    if (savePath == null) return;
+    try {
+      final f = File(savePath);
+      if (f.existsSync()) f.deleteSync();
+    } catch (_) {}
+  }
+
+  /// Map a download [DioException] to a message a listener can act on.
+  ApiException _mapDio(DioException e) {
+    final status = e.response?.statusCode;
+    final type = e.type;
+    if (type == DioExceptionType.connectionTimeout ||
+        type == DioExceptionType.receiveTimeout ||
+        type == DioExceptionType.sendTimeout) {
+      return const ApiException(
+        'Connection timed out — check the server address',
+        statusCode: 408,
+      );
+    }
+    if (type == DioExceptionType.connectionError) {
+      return const ApiException(
+        'Server unreachable — check Wi-Fi / server URL',
+        statusCode: 503,
+      );
+    }
+    if (status == 401 || status == 403) {
+      return ApiException('Session expired — log in again', statusCode: status);
+    }
+    if (status == 404) {
+      return const ApiException(
+        'File missing on server — rescan the library',
+        statusCode: 404,
+      );
+    }
+    if (status != null && status >= 500) {
+      return ApiException('Server error ($status)', statusCode: status);
+    }
+    return ApiException('Download failed (${e.message ?? 'network error'})');
   }
 
   Future<void> removeTrackDownload(String trackId) async {

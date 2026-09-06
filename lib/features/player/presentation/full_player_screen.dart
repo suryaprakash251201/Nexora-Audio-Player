@@ -202,25 +202,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                   }
                 }
               },
-              // Keep legacy callbacks as fallback for fast flings
-              onHorizontalDragEnd: (details) {
-                final vx = details.primaryVelocity ?? 0;
-                if (vx < -_hVelocity) {
-                  HapticFeedback.selectionClick();
-                  notifier.next();
-                } else if (vx > _hVelocity) {
-                  HapticFeedback.selectionClick();
-                  notifier.previous();
-                }
-              },
-              onVerticalDragEnd: (details) {
-                final vy = details.primaryVelocity ?? 0;
-                if (vy > 380 && Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                } else if (vy < -420) {
-                  _showQueue(context);
-                }
-              },
+              // Single pan recognizer only — mixing onPan with
+              // onHorizontal/VerticalDragEnd fights in the gesture arena
+              // (pan wins, drag callbacks starve). All swipe intent is
+              // handled in onPanEnd above.
               child: Column(
                 children: [
                   PlayerTopBar(
@@ -235,202 +220,226 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                       builder: (context, constraints) {
                         final w = MediaQuery.of(context).size.width;
                         final h = constraints.maxHeight;
+                        // Compact mode for short screens (SE / landscape):
+                        // smaller floor + scrollable column so transport +
+                        // volume never squeeze below 48px targets.
+                        final isCompact = h < 620;
                         // Fit both axes: wide phones get width-capped art,
                         // short screens get height-capped art (no overflow).
                         final artworkSize =
                             (w * 0.64 < h * 0.36 ? w * 0.64 : h * 0.36).clamp(
-                              170.0,
+                              isCompact ? 140.0 : 170.0,
                               300.0,
                             );
-                        return RepaintBoundary(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // Artwork stage (isolated repaint).
-                              // Double-tap cover ⇄ lyrics.
-                              RepaintBoundary(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onDoubleTap: () {
-                                    HapticFeedback.lightImpact();
-                                    if ((lyrics?.value?.hasLyrics ?? false)) {
-                                      setState(() => _showLyrics = true);
-                                    } else {
-                                      showNexoraSnack(
-                                        context,
-                                        'No lyrics for this track',
-                                        severity: NexoraSnackSeverity.warning,
-                                      );
-                                    }
-                                  },
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 380),
-                                    switchInCurve: Curves.easeOutCubic,
-                                    switchOutCurve: Curves.easeInCubic,
-                                    transitionBuilder: (child, anim) =>
-                                        FadeTransition(
-                                          opacity: anim,
-                                          child: ScaleTransition(
-                                            scale: Tween<double>(
-                                              begin: 0.94,
-                                              end: 1.0,
-                                            ).animate(anim),
-                                            child: child,
-                                          ),
+                        // Scroll-safe stage: tall screens distribute
+                        // evenly, short screens scroll instead of
+                        // overflowing / crushing 48px targets.
+                        return SingleChildScrollView(
+                          physics: isCompact
+                              ? const BouncingScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: h),
+                            child: RepaintBoundary(
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  // Artwork stage (isolated repaint).
+                                  // Double-tap cover ⇄ lyrics.
+                                  RepaintBoundary(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onDoubleTap: () {
+                                        HapticFeedback.lightImpact();
+                                        if ((lyrics?.value?.hasLyrics ??
+                                            false)) {
+                                          setState(() => _showLyrics = true);
+                                        } else {
+                                          showNexoraSnack(
+                                            context,
+                                            'No lyrics for this track',
+                                            severity:
+                                                NexoraSnackSeverity.warning,
+                                          );
+                                        }
+                                      },
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(
+                                          milliseconds: 380,
                                         ),
-                                    child: ArtworkStage(
-                                      key: ValueKey('${mode.name}-${track.id}'),
-                                      mode: mode,
-                                      track: track,
-                                      isPlaying: isPlaying,
-                                      artworkSize: artworkSize,
-                                      gradient: grad,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              // Title + artist (compact, centered)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 28,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      track.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: AppColors.text,
-                                        fontSize: 21,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.4,
+                                        switchInCurve: Curves.easeOutCubic,
+                                        switchOutCurve: Curves.easeInCubic,
+                                        transitionBuilder: (child, anim) =>
+                                            FadeTransition(
+                                              opacity: anim,
+                                              child: ScaleTransition(
+                                                scale: Tween<double>(
+                                                  begin: 0.94,
+                                                  end: 1.0,
+                                                ).animate(anim),
+                                                child: child,
+                                              ),
+                                            ),
+                                        child: ArtworkStage(
+                                          key: ValueKey(
+                                            '${mode.name}-${track.id}',
+                                          ),
+                                          mode: mode,
+                                          track: track,
+                                          isPlaying: isPlaying,
+                                          artworkSize: artworkSize,
+                                          gradient: grad,
+                                        ),
                                       ),
                                     ),
-                                    // Inline offline marker — player keeps
-                                    // working on cache/downloads.
-                                    const OfflineChip(),
-                                    const SizedBox(height: 8),
-                                    // Lossless wordmark — renders only for
-                                    // lossless tracks (display only).
-                                    LosslessBadge(
-                                      track: track,
-                                      info: audioInfo?.value,
+                                  ),
+                                  // Title + artist (compact, centered)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 28,
                                     ),
-                                  ],
-                                ),
-                              ),
-                              // Gradient timeline (own rebuild scope)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: LiveSeekBar(
-                                  gradient: gradH,
-                                  accent: palette.primary,
-                                ),
-                              ),
-                              // PlayerTransport — centered, max-width aligned
-                              RepaintBoundary(
-                                child: Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 430,
-                                    ),
-                                    child: PlayerTransport(
-                                      isPlaying: isPlaying,
-                                      isBuffering: isBuffering,
-                                      loopMode: repeatMode,
-                                      isShuffled: shuffleEnabled,
-                                      // Stable signature blue — never changes
-                                      // per track; the page background keeps
-                                      // adapting instead.
-                                      gradient: AppColors.accentGradient,
-                                      onPlayPause: () {
-                                        HapticFeedback.lightImpact();
-                                        notifier.togglePlay();
-                                      },
-                                      onPrevious: () {
-                                        HapticFeedback.selectionClick();
-                                        notifier.previous();
-                                      },
-                                      onNext: () {
-                                        HapticFeedback.selectionClick();
-                                        notifier.next();
-                                      },
-                                      onLoop: () {
-                                        HapticFeedback.selectionClick();
-                                        notifier.cycleRepeat();
-                                      },
-                                      onShuffle: () {
-                                        HapticFeedback.selectionClick();
-                                        notifier.toggleShuffle();
-                                      },
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          track.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: AppColors.text,
+                                            fontSize: 21,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.4,
+                                          ),
+                                        ),
+                                        // Inline offline marker — player keeps
+                                        // working on cache/downloads.
+                                        const OfflineChip(),
+                                        const SizedBox(height: 8),
+                                        // Lossless wordmark — renders only for
+                                        // lossless tracks (display only).
+                                        LosslessBadge(
+                                          track: track,
+                                          info: audioInfo?.value,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ),
-                              // Quick actions — centered, compact
-                              PlayerQuickActions(
-                                onQueue: () => _showQueue(context),
-                                onLyrics: () {
-                                  if ((lyrics?.value?.hasLyrics ?? false)) {
-                                    setState(() => _showLyrics = true);
-                                  } else {
-                                    showNexoraSnack(
-                                      context,
-                                      'No lyrics for this track',
-                                      severity: NexoraSnackSeverity.warning,
-                                    );
-                                  }
-                                },
-                                lyricsAvailable:
-                                    lyrics?.value?.hasLyrics ?? false,
-                                onAddToPlaylist: () =>
-                                    _showAddToPlaylist(context, track),
-                                onEqualizer: () => context.push('/equalizer'),
-                              ),
-                              // Bottom cluster — compact, no scroll
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: VolumeBar(
-                                  volume: volume,
-                                  speed: speed,
-                                  onVolume: notifier.setVolume,
-                                  onSpeedTap: () =>
-                                      _showSpeedSheet(context, ref),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: PlayerBottomDock(
-                                  track: track,
-                                  rootId: rootId,
-                                  songId: songId,
-                                  filePath: filePath,
-                                  lyricsData: lyrics?.value,
-                                  onSleep: () =>
-                                      _showSleepTimerSheet(context, ref),
-                                  onSpeed: () => _showSpeedSheet(context, ref),
-                                  onLyricsEdit:
-                                      (rootId != null && rootId.isNotEmpty)
-                                      ? () => _showLyricsEditor(
+                                  // Gradient timeline (own rebuild scope)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                    ),
+                                    child: LiveSeekBar(
+                                      gradient: gradH,
+                                      accent: palette.primary,
+                                    ),
+                                  ),
+                                  // PlayerTransport — centered, max-width aligned
+                                  RepaintBoundary(
+                                    child: Center(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 430,
+                                        ),
+                                        child: PlayerTransport(
+                                          isPlaying: isPlaying,
+                                          isBuffering: isBuffering,
+                                          loopMode: repeatMode,
+                                          isShuffled: shuffleEnabled,
+                                          // Stable signature blue — never changes
+                                          // per track; the page background keeps
+                                          // adapting instead.
+                                          gradient: AppColors.accentGradient,
+                                          onPlayPause: () {
+                                            HapticFeedback.lightImpact();
+                                            notifier.togglePlay();
+                                          },
+                                          onPrevious: () {
+                                            HapticFeedback.selectionClick();
+                                            notifier.previous();
+                                          },
+                                          onNext: () {
+                                            HapticFeedback.selectionClick();
+                                            notifier.next();
+                                          },
+                                          onLoop: () {
+                                            HapticFeedback.selectionClick();
+                                            notifier.cycleRepeat();
+                                          },
+                                          onShuffle: () {
+                                            HapticFeedback.selectionClick();
+                                            notifier.toggleShuffle();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Quick actions — centered, compact
+                                  PlayerQuickActions(
+                                    onQueue: () => _showQueue(context),
+                                    onLyrics: () {
+                                      if ((lyrics?.value?.hasLyrics ?? false)) {
+                                        setState(() => _showLyrics = true);
+                                      } else {
+                                        showNexoraSnack(
                                           context,
-                                          ref,
-                                          rootId,
-                                          filePath,
-                                          lyrics?.value,
-                                        )
-                                      : null,
-                                ),
+                                          'No lyrics for this track',
+                                          severity: NexoraSnackSeverity.warning,
+                                        );
+                                      }
+                                    },
+                                    lyricsAvailable:
+                                        lyrics?.value?.hasLyrics ?? false,
+                                    onAddToPlaylist: () =>
+                                        _showAddToPlaylist(context, track),
+                                    onEqualizer: () =>
+                                        context.push('/equalizer'),
+                                  ),
+                                  // Bottom cluster — compact, no scroll
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                    ),
+                                    child: VolumeBar(
+                                      volume: volume,
+                                      speed: speed,
+                                      onVolume: notifier.setVolume,
+                                      onSpeedTap: () =>
+                                          _showSpeedSheet(context, ref),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: PlayerBottomDock(
+                                      track: track,
+                                      rootId: rootId,
+                                      songId: songId,
+                                      filePath: filePath,
+                                      lyricsData: lyrics?.value,
+                                      onSleep: () =>
+                                          _showSleepTimerSheet(context, ref),
+                                      onSpeed: () =>
+                                          _showSpeedSheet(context, ref),
+                                      onLyricsEdit:
+                                          (rootId != null && rootId.isNotEmpty)
+                                          ? () => _showLyricsEditor(
+                                              context,
+                                              ref,
+                                              rootId,
+                                              filePath,
+                                              lyrics?.value,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         );
                       },

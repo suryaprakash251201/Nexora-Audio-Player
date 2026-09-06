@@ -1,14 +1,16 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../ui/nexora/nexora_page_header.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
+import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
 import '../../../ui/theme.dart';
 import '../../../ui/widgets/artwork_image.dart';
 import '../../../ui/widgets/error_view.dart';
+import '../../../ui/widgets/track_menu_box.dart';
+import '../../../core/download/download_manager.dart';
 import '../../../core/utils/formatters.dart';
 import '../providers/search_provider.dart';
 import '../../../data/repositories/search_repository.dart';
@@ -64,56 +66,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         bottom: false,
         child: Column(
           children: [
-            // Header with inline search field
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-              child: Row(
-                children: [
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => Navigator.maybePop(context),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.border,
-                            width: 0.7,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: AppColors.text,
-                          size: 18,
-                        ),
-                      ),
-                    ),
+            // Unified top-level header — Search is a tab, not a pushed
+            // route, so no back button (the old maybePop could pop the
+            // whole shell). Same 32px rhythm as Library/Settings.
+            NexoraPageHeader(
+              title: 'Search',
+              subtitle: 'Songs, albums, artists, playlists',
+              actions: [
+                if (query.isNotEmpty)
+                  NexoraIconButton(
+                    icon: Icons.close_rounded,
+                    tooltip: 'Clear search',
+                    onTap: () {
+                      _controller.clear();
+                      ref.read(searchQueryProvider.notifier).state = '';
+                      _focusNode.requestFocus();
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Search',
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
+                textInputAction: TextInputAction.search,
+                keyboardType: TextInputType.text,
                 style: TextStyle(color: AppColors.text, fontSize: 15),
                 cursorColor: AppColors.accent,
                 decoration: InputDecoration(
@@ -168,7 +146,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
             if (query.isNotEmpty)
               SizedBox(
-                height: 40,
+                // 44px min touch target (was 40) + semantic selection.
+                height: 44,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -177,53 +156,69 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   itemBuilder: (c, i) {
                     final f = _filters[i];
                     final selected = _selectedFilter == i;
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => setState(() => _selectedFilter = i),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? f.color
-                                : (isDark
-                                      ? AppColors.surfaceRaised
-                                      : AppColors.card),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
+                    return Semantics(
+                      selected: selected,
+                      button: true,
+                      label: 'Filter ${f.label}',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => setState(() => _selectedFilter = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
                               color: selected
                                   ? f.color
-                                  : AppColors.border.withValues(alpha: 0.8),
-                              width: selected ? 0 : 0.7,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                f.icon,
-                                size: 14,
+                                  : (isDark
+                                        ? AppColors.surfaceRaised
+                                        : AppColors.card),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
                                 color: selected
-                                    ? Colors.white
-                                    : AppColors.textMuted,
+                                    ? Colors.white.withValues(alpha: 0.20)
+                                    : AppColors.border.withValues(alpha: 0.8),
+                                width: 0.8,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                f.label,
-                                style: TextStyle(
+                              boxShadow: selected
+                                  ? [
+                                      BoxShadow(
+                                        color: f.color.withValues(alpha: 0.32),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  f.icon,
+                                  size: 14,
                                   color: selected
                                       ? Colors.white
-                                      : AppColors.text,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.1,
+                                      : AppColors.textMuted,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  f.label,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.text,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -247,7 +242,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       data: (list) => list.isEmpty
           ? _BrowseEmpty(isDark: isDark)
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 168),
+              // Unified dock reserve (was 168, clipped behind mini+nav).
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                NexoraSpacing.dockBottomReserve,
+              ),
               children: [
                 _ResultHeader(
                   label: 'Recent searches',
@@ -311,104 +312,134 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             icon: Icons.search_off_rounded,
           );
         }
-        return ListView(
-          padding: const EdgeInsets.only(bottom: 168),
-          children: [
-            if (res.songs.isNotEmpty) ...[
-              _ResultHeader(
-                label: 'Songs',
-                count: res.songs.length,
-                action: 'Play all',
-                onAction: () => ref
-                    .read(playerProvider.notifier)
-                    .playSongs(res.songs, initialIndex: 0),
-              ),
-              _SongResultList(songs: List.from(res.songs)),
-            ],
-            if (res.albums.isNotEmpty) ...[
-              _ResultHeader(label: 'Albums', count: res.albums.length),
-              SizedBox(
-                height: 188,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: res.albums.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 14),
-                  itemBuilder: (c, i) {
-                    final a = res.albums[i];
-                    return _AlbumSearchCard(
-                      coverUrl: a.coverUrl,
-                      title: a.title,
-                      subtitle: a.artist,
-                      onTap: () => context.push(
-                        '/album/${Uri.encodeComponent(a.id)}',
-                        extra: a,
-                      ),
-                    );
-                  },
+        // Sliver-virtualized: songs recycle via SliverList.builder instead
+        // of one giant Column (was jank with 50+ hits). Albums/artists/
+        // playlists stay grouped cards — typically <20 items.
+        final songs = List.from(res.songs);
+        final showSongs = _selectedFilter == 0 || _selectedFilter == 1;
+        final showAlbums = _selectedFilter == 0 || _selectedFilter == 2;
+        final showArtists = _selectedFilter == 0 || _selectedFilter == 3;
+        final showPlaylists = _selectedFilter == 0 || _selectedFilter == 4;
+        return CustomScrollView(
+          slivers: [
+            if (songs.isNotEmpty && showSongs) ...[
+              SliverToBoxAdapter(
+                child: _ResultHeader(
+                  label: 'Songs',
+                  count: songs.length,
+                  action: 'Play all',
+                  onAction: () => ref
+                      .read(playerProvider.notifier)
+                      .playSongs(songs.cast(), initialIndex: 0),
                 ),
               ),
+              _SongResultSliver(songs: songs),
             ],
-            if (res.artists.isNotEmpty) ...[
-              _ResultHeader(label: 'Artists', count: res.artists.length),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border, width: 0.7),
-                  boxShadow: isDark ? null : NexoraShadow.card(false),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < res.artists.length; i++) ...[
-                        _ArtistResultTile(artist: res.artists[i]),
-                        if (i != res.artists.length - 1)
-                          Divider(
-                            color: AppColors.hairline,
-                            height: 0.5,
-                            thickness: 0.5,
-                            indent: 70,
-                            endIndent: 0,
-                          ),
-                      ],
-                    ],
+            if (res.albums.isNotEmpty && showAlbums) ...[
+              SliverToBoxAdapter(
+                child: _ResultHeader(label: 'Albums', count: res.albums.length),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 196,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: res.albums.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (c, i) {
+                      final a = res.albums[i];
+                      return _AlbumSearchCard(
+                        coverUrl: a.coverUrl,
+                        title: a.title,
+                        subtitle: a.artist,
+                        onTap: () => context.push(
+                          '/album/${Uri.encodeComponent(a.id)}',
+                          extra: a,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
             ],
-            if (res.playlists.isNotEmpty) ...[
-              _ResultHeader(label: 'Playlists', count: res.playlists.length),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border, width: 0.7),
-                  boxShadow: isDark ? null : NexoraShadow.card(false),
+            if (res.artists.isNotEmpty && showArtists) ...[
+              SliverToBoxAdapter(
+                child: _ResultHeader(
+                  label: 'Artists',
+                  count: res.artists.length,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < res.playlists.length; i++) ...[
-                        _PlaylistResultTile(playlist: res.playlists[i]),
-                        if (i != res.playlists.length - 1)
-                          Divider(
-                            color: AppColors.hairline,
-                            height: 0.5,
-                            thickness: 0.5,
-                            indent: 70,
-                            endIndent: 0,
-                          ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border, width: 0.7),
+                    boxShadow: isDark ? null : NexoraShadow.card(false),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < res.artists.length; i++) ...[
+                          _ArtistResultTile(artist: res.artists[i]),
+                          if (i != res.artists.length - 1)
+                            Divider(
+                              color: AppColors.hairline,
+                              height: 0.5,
+                              thickness: 0.5,
+                              indent: 70,
+                              endIndent: 0,
+                            ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ],
+            if (res.playlists.isNotEmpty && showPlaylists) ...[
+              SliverToBoxAdapter(
+                child: _ResultHeader(
+                  label: 'Playlists',
+                  count: res.playlists.length,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border, width: 0.7),
+                    boxShadow: isDark ? null : NexoraShadow.card(false),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < res.playlists.length; i++) ...[
+                          _PlaylistResultTile(playlist: res.playlists[i]),
+                          if (i != res.playlists.length - 1)
+                            Divider(
+                              color: AppColors.hairline,
+                              height: 0.5,
+                              thickness: 0.5,
+                              indent: 70,
+                              endIndent: 0,
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SliverToBoxAdapter(
+              child: SizedBox(height: NexoraSpacing.dockBottomReserve),
+            ),
           ],
         );
       },
@@ -697,144 +728,86 @@ class _ResultHeader extends StatelessWidget {
   }
 }
 
-class _SongResultList extends ConsumerWidget {
+/// Virtualized song hits — one [NexoraTrackRow] per sliver item so 50+
+/// results recycle instead of building a single giant Column. Same row
+/// language as Library (index, artwork, favorite/download dots, anchored
+/// overflow menu) with hairline separators.
+class _SongResultSliver extends ConsumerWidget {
   final List<dynamic> songs;
-  const _SongResultList({required this.songs});
+  const _SongResultSliver({required this.songs});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentId = ref.watch(playerProvider).currentTrack?.id;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 0.7),
-        boxShadow: AppColors.mode == AppThemeMode.dark
-            ? null
-            : NexoraShadow.card(false),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          children: [
-            for (var i = 0; i < songs.length; i++) ...[
-              _SongResultTile(
-                song: songs[i],
-                isPlaying: currentId == songs[i].id,
-                onTap: () => ref
-                    .read(playerProvider.notifier)
-                    .playSongs(songs.cast(), initialIndex: i),
-              ),
-              if (i != songs.length - 1)
-                Divider(
-                  color: AppColors.hairline,
-                  height: 0.5,
-                  thickness: 0.5,
-                  indent: 70,
-                  endIndent: 0,
-                ),
-            ],
-          ],
-        ),
-      ),
+    final currentId = ref.watch(
+      playerProvider.select((s) => s.currentTrack?.id),
     );
-  }
-}
-
-class _SongResultTile extends StatelessWidget {
-  final dynamic song;
-  final bool isPlaying;
-  final VoidCallback onTap;
-  const _SongResultTile({
-    required this.song,
-    required this.isPlaying,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: AppColors.surfaceRaised,
-                  image: song.coverUrl != null
-                      ? DecorationImage(
-                          image: NetworkImage(song.coverUrl!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: song.coverUrl == null
-                    ? Icon(
-                        Icons.music_note_rounded,
-                        color: AppColors.textDim,
-                        size: 20,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      song.title ?? '—',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: isPlaying ? AppColors.accent : AppColors.text,
-                        fontWeight: isPlaying
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        fontSize: 14.5,
-                        letterSpacing: -0.1,
-                      ),
+    final isPlaying = ref.watch(playerProvider.select((s) => s.isPlaying));
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    return SliverList.builder(
+      itemCount: songs.length,
+      itemBuilder: (c, i) {
+        final song = songs[i];
+        final isCurrent = currentId == song.id;
+        String? subtitle;
+        try {
+          subtitle = song.artist as String? ?? 'Unknown';
+        } catch (_) {
+          subtitle = 'Unknown';
+        }
+        String? durationLabel;
+        try {
+          final secs = song.duration as int?;
+          if (secs != null) {
+            durationLabel = formatDuration(Duration(seconds: secs));
+          }
+        } catch (_) {}
+        String? cover;
+        try {
+          cover = song.coverUrl as String?;
+        } catch (_) {}
+        bool fav = false;
+        try {
+          fav = (song.isFavorite as bool?) ?? false;
+        } catch (_) {}
+        String songId = '';
+        try {
+          songId = (song.id as String?) ?? '';
+        } catch (_) {}
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NexoraTrackRow(
+              artworkUrl: cover,
+              title: (song.title as String?) ?? '-',
+              subtitle: subtitle,
+              duration: durationLabel,
+              indexLabel: (i + 1).toString().padLeft(2, '0'),
+              isCurrent: isCurrent,
+              isPlaying: isCurrent && isPlaying,
+              isFavorite: fav,
+              isDownloaded: downloadedIds.contains(songId),
+              onTap: () => ref
+                  .read(playerProvider.notifier)
+                  .playSongs(songs.cast(), initialIndex: i),
+              onMoreAt: (anchor) {
+                try {
+                  showTrackMenuBox(
+                    context: context,
+                    anchor: anchor,
+                    options: trackMenuOptions(
+                      ref: ref,
+                      context: context,
+                      song: song,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      song.artist ?? 'Unknown',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (song.duration != null)
-                Text(
-                  formatDuration(Duration(seconds: song.duration as int? ?? 0)),
-                  style: TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              const SizedBox(width: 6),
-              Icon(
-                isPlaying ? Icons.graphic_eq_rounded : Icons.play_arrow_rounded,
-                size: 18,
-                color: isPlaying ? AppColors.accent : AppColors.textFaint,
-              ),
-            ],
-          ),
-        ),
-      ),
+                  );
+                } catch (_) {}
+              },
+            ),
+            if (i != songs.length - 1)
+              const NexoraDivider(indent: 64, endIndent: 12),
+          ],
+        );
+      },
     );
   }
 }
@@ -863,7 +836,7 @@ class _AlbumSearchCard extends StatelessWidget {
             ArtworkImage(
               url: coverUrl,
               size: 140,
-              borderRadius: 10,
+              borderRadius: 14,
               showShadow: true,
             ),
             const SizedBox(height: 10),

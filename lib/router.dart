@@ -186,8 +186,9 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell>
     with TickerProviderStateMixin {
-  /// Whether the whole bottom dock (mini + nav) is currently on screen.
-  /// Scroll down → dock slides away together. Scroll up / top → returns.
+  /// Whether the nav bar is currently on screen. The mini player is
+  /// pinned whenever a track exists (it never auto-hides) — only the
+  /// nav slides away on scroll-down and returns on scroll-up/top.
   bool _dockVisible = true;
 
   /// Spring-driven controller for the dock slide & fade.
@@ -280,9 +281,9 @@ class _AppShellState extends ConsumerState<AppShell>
   void _setDockVisible(bool v) {
     if (_dockVisible == v) return;
     setState(() => _dockVisible = v);
-    // 0 = visible, 1 = hidden below the screen edge.
-    // Mini + nav move together as one floating dock — the mini never
-    // slides behind / into the nav bar.
+    // 0 = nav visible, 1 = nav hidden below the screen edge.
+    // The mini stays pinned (see _BottomDock) — it sinks to the bottom
+    // edge instead of leaving, so playback is never lost while browsing.
     _springTo(_dockController, v ? 0.0 : 1.0);
   }
 
@@ -294,10 +295,11 @@ class _AppShellState extends ConsumerState<AppShell>
     return 0;
   }
 
-  /// Scroll-direction driven dock visibility:
-  ///  • scrolling down  → whole dock (mini + nav) slides away together
-  ///  • scrolling up    → whole dock returns together
-  /// The mini never moves relative to the nav, so it can't overlap it.
+  /// Scroll-direction driven nav visibility (mini stays pinned):
+  ///  • scrolling down  → nav slides away, mini sinks to bottom edge
+  ///  • scrolling up    → nav returns above the mini
+  /// The mini never hides while a track exists, so it can't slide into
+  /// / behind the nav bar and playback stays reachable.
   bool _onUserScroll(UserScrollNotification notification) {
     final metrics = notification.metrics;
 
@@ -315,7 +317,9 @@ class _AppShellState extends ConsumerState<AppShell>
     switch (notification.direction) {
       case ScrollDirection.reverse:
         // Content moving up = user scrolling down the list.
-        if (_dockVisible && metrics.pixels > 60) {
+        // 96px threshold avoids hiding on small flicks / carousel
+        // overscroll — dock is playback chrome, not content.
+        if (_dockVisible && metrics.pixels > 96) {
           _setDockVisible(false);
         }
         break;
@@ -415,20 +419,19 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 }
 
-/// Bottom dock — floating rounded mini + floating rounded nav.
+/// Bottom dock — pinned mini + hiding nav.
 ///
 /// Pattern: `[content] / [floating mini card] / [floating rounded nav]`.
 /// No full-bleed background — only two rounded glass pills are visible.
-/// On scroll-down the whole dock slides down off-screen together;
-/// on scroll-up it returns together. Mini never moves relative to nav,
-/// so it can't slide into / behind the nav bar.
+/// On scroll-down the nav slides off-screen while the mini sinks to the
+/// bottom edge and stays reachable; on scroll-up the nav returns above
+/// it. The mini never hides while a track exists.
 class _BottomDock extends ConsumerWidget {
   final Animation<double> dockController;
   final double bottomInset;
   final Widget navBar;
   final VoidCallback onOpenPlayer;
 
-  static const double _miniHeight = 68;
   static const double _gap = 8;
   static const double _navHeight = 68;
   static const double _sideMargin = 12;
@@ -446,52 +449,63 @@ class _BottomDock extends ConsumerWidget {
     final hasTrack = ref.watch(
       playerProvider.select((s) => s.currentTrack != null),
     );
-    // Estimated dock height for the hide translation distance.
-    final double dockHeight =
-        _navHeight +
-        (hasTrack ? _miniHeight + _gap : 0) +
-        bottomInset +
-        _bottomMargin +
-        24;
+    // Nav fully off-screen; pinned mini sinks by nav+gap to dock at the
+    // bottom edge instead of floating mid-screen.
+    final double navTravel = _navHeight + bottomInset + _bottomMargin + 24;
+    const double miniSink = _navHeight + _gap;
 
-    return AnimatedBuilder(
-      animation: dockController,
-      builder: (context, child) {
-        final t = dockController.value.clamp(0.0, 1.0);
-        final opacity = (1.0 - t * 1.2).clamp(0.0, 1.0);
-        return Transform.translate(
-          offset: Offset(0, dockHeight * t),
-          child: Opacity(
-            opacity: opacity,
-            child: IgnorePointer(ignoring: t > 0.15, child: child),
-          ),
-        );
-      },
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          _sideMargin,
-          0,
-          _sideMargin,
-          bottomInset + _bottomMargin,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (hasTrack) ...[
-                    MiniPlayer(onTap: onOpenPlayer),
-                    const SizedBox(height: _gap),
-                  ],
-                  // Floating rounded nav — the only nav background.
-                  navBar,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        _sideMargin,
+        0,
+        _sideMargin,
+        bottomInset + _bottomMargin,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasTrack) ...[
+                  AnimatedBuilder(
+                    animation: dockController,
+                    builder: (context, child) {
+                      final t = dockController.value.clamp(0.0, 1.0);
+                      return Transform.translate(
+                        offset: Offset(0, miniSink * t),
+                        child: child,
+                      );
+                    },
+                    child: Semantics(
+                      label: 'Mini player',
+                      button: true,
+                      child: MiniPlayer(onTap: onOpenPlayer),
+                    ),
+                  ),
+                  const SizedBox(height: _gap),
                 ],
-              ),
+                // Floating rounded nav — the only nav background.
+                AnimatedBuilder(
+                  animation: dockController,
+                  builder: (context, child) {
+                    final t = dockController.value.clamp(0.0, 1.0);
+                    final opacity = (1.0 - t * 1.2).clamp(0.0, 1.0);
+                    return Transform.translate(
+                      offset: Offset(0, navTravel * t),
+                      child: Opacity(
+                        opacity: opacity,
+                        child: IgnorePointer(ignoring: t > 0.15, child: child),
+                      ),
+                    );
+                  },
+                  child: Semantics(label: 'Main navigation', child: navBar),
+                ),
+              ],
             ),
           ),
         ),

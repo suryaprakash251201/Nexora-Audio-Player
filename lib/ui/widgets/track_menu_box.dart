@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/download/download_manager.dart';
+import '../../core/errors/exceptions.dart';
 import '../../data/api/shares_api.dart';
 import '../../data/api/tags_api.dart';
 import '../../data/dto/file_dto.dart';
@@ -75,16 +76,33 @@ Future<void> toggleDownload(
       say('Download removed', severity: NexoraSnackSeverity.success);
       return;
     }
-    final url =
-        song.streamUrl ??
-        await ref.read(songsRepositoryProvider).streamUrl(song.id);
-    final saved = await manager.downloadTrack(song, url);
-    if (saved == null) {
-      say(
-        'Download failed — check connection and storage',
-        severity: NexoraSnackSeverity.error,
-      );
-      return;
+    // Always rebuild the URL with a fresh token — a cached streamUrl can
+    // carry a stale/expired token and fail with 401 on the server.
+    final url = await ref.read(songsRepositoryProvider).streamUrl(song.id);
+    try {
+      await manager.downloadTrack(song, url);
+    } on ApiException catch (e) {
+      // One retry with a rebuilt URL on auth/miss failures (covers the
+      // stale-token and rotated-server cases before blaming the user).
+      if (e.statusCode == 401 || e.statusCode == 403 || e.statusCode == 404) {
+        final fresh = await ref
+            .read(songsRepositoryProvider)
+            .streamUrl(song.id);
+        if (fresh != url) {
+          try {
+            await manager.downloadTrack(song, fresh);
+          } on ApiException catch (e2) {
+            say(e2.message, severity: NexoraSnackSeverity.error);
+            return;
+          }
+        } else {
+          say(e.message, severity: NexoraSnackSeverity.error);
+          return;
+        }
+      } else {
+        say(e.message, severity: NexoraSnackSeverity.error);
+        return;
+      }
     }
     ids.markDownloaded(song.id);
     say(
@@ -92,7 +110,10 @@ Future<void> toggleDownload(
       severity: NexoraSnackSeverity.success,
     );
   } catch (e) {
-    say('Download failed: $e', severity: NexoraSnackSeverity.error);
+    say(
+      'Download failed: ${e.toString().replaceFirst('Exception: ', '')}',
+      severity: NexoraSnackSeverity.error,
+    );
   }
 }
 

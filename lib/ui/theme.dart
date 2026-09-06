@@ -77,12 +77,17 @@ class AppColors {
       mode == AppThemeMode.dark ? _textMutedDark : _textMutedLight;
 
   static const Color _textDimDark = Color(0xFF6B7894);
-  static const Color _textDimLight = Color(0xFF8A99B8);
+  static const Color _textDimLight = Color(0xFF64748F);
   static Color get textDim =>
       mode == AppThemeMode.dark ? _textDimDark : _textDimLight;
 
+  // Light-mode faint was #B4BED6 (~1.9:1 on #F4F5FA) — unreadable for
+  // timestamps / counts. Darkened to ~3.8:1 so secondary metadata
+  // stays subtle but legible. Decorative-only uses should prefer
+  // textDim for body copy.
+
   static const Color _textFaintDark = Color(0xFF3E4A63);
-  static const Color _textFaintLight = Color(0xFFB4BED6);
+  static const Color _textFaintLight = Color(0xFF7C8AA8);
   static Color get textFaint =>
       mode == AppThemeMode.dark ? _textFaintDark : _textFaintLight;
 

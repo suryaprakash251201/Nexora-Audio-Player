@@ -14,6 +14,7 @@ import '../../../domain/entities/artist.dart';
 import '../../../domain/entities/playlist.dart';
 import '../../../ui/widgets/playlist_cover.dart';
 import '../../../ui/widgets/track_menu_box.dart';
+import '../../../ui/nexora/nexora_page_header.dart';
 import '../../../ui/nexora/nexora_primitives.dart';
 import '../../../ui/nexora/nexora_rows.dart';
 import '../../../ui/nexora/nexora_tokens.dart';
@@ -61,45 +62,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         bottom: false,
         child: Column(
           children: [
-            // Page header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Library',
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            height: 1.05,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Your collection, organized.',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 13.5,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  NexoraIconButton(
-                    icon: Icons.search_rounded,
-                    onTap: () => context.go('/search'),
-                    tooltip: 'Search',
-                  ),
-                ],
-              ),
+            // Unified header — same 32px rhythm as Search/Settings.
+            NexoraPageHeader(
+              title: 'Library',
+              subtitle: 'Your collection, organized.',
+              actions: [
+                NexoraIconButton(
+                  icon: Icons.search_rounded,
+                  onTap: () => context.go('/search'),
+                  tooltip: 'Search library',
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             _SegmentedTabs(controller: _tab, tabs: _tabs),
@@ -146,46 +119,53 @@ class _SegmentedTabs extends StatelessWidget {
             animation: controller,
             builder: (c, _) {
               final selected = controller.index == i;
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => controller.animateTo(i),
-                  borderRadius: BorderRadius.circular(24),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 240),
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: selected ? AppColors.accentGradient : null,
-                      color: selected ? null : AppColors.card,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: selected
-                            ? Colors.white.withValues(alpha: 0.20)
-                            : AppColors.border.withValues(alpha: 0.9),
-                        width: 0.8,
+              return Semantics(
+                selected: selected,
+                button: true,
+                label: '${tabs[i]} tab',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => controller.animateTo(i),
+                    borderRadius: BorderRadius.circular(24),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 240),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 11,
                       ),
-                      boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.30),
-                                blurRadius: 16,
-                                offset: const Offset(0, 5),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      tabs[i],
-                      style: TextStyle(
-                        color: selected ? Colors.white : AppColors.text,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.1,
+                      decoration: BoxDecoration(
+                        gradient: selected ? AppColors.accentGradient : null,
+                        color: selected ? null : AppColors.card,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: selected
+                              ? Colors.white.withValues(alpha: 0.20)
+                              : AppColors.border.withValues(alpha: 0.9),
+                          width: 0.8,
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.30,
+                                  ),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        tabs[i],
+                        style: TextStyle(
+                          color: selected ? Colors.white : AppColors.text,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.1,
+                        ),
                       ),
                     ),
                   ),
@@ -209,7 +189,11 @@ class _SongsTab extends ConsumerStatefulWidget {
   ConsumerState<_SongsTab> createState() => _SongsTabState();
 }
 
-class _SongsTabState extends ConsumerState<_SongsTab> {
+class _SongsTabState extends ConsumerState<_SongsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   int _page = 1;
   final _songs = <Song>[];
   bool _loading = true;
@@ -263,8 +247,10 @@ class _SongsTabState extends ConsumerState<_SongsTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null)
+    super.build(context);
+    if (_error != null) {
       return ErrorView(message: _error!, onRetry: () => _load(refresh: true));
+    }
     if (_loading && _songs.isEmpty) return const LoadingView();
     if (_songs.isEmpty)
       return const EmptyView(

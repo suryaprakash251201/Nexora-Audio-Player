@@ -52,7 +52,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 168),
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              8,
+              16,
+              NexoraSpacing.dockBottomReserve,
+            ),
             sliver: SliverList.list(
               children: [
                 _SectionGroup(
