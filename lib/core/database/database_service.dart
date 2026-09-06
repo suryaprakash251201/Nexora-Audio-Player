@@ -2,6 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../logging/app_logger.dart';
+
 final databaseProvider = Provider<DatabaseService>((ref) {
   return DatabaseService();
 });
@@ -15,6 +17,36 @@ class DatabaseService {
     return _database!;
   }
 
+  /// Best-effort SQLite pragmas. Extracted for testability — see
+  /// `test/unit/database_service_test.dart` (iOS `journal_mode` regression).
+  static Future<void> configureDb(Database db) async {
+    // PRAGMAs must never brick the database. On Apple platforms
+    // (sqflite_darwin) a row-returning PRAGMA run via execute()
+    // throws DatabaseException Code=0 "not an error", which used to
+    // fail openDatabase entirely — breaking downloads, cache,
+    // history, queue restore, favorites and the sync queue on
+    // iOS/macOS. So every pragma here is best-effort with a logged
+    // fallback to platform defaults.
+    try {
+      await db.execute('PRAGMA foreign_keys = ON');
+    } catch (e) {
+      AppLogger.cache('PRAGMA foreign_keys failed (non-fatal): $e');
+    }
+    try {
+      // journal_mode RETURNS a row (wal/delete/memory), so it must be
+      // queried, not executed — execute() throws on iOS/macOS.
+      final mode = await db.rawQuery('PRAGMA journal_mode = WAL');
+      final applied = mode.isNotEmpty
+          ? mode.first.values.first.toString()
+          : 'unknown';
+      AppLogger.cache('SQLite journal mode: $applied');
+    } catch (e) {
+      AppLogger.cache(
+        'WAL journal mode unavailable, using default (non-fatal): $e',
+      );
+    }
+  }
+
   Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'nexora_audio.db');
@@ -22,10 +54,7 @@ class DatabaseService {
     return await openDatabase(
       path,
       version: 2,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-        await db.execute('PRAGMA journal_mode = WAL');
-      },
+      onConfigure: configureDb,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
