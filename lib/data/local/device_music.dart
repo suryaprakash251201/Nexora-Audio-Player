@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 import '../../core/logging/app_logger.dart';
+import '../../core/storage/local_artwork_cache.dart';
 import '../../domain/entities/song.dart';
 
 final deviceMusicProvider = Provider<DeviceMusicService>((ref) {
@@ -22,12 +23,33 @@ final deviceSongsProvider = FutureProvider<List<Song>>((ref) async {
   return ref.watch(deviceMusicProvider).loadSongs();
 });
 
+/// Cached file:// artwork URI for one on-device song (by platform media
+/// id), or null while loading / when the track has no embedded art.
+/// Disk cache survives restarts; memory map dedupes in-flight rows.
+final deviceArtworkProvider = FutureProvider.family<String?, int>((
+  ref,
+  mediaId,
+) async {
+  return ref.watch(deviceMusicProvider).artworkUri(mediaId);
+});
+
+/// Platform media id behind a device song id (`device_<id>`), or null
+/// for anything else. Pure + unit-tested.
+int? deviceMediaIdOf(Song song) {
+  const prefix = 'device_';
+  if (!song.id.startsWith(prefix)) return null;
+  return int.tryParse(song.id.substring(prefix.length));
+}
+
 /// On-device system music: Android MediaStore + iOS MPMediaLibrary.
 ///
 /// Playback needs no new engine work — [Song.localPath] / [Song.streamUrl]
 /// flow through the existing queue → audio_handler file/asset playback.
 class DeviceMusicService {
-  final OnAudioQuery _query = OnAudioQuery();
+  final OnAudioQuery _query;
+  final Map<int, String?> _artworkMem = {};
+
+  DeviceMusicService({OnAudioQuery? query}) : _query = query ?? OnAudioQuery();
 
   Future<bool> hasPermission() async {
     try {
@@ -59,6 +81,37 @@ class DeviceMusicService {
     } catch (e) {
       AppLogger.cache('Device music query failed: $e');
       return const [];
+    }
+  }
+
+  /// Embedded artwork for one platform song, cached to a temp file.
+  /// Small JPEG keeps rows light; failures degrade to null (placeholder).
+  Future<String?> artworkUri(int mediaId) async {
+    if (_artworkMem.containsKey(mediaId)) return _artworkMem[mediaId];
+    try {
+      final fileName = '$mediaId.jpg';
+      final hit = await readCachedArtworkUri(fileName);
+      if (hit != null) {
+        _artworkMem[mediaId] = hit;
+        return hit;
+      }
+      final bytes = await _query.queryArtwork(
+        mediaId,
+        ArtworkType.AUDIO,
+        format: ArtworkFormat.JPEG,
+        size: 200,
+      );
+      if (bytes == null || bytes.isEmpty) {
+        _artworkMem[mediaId] = null;
+        return null;
+      }
+      final uri = await writeCachedArtwork(fileName, bytes);
+      _artworkMem[mediaId] = uri;
+      return uri;
+    } catch (e) {
+      AppLogger.cache('Device artwork failed for $mediaId: $e');
+      _artworkMem[mediaId] = null;
+      return null;
     }
   }
 }

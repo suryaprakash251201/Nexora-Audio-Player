@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/artwork_image.dart' show nexoraArtworkCache;
+import 'file_artwork_image.dart';
 import 'nexora_tokens.dart';
 
 /// Modern album artwork — soft 14px radius, hairline rim, layered shadow.
@@ -44,25 +45,36 @@ class NexoraArtwork extends StatelessWidget {
               ]
             : null,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: url != null && url!.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: url!,
-                width: size,
-                height: size,
-                fit: fit,
-                cacheManager: nexoraArtworkCache,
-                errorWidget: (_, __, ___) =>
-                    _Placeholder(size: size, icon: placeholderIcon),
-                progressIndicatorBuilder: (c, u, p) => _Placeholder(
-                  size: size,
-                  icon: placeholderIcon,
-                  loading: true,
-                ),
-              )
-            : _Placeholder(size: size, icon: placeholderIcon),
-      ),
+      child: ClipRRect(borderRadius: radius, child: _image()),
+    );
+  }
+
+  Widget _image() {
+    if (url == null || url!.isEmpty) {
+      return _Placeholder(size: size, icon: placeholderIcon);
+    }
+    // On-disk artwork (e.g. cached on-device song covers): render via
+    // Image.file so file:// URIs work on every native platform.
+    // Everything else keeps the shared HTTP disk cache.
+    if (isFileArtworkUri(url)) {
+      return buildFileArtworkImage(
+        url: url!,
+        width: size,
+        height: size,
+        fit: fit,
+        errorWidget: _Placeholder(size: size, icon: placeholderIcon),
+      );
+    }
+    return CachedNetworkImage(
+      imageUrl: url!,
+      width: size,
+      height: size,
+      fit: fit,
+      cacheManager: nexoraArtworkCache,
+      errorWidget: (_, __, ___) =>
+          _Placeholder(size: size, icon: placeholderIcon),
+      progressIndicatorBuilder: (c, u, p) =>
+          _Placeholder(size: size, icon: placeholderIcon, loading: true),
     );
   }
 }

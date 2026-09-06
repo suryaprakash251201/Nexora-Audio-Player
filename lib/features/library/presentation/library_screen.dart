@@ -973,13 +973,19 @@ class _DeviceTab extends ConsumerWidget {
                 itemBuilder: (c, i) {
                   if (i == 0) return _DeviceHeader(count: list.length);
                   final s = list[i - 1];
+                  // Embedded cover via temp-file cache (null → placeholder
+                  // tile while loading or when the track has no art).
+                  final mediaId = deviceMediaIdOf(s);
+                  final art = mediaId == null
+                      ? null
+                      : ref.watch(deviceArtworkProvider(mediaId)).value;
                   final isCurrent =
                       ref.watch(
                         playerProvider.select((p) => p.currentTrack?.id),
                       ) ==
                       _deviceTrackId(s);
                   return NexoraTrackRow(
-                    artworkUrl: s.coverUrl,
+                    artworkUrl: art ?? s.coverUrl,
                     title: s.title,
                     subtitle:
                         '${s.artist ?? 'Unknown'} • ${s.album ?? 'On this device'}',
