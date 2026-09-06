@@ -33,22 +33,39 @@ class NexoraApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final pref = ref.watch(themeModeProvider);
-    final systemBrightness = MediaQuery.of(context).platformBrightness;
-    final mode = ThemeNotifier.resolve(pref, systemBrightness);
-    // Point the global palette at the resolved mode so that every screen that
-    // reads AppColors during build resolves the matching colors.
-    AppColors.mode = mode;
-    final isDark = mode == AppThemeMode.dark;
+    // Seed the global palette synchronously for the first frame. The
+    // MaterialApp builder below reconciles it against the real MediaQuery
+    // (system brightness) before any route builds, so there is no flash.
+    AppColors.mode = ThemeNotifier.resolve(
+      pref,
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
 
     return MaterialApp.router(
-      key: ValueKey(mode), // remount the tree so every AppColors read refreshes
+      // NOTE: no ValueKey(mode) here — remounting MaterialApp on theme
+      // change disposes the Navigator and drops the back stack, landing
+      // back-navigation on a blank page. Both palettes are provided up
+      // front instead; only shell *contents* refresh (see AppShell's
+      // KeyedSubtree), leaving navigation state intact.
       title: 'Nexora Audio Player',
       debugShowCheckedModeBanner: false,
-      // A single theme resolved for the active mode. AppColors.mode is set
-      // above so the palette reads match, and the key remount refreshes every
-      // screen the moment the user switches light/dark.
-      theme: AppTheme.themeFor(mode),
-      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+      theme: AppTheme.themeFor(AppThemeMode.light),
+      darkTheme: AppTheme.themeFor(AppThemeMode.dark),
+      themeMode: switch (pref) {
+        AppThemePreference.light => ThemeMode.light,
+        AppThemePreference.dark => ThemeMode.dark,
+        AppThemePreference.system => ThemeMode.system,
+      },
+      builder: (context, child) {
+        // Runs below MaterialApp, so MediaQuery is available. Resolves
+        // `system` via real brightness and syncs the AppColors global
+        // before routes build (covers login/player outside the shell too).
+        AppColors.mode = ThemeNotifier.resolve(
+          pref,
+          MediaQuery.platformBrightnessOf(context),
+        );
+        return child ?? const SizedBox.shrink();
+      },
       routerConfig: router,
     );
   }

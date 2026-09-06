@@ -408,8 +408,21 @@ class AppTypography {
 }
 
 class AppTheme {
+  /// Pure: builds a ThemeData for [mode] WITHOUT mutating the global
+  /// [AppColors.mode]. Callers set the global explicitly (see NexoraApp's
+  /// MaterialApp builder + AppShell), so constructing both light and dark
+  /// themes up front can't clobber the active palette.
   static ThemeData themeFor(AppThemeMode mode) {
+    final was = AppColors.mode;
     AppColors.mode = mode;
+    try {
+      return _themeFor(mode);
+    } finally {
+      AppColors.mode = was;
+    }
+  }
+
+  static ThemeData _themeFor(AppThemeMode mode) {
     final isDark = mode == AppThemeMode.dark;
 
     final colorScheme = isDark

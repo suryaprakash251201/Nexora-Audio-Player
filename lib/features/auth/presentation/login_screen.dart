@@ -62,7 +62,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authStateProvider.notifier).login(user, pass, serverRaw);
-      if (mounted) context.go('/');
+      // No manual navigation: login flips auth state, routerProvider
+      // rebuilds with a NEW GoRouter, and its redirect sends /login → /.
+      // Calling context.go here would drive the OLD (detached) router
+      // and can strand navigation on a blank page.
     } catch (e) {
       final failure = Failure.fromException(e);
       final code = failure.code != null ? ' [${failure.code}]' : '';

@@ -58,7 +58,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
           backgroundColor: Colors.transparent,
           leading: IconButton(
             icon: const Icon(Icons.keyboard_arrow_down),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
           ),
         ),
         body: Center(
@@ -195,8 +195,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
                 }
                 // Vertical: down dismiss / up queue (existing behavior)
                 if (dy > dx) {
-                  if (vy > 380 && Navigator.canPop(context)) {
-                    Navigator.pop(context);
+                  if (vy > 380 && context.canPop()) {
+                    context.pop();
                   } else if (vy < -420) {
                     _showQueue(context);
                   }
@@ -209,7 +209,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen> {
               child: Column(
                 children: [
                   PlayerTopBar(
-                    onClose: () => Navigator.pop(context),
+                    onClose: () => context.pop(),
                     onMode: () => _showVisualModeSheet(context, ref),
                   ),
                   // FIXED STAGE — no scroll on any mode. Artwork scales to

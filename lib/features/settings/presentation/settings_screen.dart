@@ -26,7 +26,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serverInfo = ref.watch(_serverInfoProvider);
-    final storage = ref.watch(secureStorageProvider);
+    final serverUrl = ref.watch(_serverUrlProvider);
     final isDark = AppColors.mode == AppThemeMode.dark;
 
     return Scaffold(
@@ -270,15 +270,36 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'SERVER',
                   accent: AppColors.success,
                   children: [
-                    FutureBuilder<String?>(
-                      future: storage.getServerUrl(),
-                      builder: (c, snap) => _SettingTile(
+                    serverUrl.when(
+                      data: (url) => _SettingTile(
                         icon: Icons.dns_rounded,
                         iconBg: AppColors.textMuted.withValues(
                           alpha: isDark ? 0.14 : 0.08,
                         ),
                         iconColor: AppColors.textMuted,
-                        title: snap.data ?? 'Not configured',
+                        title: url ?? 'Not configured',
+                        subtitle: 'Tap to configure server URL',
+                        showChevron: true,
+                        onTap: () => context.push('/server-setup'),
+                      ),
+                      loading: () => _SettingTile(
+                        icon: Icons.dns_rounded,
+                        iconBg: AppColors.textMuted.withValues(
+                          alpha: isDark ? 0.14 : 0.08,
+                        ),
+                        iconColor: AppColors.textMuted,
+                        title: 'Loading…',
+                        subtitle: 'Tap to configure server URL',
+                        showChevron: true,
+                        onTap: () => context.push('/server-setup'),
+                      ),
+                      error: (_, __) => _SettingTile(
+                        icon: Icons.dns_rounded,
+                        iconBg: AppColors.textMuted.withValues(
+                          alpha: isDark ? 0.14 : 0.08,
+                        ),
+                        iconColor: AppColors.textMuted,
+                        title: 'Not configured',
                         subtitle: 'Tap to configure server URL',
                         showChevron: true,
                         onTap: () => context.push('/server-setup'),
@@ -383,7 +404,10 @@ class SettingsScreen extends ConsumerWidget {
                       );
                       if (ok == true) {
                         await ref.read(authStateProvider.notifier).logout();
-                        if (context.mounted) context.go('/login');
+                        // No manual navigation: logout flips auth state,
+                        // routerProvider rebuilds, and its redirect sends
+                        // any page → /login. Driving the old router here
+                        // can strand navigation on a blank page.
                       }
                     },
                   ),
@@ -1109,6 +1133,12 @@ class _PresetChip extends StatelessWidget {
 
 final _serverInfoProvider = FutureProvider(
   (ref) async => ref.watch(serverApiProvider).getServerInfo(),
+);
+
+/// Cached server URL for the SERVER tile — a provider, not a per-build
+/// FutureBuilder future, so rebuilds don't refire secure-storage reads.
+final _serverUrlProvider = FutureProvider<String?>(
+  (ref) async => ref.watch(secureStorageProvider).getServerUrl(),
 );
 
 /// Offline storage summary for the STORAGE section.

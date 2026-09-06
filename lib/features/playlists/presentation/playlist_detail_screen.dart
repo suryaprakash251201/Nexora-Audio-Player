@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../data/api/playlists_api.dart';
 import '../../../data/repositories/playlists_repository.dart';
@@ -516,7 +517,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       await ref
                           .read(playlistsRepositoryProvider)
                           .deletePlaylist(widget.playlistId);
-                      if (mounted) Navigator.pop(context);
+                      // Detail page was pushed via context.push — pop it
+                      // through the router so the page stack stays in sync.
+                      if (mounted) context.pop();
                     } catch (e) {
                       if (mounted)
                         showNexoraSnack(

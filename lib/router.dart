@@ -34,6 +34,8 @@ import 'core/sync/sync_manager.dart';
 import 'domain/entities/album.dart';
 import 'domain/entities/artist.dart';
 import 'domain/entities/playlist.dart';
+import 'ui/theme.dart';
+import 'ui/theme_provider.dart';
 import 'ui/widgets/connectivity_banner.dart';
 import 'ui/widgets/enhanced_player_widgets.dart';
 
@@ -166,15 +168,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-// Backwards compatibility for existing main.dart that imports `router`
-final router = GoRouter(
-  initialLocation: '/login',
-  routes: [
-    GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
-    GoRoute(path: '/', builder: (c, s) => const HomeScreen()),
-  ],
-);
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -361,6 +354,14 @@ class _AppShellState extends ConsumerState<AppShell>
     final idx = _indexForLocation(location);
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final topInset = MediaQuery.viewPaddingOf(context).top;
+    // Resolved theme for shell contents (below MaterialApp, so MediaQuery
+    // is available here). Synced to the AppColors global before building.
+    final pref = ref.watch(themeModeProvider);
+    final mode = ThemeNotifier.resolve(
+      pref,
+      MediaQuery.platformBrightnessOf(context),
+    );
+    AppColors.mode = mode;
     WidgetsBinding.instance.addPostFrameCallback((_) => _wireConnectivity());
     // New route (tab switch / push) → reveal dock so it never stays
     // hidden on a fresh list.
@@ -390,7 +391,12 @@ class _AppShellState extends ConsumerState<AppShell>
         children: [
           NotificationListener<UserScrollNotification>(
             onNotification: _onUserScroll,
-            child: widget.child,
+            // Keyed by resolved theme: palette reads (AppColors global)
+            // refresh on theme switch WITHOUT remounting MaterialApp, so
+            // the Navigator and its back stack survive — back never lands
+            // on a blank page. (Trade-off: a theme switch resets tab
+            // scroll/loaded-list state; acceptable for a rare action.)
+            child: KeyedSubtree(key: ValueKey(mode), child: widget.child),
           ),
           // Global offline / back-online banner (auto-hides).
           Positioned(

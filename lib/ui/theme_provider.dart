@@ -17,11 +17,15 @@ class ThemeNotifier extends Notifier<AppThemePreference> {
 
   @override
   AppThemePreference build() {
-    // Try to restore the saved preference.
+    // Try to restore the saved preference. Guarded against disposal:
+    // setting state after the provider is gone throws.
+    var alive = true;
+    ref.onDispose(() => alive = false);
     final prefs = ref.watch(prefsServiceProvider);
     prefs
         .getString(_key)
         .then((v) {
+          if (!alive) return;
           for (final p in AppThemePreference.values) {
             if (p.name == v) {
               state = p;

@@ -33,9 +33,10 @@ Future<NexoraAudioHandler> initAudioService() async {
       androidStopForegroundOnPause: true,
       androidNotificationClickStartsActivity: true,
       androidResumeOnClick: true,
-      // 10s skip shown on lock-screen / Android Auto / headset long-press.
-      fastForwardInterval: Duration(seconds: 10),
-      rewindInterval: Duration(seconds: 10),
+      // No fastForward/rewind intervals: the OS controls are
+      // prev / play-pause / next only (see playbackState controls).
+      // Interval-skip buttons (±seconds) used to crowd out prev/next
+      // on the iOS lock screen / Control Center / notification center.
       // Downscale lock-screen art for fast notification updates.
       artDownscaleWidth: 512,
       artDownscaleHeight: 512,
@@ -180,55 +181,66 @@ class NexoraAudioHandler extends BaseAudioHandler
     _resumePosition = position;
   }
 
+  /// OS-level media controls advertised to the lock screen, notification
+  /// center / Control Center and Android notification.
+  /// Prev / play-pause / stop / next ONLY — rewind/fastForward (±seconds)
+  /// are deliberately NOT advertised: on iOS they surface as skip-interval
+  /// buttons and displace the previous/next track buttons. Scrubbing still
+  /// works via the seek action (progress bar).
+  /// Extracted (not inlined) so unit tests pin the contract.
+  static List<MediaControl> osControls({required bool playing}) => [
+    MediaControl.skipToPrevious,
+    if (playing) MediaControl.pause else MediaControl.play,
+    MediaControl.stop,
+    MediaControl.skipToNext,
+  ];
+
+  /// System actions: seek only (progress scrubber). No seekForward /
+  /// seekBackward — those enable the iOS ±seconds skip commands.
+  static const Set<MediaAction> osSystemActions = {MediaAction.seek};
+
+  /// Compact notification slots: prev / play-pause / next.
+  static const List<int> osCompactIndices = [0, 1, 3];
+
   void _notifyAudioHandlerAboutPlaybackEvents() {
-    _player.playbackEventStream.listen((PlaybackEvent event) {
-      final playing = _player.playing;
-      playbackState.add(
-        playbackState.value.copyWith(
-          controls: [
-            MediaControl.skipToPrevious,
-            MediaControl.rewind,
-            if (playing) MediaControl.pause else MediaControl.play,
-            MediaControl.stop,
-            MediaControl.fastForward,
-            MediaControl.skipToNext,
-          ],
-          systemActions: const {
-            MediaAction.seek,
-            MediaAction.seekForward,
-            MediaAction.seekBackward,
-          },
-          // Compact: prev / play-pause / next (indices into controls above).
-          androidCompactActionIndices: const [0, 2, 5],
-          processingState: const {
-            ProcessingState.idle: AudioProcessingState.idle,
-            ProcessingState.loading: AudioProcessingState.loading,
-            ProcessingState.buffering: AudioProcessingState.buffering,
-            ProcessingState.ready: AudioProcessingState.ready,
-            ProcessingState.completed: AudioProcessingState.completed,
-          }[_player.processingState]!,
-          repeatMode:
-              const {
-                LoopMode.off: AudioServiceRepeatMode.none,
-                LoopMode.one: AudioServiceRepeatMode.one,
-                LoopMode.all: AudioServiceRepeatMode.all,
-              }[_player.loopMode] ??
-              AudioServiceRepeatMode.none,
-          shuffleMode: _player.shuffleModeEnabled
-              ? AudioServiceShuffleMode.all
-              : AudioServiceShuffleMode.none,
-          playing: playing,
-          updatePosition: _player.position,
-          bufferedPosition: _player.bufferedPosition,
-          speed: _player.speed,
-          queueIndex: event.currentIndex,
-        ),
-      );
-    },
-    // A remote stream that dies mid-playback is almost always a network
-    // drop. Feed the connectivity monitor so the app flips offline fast,
-    // and remember the playback position for auto-resume on reconnect.
-    onError: (Object e, StackTrace st) => _onPlaybackError(),
+    _player.playbackEventStream.listen(
+      (PlaybackEvent event) {
+        final playing = _player.playing;
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: osControls(playing: playing),
+            systemActions: osSystemActions,
+            // Compact: prev / play-pause / next (indices into controls above).
+            androidCompactActionIndices: osCompactIndices,
+            processingState: const {
+              ProcessingState.idle: AudioProcessingState.idle,
+              ProcessingState.loading: AudioProcessingState.loading,
+              ProcessingState.buffering: AudioProcessingState.buffering,
+              ProcessingState.ready: AudioProcessingState.ready,
+              ProcessingState.completed: AudioProcessingState.completed,
+            }[_player.processingState]!,
+            repeatMode:
+                const {
+                  LoopMode.off: AudioServiceRepeatMode.none,
+                  LoopMode.one: AudioServiceRepeatMode.one,
+                  LoopMode.all: AudioServiceRepeatMode.all,
+                }[_player.loopMode] ??
+                AudioServiceRepeatMode.none,
+            shuffleMode: _player.shuffleModeEnabled
+                ? AudioServiceShuffleMode.all
+                : AudioServiceShuffleMode.none,
+            playing: playing,
+            updatePosition: _player.position,
+            bufferedPosition: _player.bufferedPosition,
+            speed: _player.speed,
+            queueIndex: event.currentIndex,
+          ),
+        );
+      },
+      // A remote stream that dies mid-playback is almost always a network
+      // drop. Feed the connectivity monitor so the app flips offline fast,
+      // and remember the playback position for auto-resume on reconnect.
+      onError: (Object e, StackTrace st) => _onPlaybackError(),
     );
   }
 
@@ -388,6 +400,10 @@ class NexoraAudioHandler extends BaseAudioHandler
   @override
   Future<void> seek(Duration position) => _player.seek(position);
 
+  // Unadvertised fallbacks: these handlers stay implemented in case a
+  // platform sends the commands anyway (e.g. headset long-press, Android
+  // Auto), but they are NOT in osControls/osSystemActions, so no OS
+  // surface shows ±seconds skip buttons.
   @override
   Future<void> rewind() => _seekBy(const Duration(seconds: -10));
 
