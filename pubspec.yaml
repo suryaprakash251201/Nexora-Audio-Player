@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
   share_plus: ^13.3.0
   dio: ^5.11.0
